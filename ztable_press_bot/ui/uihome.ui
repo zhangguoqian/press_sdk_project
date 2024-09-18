@@ -18,7 +18,7 @@
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidgetMain">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="pageSet">
        <layout class="QGridLayout" name="gridLayout_4">
@@ -364,8 +364,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>26</width>
-                <height>16</height>
+                <width>525</width>
+                <height>73</height>
                </rect>
               </property>
              </widget>

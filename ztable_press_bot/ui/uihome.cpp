@@ -334,7 +334,7 @@ void UiHome::slotComplete() {
 }
 
 void UiHome::setPBnVisible(bool isVisible) {
-    ui->pBnAir->setVisible(isVisible);
+//    ui->pBnAir->setVisible(isVisible);
     ui->pBnSet->setVisible(isVisible);
 //    ui->pBnData->setVisible(isVisible);
 }
