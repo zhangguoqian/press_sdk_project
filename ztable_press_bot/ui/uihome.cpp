@@ -21,7 +21,7 @@ UiHome::UiHome(QWidget *parent) :
         ui(new Ui::UiHome),
         m_MaxStepValue(DEFAULT_MAX_STEP){
     ui->setupUi(this);
-    this->setWindowTitle(UiTr::AppName);
+    this->setWindowTitle(UiTr::AppName + VersionNumber.toString());
     this->resize(APP::AppUiSize());
 
     // ui->statusbar->showMessage("message");

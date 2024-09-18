@@ -6,6 +6,7 @@
 #define ZTABLE_PRESS_BOT_PROJECT_PCRHEAD_H
 
 #include <QSize>
+#include <QVersionNumber>
 #include <cmath>
 #include "data/actualpressdata.h"
 #include "data/readonlysetdata.h"
@@ -20,8 +21,12 @@
 #define PI 3.14159265
 #define DEFAULT_MAX_STEP 15
 
-extern ReadOnlySetData *epReadOnlySetData;
+#define VERSION_MAJ 0
+#define VERSION_MIN 0
+#define VERSION_MIC 1
+extern QVersionNumber VersionNumber(VERSION_MAJ,VERSION_MIN,VERSION_MIC);
 
+extern ReadOnlySetData *epReadOnlySetData;
 
 namespace APP{
     inline QSize AppUiSize() {

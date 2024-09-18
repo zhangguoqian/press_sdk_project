@@ -8,7 +8,7 @@
 #include <QObject>
 
 namespace UiTr{
-    const static QString AppName = qtTrId("自动压片机");
+    const static QString AppName = qtTrId("自动压片机 v");
 }
 
 #endif //ZTABLE_PRESS_BOT_PROJECT_UITRANSLATE_H
