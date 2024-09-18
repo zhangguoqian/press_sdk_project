@@ -46,9 +46,10 @@ file(GLOB_RECURSE UI_SOURCES ui/*.h ui/*.cpp ui/*.ui)
 file(GLOB_RECURSE DATA_SOURCES data/*.h data/*.cpp)
 file(GLOB_RECURSE CONTROL_SOURCES control/*.h control/*.cpp)
 file(GLOB_RECURSE SQL_SOURCES sql/*.h sql/*.cpp)
+file(GLOB_RECURSE LOGO_SOURCES logo.rc)
 
 
-add_executable(${PROJECT_NAME} main.cpp ${UI_SOURCES} ${DATA_SOURCES} ${CONTROL_SOURCES} ${SQL_SOURCES})
+add_executable(${PROJECT_NAME} main.cpp ${UI_SOURCES} ${DATA_SOURCES} ${CONTROL_SOURCES} ${SQL_SOURCES} ${LOGO_SOURCES})
 
 target_link_libraries(${PROJECT_NAME}
         Qt5::Core

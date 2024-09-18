@@ -8,6 +8,7 @@
 #include "ui/uitranslate.h"
 #include "pcrhead.h"
 
+QVersionNumber VersionNumber(VERSION_MAJ,VERSION_MIN,VERSION_MIC);
 ActualPressData *epActualPressData = new ActualPressData();
 ReadOnlySetData *epReadOnlySetData = new ReadOnlySetData();
 DataControl *epDataControl = new DataControl();
