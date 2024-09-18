@@ -42,8 +42,10 @@
 #define DELETE_ONE_PAGE_RESULT "delete FROM Result where No in(select No FROM Result order by No DESC limit %0 offset %1);"
 
 #define SELECT_ONE_PAGE_RESULT "SELECT * FROM Result order by No DESC limit %0 offset %1;"
+#define SELECT_ONE_RESULT "SELECT * FROM Result where No = '%0' and DateTime = '%1';"
 
 #define SELECT_COUNT_RESULT "SELECT COUNT(*) FROM Result;"
+
 DataControl::DataControl() {
 }
 
@@ -127,6 +129,22 @@ bool DataControl::selectDataResultCount(int &count) {
     bool execInfo = sqlQuery.exec(SELECT_COUNT_RESULT);
     while (sqlQuery.next()){
         count = sqlQuery.value(0).toInt();
+    }
+    return execInfo;
+}
+
+bool DataControl::selectDataResult(DataResult &result, int no, QString dateTime) {
+
+    QSqlQuery sqlQuery;
+    bool execInfo = sqlQuery.exec(QString(SELECT_ONE_RESULT).arg(no).arg(dateTime));
+    if(execInfo){
+        while (sqlQuery.next()) {
+            result.s_Id = sqlQuery.value(NO).toInt();
+            result.s_DateTime = sqlQuery.value(DATETIME).toString();
+            result.s_JsonData = sqlQuery.value(JSONDATA).toString();
+            result.s_Complete = sqlQuery.value(COMPLETE).toInt();
+            result.s_Line = sqlQuery.value(LINE).toString();
+        }
     }
     return execInfo;
 }

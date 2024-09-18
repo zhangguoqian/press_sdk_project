@@ -26,6 +26,10 @@ public:
 
     QString lineToJsonString() const;
 
+    void jsonStringToLine(const QString& jsonData);
+
+    void clearPressData();
+
 
 private:
     QValueAxis *mpXAxis;

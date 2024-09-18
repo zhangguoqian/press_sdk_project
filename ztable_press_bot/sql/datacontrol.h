@@ -29,6 +29,8 @@ public:
     bool deleteDataResult(int no,QString dateTime);
     bool deleteCurrentDataResultPage(int begin,int size);
     bool selectDataResultList(DataResultList &resultList, int begin, int size);
+    bool selectDataResult(DataResult &result, int no,QString dateTime);
+
     bool deleteAllResult();
     bool selectDataResultCount(int &count);
 

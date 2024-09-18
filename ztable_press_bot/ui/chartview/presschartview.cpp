@@ -84,13 +84,31 @@ QString PressChartView::lineToJsonString() const {
         jsonArrayX.append(var.x());
         jsonArrayY.append(var.y());
     }
-    QJsonValue jsonValueX = jsonArrayX;
-    QJsonValue jsonValueY = jsonArrayY;
+//    QJsonValue jsonValueX = jsonArrayX;
+//    QJsonValue jsonValueY = jsonArrayY;
     QJsonObject jsonObject;
     jsonObject["X"] = jsonArrayX;
     jsonObject["Y"] = jsonArrayY;
     QJsonDocument jsonDocument;
     jsonDocument.setObject(jsonObject);
     return jsonDocument.toJson(QJsonDocument::JsonFormat::Compact);
+}
+
+void PressChartView::clearPressData() {
+    mpLineSeries->clear();
+}
+
+void PressChartView::jsonStringToLine(const QString& jsonData) {
+    QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonData.toLatin1());
+    QJsonObject jsonObject = jsonDocument.object();
+    QJsonArray jsonArrayX = jsonObject["X"].toArray();
+    QJsonArray jsonArrayY = jsonObject["Y"].toArray();
+    int sizeX = jsonArrayX.size();
+    int sizeY = jsonArrayY.size();
+    if(sizeX==sizeY){
+        for (int i = 0; i < sizeX; ++i) {
+            mpLineSeries->append(jsonArrayX[i].toDouble(),jsonArrayY[i].toDouble());
+        }
+    }
 }
 

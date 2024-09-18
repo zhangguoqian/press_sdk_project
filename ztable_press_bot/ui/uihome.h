@@ -49,9 +49,10 @@ private:
     QVector<QTableWidgetItem*> mpSizeItemList;
     QVector<QTableWidgetItem*> mpMaxPressItemList;
     DataResultList m_DataResultList;
+
     int m_SumDataResultCount;
     int m_CurrentPage;
-    int m_PageSize;
+    int m_SumPage;
 
   private slots:
     //    void slotStepValueChanged(int value);
@@ -68,6 +69,10 @@ private:
 
     /**tableWidget**/
     void slotTableWidgetCustomContextMenuRequested(QPoint point);
+    void slotFirstClicked();
+    void slotTailClicked();
+    void slotPreClicked();
+    void slotNextClicked();
 };
 
 
