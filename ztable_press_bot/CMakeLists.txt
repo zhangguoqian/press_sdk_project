@@ -114,3 +114,5 @@ if(MINGW)
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach ()
 endif (MINGW)
+
+set(CMAKE_C_FLAGS_RELEASE "-mwindows")

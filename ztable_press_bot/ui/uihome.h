@@ -60,6 +60,8 @@ private:
     void slotOpenPortClicked(bool isChecked);
     void slotMachineError(QSerialPort::SerialPortError error);
     void slotStartStopClicked(bool isClicked);
+    void slotPushClicked();
+    void slotPushValueChanged(double value);
     void slotControlDialog(bool isClicked);
     void slotPortName(QString port);
     void slotTimeTimerPress(int step,double setValue,int time, int timer,double press,int liquidPress);

@@ -11,11 +11,13 @@
 
 Machine::Machine(QObject *object) : QThread(object) {
     m_ThreadRunning = false;
+    m_Pushing = false;
     qRegisterMetaType<QSerialPort::SerialPortError>("QSerialPort::SerialPortError");
-
 }
 
 Machine::~Machine() {
+    m_ThreadRunning = false;
+    m_Pushing = false;
     delete mpSerialPort;
 }
 
@@ -113,11 +115,13 @@ void Machine::run() {
         emit signalErrorInfo(1);
     }
 
-
     delete mpElapsedTimer;
     mpSerialPort->closeCom();
     delete mpSerialPort;
-    emit signalComplete();
+    if(!m_Pushing){
+        emit signalComplete();
+    }
+    m_Pushing = false;
 }
 
 void Machine::setPressCmdList(const QVector<PressCmd> &pressCmdList) {
@@ -131,8 +135,16 @@ void Machine::stopMachine() {
 
 void Machine::startMachine() {
     m_ThreadRunning = true;
+    m_Pushing = false;
     this->start(QThread::HighPriority);
 }
+
+void Machine::startPust() {
+    m_ThreadRunning = true;
+    m_Pushing = true;
+    this->start(QThread::HighPriority);
+}
+
 
 bool Machine::machineIsRunning() const {
     return m_ThreadRunning;
@@ -163,4 +175,5 @@ void Machine::slotGetComPortList() {
     }
     emit signalPortName(portName);
 }
+
 

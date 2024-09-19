@@ -26,6 +26,7 @@ public:
     void setPortName(const QString &portName);
     void setPressCmdList(const QVector<PressCmd> &pressCmdList);
     void startMachine();
+    void startPust(); //开始脱模
     void stopMachine();
 
     bool machineIsRunning() const;
@@ -36,6 +37,7 @@ protected:
     SerialPort *mpSerialPort;
     QElapsedTimer *mpElapsedTimer;
     bool m_ThreadRunning;
+    bool m_Pushing;
     QVector<PressCmd> m_PressCmdList;
 
 protected slots:

@@ -78,7 +78,7 @@ void ActualPressData::init(int size) {
     s_D = 30.00;
     s_A = 10.00;
     s_B = 20.00;
-    //	s_PushSet = 5;
+    s_PushSet = 5;
     s_Ups.resize(size);
     s_Downs.resize(size);
     s_Times.resize(size);
@@ -196,6 +196,7 @@ bool ActualPressData::openJsonString(const QByteArray &byteArray) {
 
     s_A = jsonObject["A"].toDouble();
     s_B = jsonObject["B"].toDouble();
+    s_PushSet = jsonObject["PushSet"].toDouble();
 
     QJsonArray arrayUps = jsonObject["Ups"].toArray();
     int size = arrayUps.size();
@@ -226,7 +227,7 @@ QByteArray ActualPressData::saveJsonString() {
 
     jsonObject["A"] = s_A;
     jsonObject["B"] = s_B;
-    //	root["PushSet"] = s_PushSet;
+    jsonObject["PushSet"] = s_PushSet;
 
     QJsonArray jsonArrayUp;
     for(auto &var:s_Ups){
@@ -275,4 +276,14 @@ QString ActualPressData::sizeString() const {
     }else{
         return "错误";
     }
+}
+
+QVector<PressCmd> ActualPressData::getPushCmdList() const {
+    QVector<PressCmd> pressCmdList;
+    pressCmdList.append(PressCmd{0,CmdTypeSet,s_PushSet,s_PushSet-0.3,3});
+    for (int j = 0; j < 3; ++j) {
+        pressCmdList.append(PressCmd{0,CmdTypeGet,s_PushSet,s_PushSet-0.3,0});
+    }
+
+    return pressCmdList;
 }

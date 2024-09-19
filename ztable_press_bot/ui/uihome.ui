@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>889</width>
+    <width>680</width>
     <height>468</height>
    </rect>
   </property>
@@ -159,7 +159,7 @@
            <item row="1" column="0">
             <widget class="QStackedWidget" name="stackedWidget">
              <property name="currentIndex">
-              <number>2</number>
+              <number>1</number>
              </property>
              <widget class="QWidget" name="pageSpecial"/>
              <widget class="QWidget" name="pageCycle">
@@ -300,9 +300,35 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="pBnAir">
+            <widget class="QPushButton" name="pBnPush">
              <property name="text">
               <string>脱模</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QDoubleSpinBox" name="dBoxPushValue">
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+             <property name="buttonSymbols">
+              <enum>QAbstractSpinBox::NoButtons</enum>
+             </property>
+             <property name="minimum">
+              <double>1.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>10.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.100000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelUnitTon">
+             <property name="text">
+              <string>Ton</string>
              </property>
             </widget>
            </item>
@@ -323,9 +349,6 @@
             <widget class="QPushButton" name="pBnStartStop">
              <property name="text">
               <string>启动</string>
-             </property>
-             <property name="checkable">
-              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -364,8 +387,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>525</width>
-                <height>73</height>
+                <width>316</width>
+                <height>75</height>
                </rect>
               </property>
              </widget>
@@ -557,10 +580,24 @@
            <string>数据管理</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_7">
-           <item row="1" column="6">
-            <widget class="QPushButton" name="pBnNext">
+           <item row="1" column="7">
+            <widget class="QPushButton" name="pBnTail">
              <property name="text">
-              <string>下一页</string>
+              <string>尾页</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="QPushButton" name="pBnFirst">
+             <property name="text">
+              <string>首页</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="labelPageValue">
+             <property name="text">
+              <string>0/0</string>
              </property>
             </widget>
            </item>
@@ -578,14 +615,34 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="7">
-            <widget class="QPushButton" name="pBnTail">
+           <item row="1" column="6">
+            <widget class="QPushButton" name="pBnNext">
              <property name="text">
-              <string>尾页</string>
+              <string>下一页</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="0" colspan="8">
+           <item row="1" column="2">
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="1" column="8">
+            <widget class="QPushButton" name="pBnReturn">
+             <property name="text">
+              <string>返回</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="9">
             <widget class="QTableWidget" name="tableWidget">
              <property name="focusPolicy">
               <enum>Qt::NoFocus</enum>
@@ -730,33 +787,6 @@
                <string>最大压力</string>
               </property>
              </column>
-            </widget>
-           </item>
-           <item row="1" column="3">
-            <widget class="QPushButton" name="pBnFirst">
-             <property name="text">
-              <string>首页</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="1" column="1">
-            <widget class="QLabel" name="labelPageValue">
-             <property name="text">
-              <string>0/0</string>
-             </property>
             </widget>
            </item>
           </layout>

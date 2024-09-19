@@ -29,6 +29,7 @@ UiHome::UiHome(QWidget *parent) :
     initConnect();
     setPortWidgetEnabled(false);
     ui->widgetInfo->setVisible(false);
+    ui->pBnControl->setVisible(false);
     ui->stackedWidgetMain->setCurrentIndex(0);
 
     setPBnVisible(false);
@@ -43,6 +44,8 @@ UiHome::UiHome(QWidget *parent) :
     ui->dBoxBValue->setValue(epActualPressData->s_B);
     ui->stackedWidget->setCurrentIndex(epActualPressData->s_Type);
     ui->spinBoxStepValue->setValue(epActualPressData->s_Step);
+    ui->dBoxPushValue->setValue(epActualPressData->s_PushSet);
+    ui->dBoxPushValue->setDecimals(epReadOnlySetData->s_PressPrecision);
     ui->tableWidgetStepList->setStepValueCount(ui->spinBoxStepValue->value());
     setTypeValue(ui->cBoxTypeValue->currentIndex());
 
@@ -82,6 +85,12 @@ void UiHome::initConnect() {
 
     connect(ui->pBnData, SIGNAL(pressed()), this, SLOT(slotDataListWidget()));
 
+    connect(ui->pBnPush,SIGNAL(clicked()), this, SLOT(slotPushClicked()));
+
+    connect(ui->pBnReturn,SIGNAL(clicked()), this, SLOT(close()));
+
+    connect(ui->dBoxPushValue,SIGNAL(valueChanged(double)), this, SLOT(slotPushValueChanged(double)));
+
 //    connect(ui->pBnData, SIGNAL(pressed()),this,SLOT(slotControlWidget()));
 
     connect(epMachine, SIGNAL(signalMachineError(QSerialPort::SerialPortError)), this,
@@ -89,8 +98,8 @@ void UiHome::initConnect() {
 
     connect(this, SIGNAL(signalGetComPortList()), epMachine, SLOT(slotGetComPortList()));
     connect(epMachine, SIGNAL(signalPortName(QString)), this, SLOT(slotPortName(QString)));
-    connect(epMachine, SIGNAL(signalTimeTimerPress(int, double, int, int, double, int)), this,
-            SLOT(slotTimeTimerPress(int, double, int, int, double, int)));
+    connect(epMachine, SIGNAL(signalTimeTimerPress(int,double,int,int,double,int)), this,
+            SLOT(slotTimeTimerPress(int,double,int,int,double,int)));
     connect(epMachine, SIGNAL(signalComplete()), this, SLOT(slotComplete()));
 
 }
@@ -237,6 +246,7 @@ void UiHome::timerEvent(QTimerEvent *event) {
 }
 
 void UiHome::slotOpenPortClicked(bool isChecked) {
+    Q_UNUSED(isChecked);
     if (epMachine->machineIsRunning()) {
         qDebug() << "machine is running.";
     } else {
@@ -246,7 +256,7 @@ void UiHome::slotOpenPortClicked(bool isChecked) {
 
 void UiHome::setPortWidgetEnabled(bool isEnabled) {
     ui->cboBoxTty->setEnabled(!isEnabled);
-    ui->pBnAir->setEnabled(isEnabled);
+    ui->pBnPush->setEnabled(isEnabled);
     ui->pBnStartStop->setEnabled(isEnabled);
 }
 
@@ -263,7 +273,9 @@ void UiHome::slotMachineError(QSerialPort::SerialPortError error) {
 }
 
 void UiHome::slotStartStopClicked(bool isClicked) {
-    if (isClicked) {
+    Q_UNUSED(isClicked);
+    QString text = ui->pBnStartStop->text();
+    if (text=="启动") {
         ui->pBnStartStop->setText("停止");
         epMachine->setPortName(ui->cboBoxTty->currentText());
         epMachine->setPressCmdList(epActualPressData->getPressCmdList());
@@ -285,6 +297,7 @@ void UiHome::slotStartStopClicked(bool isClicked) {
 }
 
 void UiHome::slotControlDialog(bool isClicked) {
+    Q_UNUSED(isClicked)
     ControlDialog controlDialog;
     controlDialog.exec();
 }
@@ -334,7 +347,7 @@ void UiHome::slotComplete() {
 }
 
 void UiHome::setPBnVisible(bool isVisible) {
-//    ui->pBnAir->setVisible(isVisible);
+//    ui->pBnPush->setVisible(isVisible);
     ui->pBnSet->setVisible(isVisible);
 //    ui->pBnData->setVisible(isVisible);
 }
@@ -349,6 +362,7 @@ void UiHome::slotControlWidget() {
 }
 
 void UiHome::slotTableWidgetCustomContextMenuRequested(QPoint point) {
+    Q_UNUSED(point)
     int row = ui->tableWidget->currentRow();
     if (m_DataResultList.size() > row) {
         QMenu *pMenu = new QMenu();
@@ -490,6 +504,16 @@ void UiHome::slotNextClicked() {
         m_CurrentPage++;
         updateTableWidget();
     }
+}
 
+void UiHome::slotPushClicked() {
+    epMachine->setPortName(ui->cboBoxTty->currentText());
+    epMachine->setPressCmdList(epActualPressData->getPushCmdList());
+    epMachine->startPust();
+    ui->pressChartView->clearPressData();
+}
+
+void UiHome::slotPushValueChanged(double value) {
+    epActualPressData->s_PushSet = value;
 }
 

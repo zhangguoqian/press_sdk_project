@@ -69,14 +69,15 @@ public:
 //    void setSTimes(const QVector<int> &sTimes);
 //    void setSTImeValueIndex(int index,int value);
 //
-    QVector<PressCmd> getPressCmdList()const;
+    QVector<PressCmd> getPressCmdList() const;
+    QVector<PressCmd> getPushCmdList() const;
 //private:
     int s_Step;
     int s_Type;
 	double s_D;
 	double s_A;
 	double s_B;
-//	double s_PushSet;
+	double s_PushSet;
 	QVector<double> s_Ups;
 	QVector<double> s_Downs;
 	QVector<int> s_Times;
