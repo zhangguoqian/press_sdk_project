@@ -17,7 +17,7 @@ void ReadOnlySetData::init() {
     s_Screenshot = false;
     s_NameCN = "自动压片机";
     s_NameEN = "AutoPressBot";
-    s_PressPrecision = 2;
+    s_PressPrecision = 1;
 }
 
 bool ReadOnlySetData::openJsonFile(const QString &fileName) {

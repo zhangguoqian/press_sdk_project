@@ -141,7 +141,7 @@ bool SerialPort::getPressValue(int &value,bool &stop) {
     } while (recSize < 10 && cycle --);
     if(recSize>=10 && byteArray[0]==char(0XED)&&byteArray[1]==char(0XDE)&&byteArray[2]==char(0X02))
     {
-        value = int(byteArray[5])+(int(byteArray[4])<<8);
+        value = (uchar(byteArray[4])<< 8) + uchar(byteArray[5]);
         int valueCrc = CRC16_IBM((uchar*)byteArray.data(),8);
         if(byteArray[3] != char(0)){
             stop = true;
@@ -192,9 +192,9 @@ bool SerialPort::setPressValue(int maxValue, int minValue, int &tryC) {
     char bytes[size] ={char(0xAA),
                        0x55,
                        0x01,
-                       char(maxValue>>8),
+                       char((maxValue & 0xFF00) >>8),
                        char(maxValue),
-                       char(minValue>>8),
+                       char((maxValue & 0xFF00)>>8),
                        char(minValue),
                        0x01,
                        0x0D,

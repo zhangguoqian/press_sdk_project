@@ -73,23 +73,27 @@ void StepTableWidget::initDBoxVector(int count) {
         this->setCellWidget(1,i, r1);
         r1->setValue(epActualPressData->s_Ups[i]);
         r1->setRange(epReadOnlySetData->s_MinLimit,epReadOnlySetData->s_MaxLimit);
+        r1->setDecimals(epReadOnlySetData->s_PressPrecision);
 
         mpDownPressSpinBoxVector[i] = new ZDoubleSpinBox();
         auto r2 = mpDownPressSpinBoxVector[i];
         this->setCellWidget(2,i,r2);
         r2->setValue(epActualPressData->s_Downs[i]);
+        r2->setDecimals(epReadOnlySetData->s_PressPrecision);
 
         mpTimePressSpinBoxVector[i] = new ZSpinBox();
         auto r3 = mpTimePressSpinBoxVector[i];
         this->setCellWidget(3,i,r3);
         r3->setValue(epActualPressData->s_Times[i]);
         r3->setRange(0,3600 * 24);
+//        r3->setDecimals(epReadOnlySetData->s_PressPrecision);
 
         mpMPaSpinBoxVector[i] = new ZDoubleSpinBox();
         auto r4 = mpMPaSpinBoxVector[i];
         this->setCellWidget(4,i, r4);
         r4->setAlignment(Qt::AlignCenter);
         r4->setMaximum(99999999999);
+        r4->setDecimals(epReadOnlySetData->s_PressPrecision);
 //        r4->setReadOnly(true);
 
         connect(r1, QOverload<double>::of(&ZDoubleSpinBox::valueChanged),this, [=](double value){

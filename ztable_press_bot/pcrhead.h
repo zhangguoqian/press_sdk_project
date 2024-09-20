@@ -23,7 +23,7 @@
 
 #define VERSION_MAJ 0
 #define VERSION_MIN 0
-#define VERSION_MIC 1
+#define VERSION_MIC 2
 
 extern QVersionNumber VersionNumber;
 
@@ -39,6 +39,20 @@ namespace APP{
 #else
     return QSize(1280,800);
 #endif
+    }
+
+    inline double getS(double ton,int type, double dmm, double amm, double bmm){
+        double S = 0.0;
+        if(type == 0){
+            return 0.0;
+        }else if(type == 1 && dmm != 0.0){
+            S = PI * pow(dmm/2.0 * 0.001,2);
+        }else if(type == 2 && amm !=0.0 && bmm!=0.0){
+            S = amm * bmm * 0.000001;
+        }else{
+            return 0.0;
+        }
+        return S;
     }
 
     inline double typeMpaTonTon(double mpa,int type, double dmm, double amm, double bmm){
@@ -83,7 +97,8 @@ namespace APP{
 
     inline int overLoadValue(double upValue) {
         int maxValue = epReadOnlySetData->s_MaxLimit;
-        double S = PI * pow(epReadOnlySetData->s_Diameter/2,2);
+        double dmm = epReadOnlySetData->s_Diameter * 0.001;
+        double S = PI * pow(dmm/2,2);
         int index = int(upValue*10)/maxValue;
         if(index>10){
             return 0;

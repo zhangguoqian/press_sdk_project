@@ -25,6 +25,10 @@ UiHome::UiHome(QWidget *parent) :
     this->resize(APP::AppUiSize());
 
     // ui->statusbar->showMessage("message");
+    int a = APP::tonToMachineKpa(5.0);
+    int b = APP::tonToMachineKpa(4.9);
+    qDebug() << APP::machineKpaToTon(a);
+    qDebug() << APP::machineKpaToTon(b);
 
     initConnect();
     setPortWidgetEnabled(false);

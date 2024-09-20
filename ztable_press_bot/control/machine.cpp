@@ -49,6 +49,7 @@ void Machine::run() {
 
     double botSetValueUp = 0.0;
     double botSetValueDown = 0.0;
+    double overLoadValue = 0.0;
 
     double botGetValue = 0.0;
 
@@ -66,6 +67,8 @@ void Machine::run() {
             if (pressCmd.s_CmdType == CmdTypeSet){  //设置
                 botSetValueUp = APP::tonToMachineKpa(pressCmd.s_UpValue);
                 botSetValueDown = APP::tonToMachineKpa(pressCmd.s_DownValue);
+//                overLoadValue = APP::overLoadValue(pressCmd.s_UpValue);
+
                 cmdInfo = mpSerialPort->setPressValue(botSetValueUp,
                                                    botSetValueDown,
                                                    tryCycle);
