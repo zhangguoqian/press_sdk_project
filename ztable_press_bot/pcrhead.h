@@ -23,7 +23,7 @@
 
 #define VERSION_MAJ 0
 #define VERSION_MIN 0
-#define VERSION_MIC 2
+#define VERSION_MIC 1
 
 extern QVersionNumber VersionNumber;
 
