@@ -10,9 +10,13 @@
 #include <QLineSeries>
 #include <QSplineSeries>
 
+#if QT_VERSION_MAJOR <= 5
 using namespace QtCharts;
-
 class PressChartView : public  QtCharts::QChartView{
+
+#else
+class PressChartView : public  QChartView{
+#endif
 Q_OBJECT
 protected:
     void timerEvent(QTimerEvent *event) override;

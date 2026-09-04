@@ -25,6 +25,15 @@ public:
     bool setPressValue(int maxValue, int minValue, int &tryC);
 
     bool stopPress();
+
+public:
+    bool getState(QByteArray &data);
+
+   private:
+    bool getByteArrayData(uint16_t cmdID,QByteArray &data);
+    QByteArray getSum(QByteArray data);
+
+    QByteArray m_RegisterIdData;
 };
 
 
