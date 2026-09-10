@@ -6,9 +6,18 @@
 #include <QDebug>
 #include <QEventLoop>
 #include <QTimer>
+#include "commandcode.h"
 
 SerialPort::SerialPort() {
-
+    m_RegisterIdData.resize(8,0);
+    m_RegisterIdData[0] = 0x00;
+    m_RegisterIdData[1] = 0x01;
+    m_RegisterIdData[2] = 0x02;
+    m_RegisterIdData[3] = 0x03;
+    m_RegisterIdData[4] = 0x04;
+    m_RegisterIdData[5] = 0x05;
+    m_RegisterIdData[6] = 0x06;
+    m_RegisterIdData[7] = 0x07;
 }
 
 SerialPort::~SerialPort() {
@@ -169,6 +178,64 @@ bool SerialPort::stopPress() {
         return true;
     }
     return false;
+}
+
+bool SerialPort::getState(QByteArray& data)
+{
+    return getByteArrayData(CMDID_GET_CURRENT_STATE,data);
+}
+
+bool SerialPort::getByteArrayData(uint16_t cmdID, QByteArray& data)
+{
+    QByteArray bytes;
+    bytes.append(m_RegisterIdData);
+    bytes.append(char(cmdID >> 8));
+    bytes.append(char(cmdID));
+    bytes.append(char(0));
+    bytes.append(char(1));
+    bytes.append(char(0));
+    bytes = getSum(bytes);
+    this->write(bytes);
+    int cycle = 5;
+    int recSize = 0;
+    QByteArray byteArray;
+    do {
+        delayMs(50);
+        byteArray += this->readAll();
+        recSize = byteArray.size();
+    } while (recSize < 13 && cycle --);
+    if (recSize < 13)
+    {
+        return false;
+    }
+    uint16_t frameSize = byteArray[10] << 8 | byteArray[11];
+    int s = byteArray.size() - 14;
+    if(frameSize == s)
+    {
+        if (byteArray[8] == char(cmdID >> 8))
+        {
+            if (byteArray[9] == char(cmdID))
+            {
+                return true;
+            }
+        }
+    }
+    if(byteArray[8] == char(cmdID >> 8) && byteArray[9] == char(cmdID) && frameSize == byteArray.size() - 13)
+    {
+        data = byteArray.mid(13, frameSize);
+        return true;
+    }
+    return false;
+}
+
+QByteArray SerialPort::getSum(QByteArray data)
+{
+    uint16_t sum = 0;
+    for (const auto &var : data) {
+        sum += uchar(var);
+    }
+    data.append(char(sum));
+    return data;
 }
 
 
