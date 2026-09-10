@@ -6,26 +6,27 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 include_directories(./)
 
 if (MSVC)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(CMAKE_PREFIX_PATH D:/Qt/5.15.2/msvc2019_64)
+        set(CMAKE_PREFIX_PATH D:/Qt/6.16.2/msvc2019_64)
         message(build type = msvc x64)
     else()
-        set(CMAKE_PREFIX_PATH D:/Qt/5.15.2/msvc2019)
+        set(CMAKE_PREFIX_PATH D:/Qt/6.16.2/msvc2019)
         message(build type = msvc x86)
     endif()
 elseif (MINGW)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(CMAKE_PREFIX_PATH D:/Qt/5.15.2/mingw81_64)
+        set(CMAKE_PREFIX_PATH D:/Qt/6.8.3/llvm-mingw_64)
         message(build type = mingw x64)
     else()
-        set(CMAKE_PREFIX_PATH D:/Qt/5.15.2/mingw81_32)
+        set(CMAKE_PREFIX_PATH D:/Qt/6.16.2/mingw81_32)
         message(current build type = mingw x86)
     endif()
 else()
-    set(CMAKE_PREFIX_PATH /opt/rootfs-s5p4418/usr/local/Trolltech/Qt-5.10.0-nexell32)
+    set(CMAKE_PREFIX_PATH /opt/rootfs-s6p4418/usr/local/Trolltech/Qt-6.10.0-nexell32)
     message(build type = gun)
 endif ()
 
@@ -33,7 +34,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 #include(FindCSerialPort)
 
-find_package(Qt5 COMPONENTS
+find_package(Qt6 COMPONENTS
         Core
         Gui
         Widgets
@@ -52,12 +53,12 @@ file(GLOB_RECURSE LOGO_SOURCES logo.rc)
 add_executable(${PROJECT_NAME} main.cpp ${UI_SOURCES} ${DATA_SOURCES} ${CONTROL_SOURCES} ${SQL_SOURCES} ${LOGO_SOURCES})
 
 target_link_libraries(${PROJECT_NAME}
-        Qt5::Core
-        Qt5::Gui
-        Qt5::Widgets
-        Qt5::Charts
-        Qt5::SerialPort
-        Qt5::Sql
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Widgets
+        Qt6::Charts
+        Qt6::SerialPort
+        Qt6::Sql
 )
 
 if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -100,19 +101,19 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     foreach (QT_LIB Core Gui Widgets Charts SerialPort Sql)
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
-                "${QT_INSTALL_PATH}/bin/Qt5${QT_LIB}${DEBUG_SUFFIX}.dll"
+                "${QT_INSTALL_PATH}/bin/Qt6${QT_LIB}${DEBUG_SUFFIX}.dll"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach (QT_LIB)
 endif ()
 
-if(MINGW)
-    file(GLOB ZGQ_MINGW_DLL_LIST "D:/Qt/Tools/mingw810_32/bin/*.dll")
-    foreach (ZGQ_MINGW_DLL ${ZGQ_MINGW_DLL_LIST})
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy
-                ${ZGQ_MINGW_DLL}
-                "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
-    endforeach ()
-endif (MINGW)
+#if(MINGW)
+#    file(GLOB ZGQ_MINGW_DLL_LIST "D:/Qt/Tools/mingw810_32/bin/*.dll")
+#    foreach (ZGQ_MINGW_DLL ${ZGQ_MINGW_DLL_LIST})
+#        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+#                COMMAND ${CMAKE_COMMAND} -E copy
+#                ${ZGQ_MINGW_DLL}
+#                "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
+#    endforeach ()
+#endif (MINGW)
 
 set(CMAKE_C_FLAGS_RELEASE "-mwindows")

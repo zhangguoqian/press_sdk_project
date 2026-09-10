@@ -13,7 +13,12 @@ const QString XAxisTitleName = qtTrId("时间/s");
 const QString YAxisTitleName = qtTrId("压力/Ton");
 
 PressChartView::PressChartView(QWidget *parent) :
-    QtCharts::QChartView(parent),
+#if QT_VERSION_MAJOR <= 5
+QtCharts::QChartView(parent),
+#else
+QChartView(parent),
+#endif
+
     mpXAxis(new QValueAxis()),
     mpYAxis(new QValueAxis()),
     mpLineSeries(new QLineSeries()){
@@ -80,7 +85,7 @@ void PressChartView::appendPressData(const QPointF &pointF) {
 QString PressChartView::lineToJsonString() const {
     QJsonArray jsonArrayX;
     QJsonArray jsonArrayY;
-    for (auto &var:this->mpLineSeries->pointsVector()) {
+    for (auto &var:this->mpLineSeries->points()) {
         jsonArrayX.append(var.x());
         jsonArrayY.append(var.y());
     }

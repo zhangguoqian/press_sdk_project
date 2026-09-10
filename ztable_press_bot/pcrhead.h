@@ -19,7 +19,7 @@
 
 #define g 9.8
 #define PI 3.14159265
-#define DEFAULT_MAX_STEP 15
+#define DEFAULT_MAX_STEP 30
 
 #define VERSION_MAJ 0
 #define VERSION_MIN 0

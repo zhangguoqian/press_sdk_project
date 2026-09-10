@@ -166,7 +166,7 @@ void Machine::slotGetComPortList() {
 
     for (auto &var:serialPortList){
         // qDebug() << var.portName();
-        if(!var.isBusy()){
+        // if(!var.isBusy()){
             if(serialPort.initSerialPort(var.portName().toLocal8Bit().data())){
                 if(serialPort.stopPress()){
                     portName = var.portName();
@@ -174,7 +174,7 @@ void Machine::slotGetComPortList() {
                 }
             }
             serialPort.closeCom();
-        }
+        // }
     }
     emit signalPortName(portName);
 }
