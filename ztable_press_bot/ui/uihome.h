@@ -6,10 +6,24 @@
 #define ZTABLE_PRESS_BOT_PROJECT_UIHOME_H
 
 #include <QMainWindow>
-#include <QStatusBar>
 #include <QSerialPort>
 #include <QTableWidgetItem>
-#include "sql/datacontrol.h"
+#include "control/machinetype.h"
+
+class DataInterface: public MachineDataInterface
+{
+public:
+    ~DataInterface() override;
+    void setParent(void* parent);
+    void onReadOnlyData(int errorCode,uint64_t registerNo, const ReadOnlyData& readOnlyData) override;
+    void onRealTimeData(int errorCode, const RealTimeData& realTimeData) override;
+    void onPressData(int errorCode, const PressData& pressData) override;
+    void onDataError(uint16_t cmdCode,std::vector<uint8_t> response) override;
+    void onCommandError(RetCommand errorCode, uint16_t cmdCode) override;
+    void onCommandPassWarningError(uint16_t cmdCode) override;
+private:
+    void *mpParent = nullptr;
+};
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class UiHome; }
@@ -22,24 +36,29 @@ signals:
     void signalGetComPortList();
 public:
     explicit UiHome(QWidget *parent = nullptr);
-
     ~UiHome() override;
+    void setRealTimeData(const RealTimeData& realTimeData);
+    void setPressData(const PressData& pressData);
+    void setReadOnlyData(const ReadOnlyData& readOnlyData);
     void setMaxStepValue(int mMaxStepValue);
 
-    void setTypeValue(int value) const;
-    Ui::UiHome *ui;
+
 protected:
     void closeEvent(QCloseEvent *event) override;
 
     void timerEvent(QTimerEvent *event) override;
 
 private:
+
+    Ui::UiHome *ui;
     void initConnect();
-    static QStringList getPortList();
-    void setPortWidgetEnabled(bool isEnabled);
-    void setPBnVisible(bool isVisible);
+
+    DataInterface m_DataInterface;
+    RealTimeData m_RealTimeData{};
+    PressData m_PressData{};
+    ReadOnlyData m_ReadOnlyData{};
+
     int m_MaxStepValue;
-    DataResult m_DataResult;
 
     void initTableWidget();
     void updateTableWidget();
@@ -48,22 +67,19 @@ private:
     QVector<QTableWidgetItem*> mpTypeItemList;
     QVector<QTableWidgetItem*> mpSizeItemList;
     QVector<QTableWidgetItem*> mpMaxPressItemList;
-    DataResultList m_DataResultList;
 
-    int m_SumDataResultCount;
-    int m_CurrentPage;
-    int m_SumPage;
+    void uiToJsonString();
 
   private slots:
     //    void slotStepValueChanged(int value);
-    void slotTypeChanged(int value) const;
+    void slotTypeChanged(int value);
     void slotOpenPortClicked(bool isChecked);
     void slotMachineError(QSerialPort::SerialPortError error);
     void slotStartStopClicked(bool isClicked);
-    void slotPushClicked();
+    void slotPushClicked(bool isChecked);
     void slotPushValueChanged(double value);
     void slotControlDialog(bool isClicked);
-    void slotPortName(QString port);
+
     void slotTimeTimerPress(int step,double setValue,int time, int timer,double press,int liquidPress);
     void slotComplete();
     void slotDataListWidget();

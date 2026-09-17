@@ -103,6 +103,11 @@ void PressChartView::clearPressData() {
     mpLineSeries->clear();
 }
 
+void PressChartView::setRange(double min, double max)
+{
+    mpYAxis->setRange(min,max);
+}
+
 void PressChartView::jsonStringToLine(const QString& jsonData) {
     QJsonDocument jsonDocument = QJsonDocument::fromJson(jsonData.toLatin1());
     QJsonObject jsonObject = jsonDocument.object();

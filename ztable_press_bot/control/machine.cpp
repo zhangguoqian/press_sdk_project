@@ -1,184 +1,101 @@
 //
-// Created by 11518 on 2024/8/14.
+// Created by 11518 on 2026/9/13.
 //
 
 #include "machine.h"
-#include <QDebug>
-#include <QSerialPortInfo>
-#include "pcrhead.h"
+#include "machineprivate.h"
 
-#define ARRIVE_SET_VALUE_INTER 0.5 //到达设置值
 
-Machine::Machine(QObject *object) : QThread(object) {
-    m_ThreadRunning = false;
-    m_Pushing = false;
-    qRegisterMetaType<QSerialPort::SerialPortError>("QSerialPort::SerialPortError");
+Machine::Machine() : mpPrivate(std::make_unique<MachinePrivate>())
+{
 }
 
-Machine::~Machine() {
-    m_ThreadRunning = false;
-    m_Pushing = false;
-    delete mpSerialPort;
+Machine::~Machine()
+{
+
+};
+
+bool Machine::connect(const char* portName) const
+{
+    return mpPrivate->connect(portName);
 }
 
-
-void Machine::setPortName(const QString &portName) {
-    m_PortName = portName;
+void Machine::disconnect() const
+{
+    mpPrivate->disconnect();
 }
 
-
-void Machine::run() {
-    mpSerialPort = new SerialPort;
-    connect(mpSerialPort,SIGNAL(error(QSerialPort::SerialPortError)),this,SIGNAL(signalMachineError(QSerialPort::SerialPortError)));
-    mpElapsedTimer = new QElapsedTimer;
-    QElapsedTimer elapsedTimer;
-    int elapsed = 0;
-    int nodeElapsedTime = 0;
-    int nodeCycleTime = 1000; //ms
-    int nodeInterTime = nodeCycleTime - nodeElapsedTime;
-    int sumSize = m_PressCmdList.size();
-    int currentIndex = 0;
-    bool comInfo = mpSerialPort->initSerialPort(m_PortName.toLocal8Bit().data());
-    bool cmdInfo = false;
-    int tryCycle = 5;
-    int getValue = 0;
-    int passTime = 120; //超时
-    int timer = 0; //倒计时
-
-    int stopCmdRepeatCount = 3;
-
-    double botSetValueUp = 0.0;
-    double botSetValueDown = 0.0;
-    double overLoadValue = 0.0;
-
-    double botGetValue = 0.0;
-
-    if(comInfo){
-        mpElapsedTimer->start();
-        while (m_ThreadRunning){
-            elapsedTimer.restart();
-            if(currentIndex == sumSize){
-                cmdInfo = mpSerialPort->stopPress();
-                break;
-            }
-            tryCycle = 5;
-            PressCmd &pressCmd = m_PressCmdList[currentIndex];
-
-            if (pressCmd.s_CmdType == CmdTypeSet){  //设置
-                botSetValueUp = APP::tonToMachineKpa(pressCmd.s_UpValue);
-                botSetValueDown = APP::tonToMachineKpa(pressCmd.s_DownValue);
-//                overLoadValue = APP::overLoadValue(pressCmd.s_UpValue);
-
-                cmdInfo = mpSerialPort->setPressValue(botSetValueUp,
-                                                   botSetValueDown,
-                                                   tryCycle);
-                timer = pressCmd.s_Timer;
-//                qDebug() << pressCmd.s_CmdType << botSetValueUp << botSetValueDown;
-
-            }else if(pressCmd.s_CmdType == CmdTypeGet){ //获取
-                bool isStop = false;
-                cmdInfo = mpSerialPort->getPressValue(getValue,isStop);
-                botGetValue = APP::machineKpaToTon(getValue);
-                if(botGetValue >= pressCmd.s_UpValue-ARRIVE_SET_VALUE_INTER || passTime == 0 || timer==0){
-                    passTime = 0;
-                    timer --;
-                }else{
-                    currentIndex--;
-                    passTime --;
-                }
-                emit signalTimeTimerPress(pressCmd.s_Step,pressCmd.s_UpValue,elapsed,timer,botGetValue,getValue);
-//                qDebug() << pressCmd.s_CmdType << botGetValue;
-                if(isStop){
-                    break;
-                }
-            }else if(pressCmd.s_CmdType == CmdTypeStop){ //停止
-                cmdInfo = mpSerialPort->stopPress();
-            }
-
-            elapsed = mpElapsedTimer->elapsed();
-
-            currentIndex++;
-            nodeElapsedTime = (int)elapsedTimer.elapsed();
-            nodeInterTime = nodeCycleTime - nodeElapsedTime;
-            mpSerialPort->delayMs(nodeInterTime);
-            if(!cmdInfo){
-                emit signalErrorInfo(2);
-                break;
-            }
-        }
-
-        while(stopCmdRepeatCount--){
-            mpSerialPort->delayMs(nodeCycleTime);
-            comInfo = mpSerialPort->stopPress();
-            if(!cmdInfo){
-                emit signalErrorInfo(2);
-            }
-        }
-    }else{
-        emit signalErrorInfo(1);
-    }
-
-    delete mpElapsedTimer;
-    mpSerialPort->closeCom();
-    delete mpSerialPort;
-    if(!m_Pushing){
-        emit signalComplete();
-    }
-    m_Pushing = false;
+bool Machine::isConnected() const
+{
+    return mpPrivate->isConnected();
 }
 
-void Machine::setPressCmdList(const QVector<PressCmd> &pressCmdList) {
-    m_PressCmdList = pressCmdList;
+uint64_t Machine::getMachineRegisterNo() const
+{
+    return mpPrivate->getMachineRegisterNo();
 }
 
-void Machine::stopMachine() {
-    m_ThreadRunning = false;
-
+void Machine::setCommand(uint16_t command, const std::vector<uint8_t>& data) const
+{
+    mpPrivate->setCommand(command, data);
 }
 
-void Machine::startMachine() {
-    m_ThreadRunning = true;
-    m_Pushing = false;
-    this->start(QThread::HighPriority);
+std::vector<uint8_t> Machine::getResponse() const
+{
+    return mpPrivate->getResponse();
 }
 
-void Machine::startPust() {
-    m_ThreadRunning = true;
-    m_Pushing = true;
-    this->start(QThread::HighPriority);
+const char* Machine::getLastErrorInfo() const
+{
+    return mpPrivate->getLastErrorInfo();
 }
 
-
-bool Machine::machineIsRunning() const {
-    return m_ThreadRunning;
+int Machine::runCommand(const std::pair<uint16_t, std::vector<uint8_t>>& commandData) const
+{
+    return mpPrivate->runCommand(commandData);
 }
 
-void Machine::slotGetComPortList() {
-    QString portName;
-    SerialPort serialPort;
-//    serialPort.setBaudRate(QSerialPort::Baud115200);
-//    serialPort.setParity(QSerialPort::NoParity);
-//    serialPort.setDataBits(QSerialPort::Data8);
-//    serialPort.setStopBits(QSerialPort::OneStop);
-//    serialPort.setFlowControl(QSerialPort::NoFlowControl);
-//    serialPort.setReadBufferSize(256);
-    const QList<QSerialPortInfo> serialPortList = QSerialPortInfo::availablePorts();
-
-    for (auto &var:serialPortList){
-        // qDebug() << var.portName();
-        // if(!var.isBusy()){
-            if(serialPort.initSerialPort(var.portName().toLocal8Bit().data())){
-                QByteArray data;
-                if(serialPort.getState(data)){
-                    qDebug()<<data;
-                    portName = var.portName();
-                    break;
-                }
-            }
-            serialPort.closeCom();
-        // }
-    }
-    emit signalPortName(portName);
+int Machine::runCommand(uint16_t command, const std::vector<uint8_t>& data) const
+{
+    return mpPrivate->runCommand(command, data);
 }
 
+int Machine::runCommand() const
+{
+    return mpPrivate->runCommand();
+}
 
+void Machine::addCommand(const std::pair<uint16_t, std::vector<uint8_t>>& commandData) const
+{
+    mpPrivate->addCommand(commandData);
+}
+
+void Machine::run() const
+{
+    mpPrivate->run();
+}
+
+void Machine::stop() const
+{
+    mpPrivate->stop();
+}
+
+bool Machine::isRunning() const
+{
+    return mpPrivate->isRunning();
+}
+
+void Machine::registerDataInterface(MachineDataInterface* dataInterface) const
+{
+    mpPrivate->registerDataInterface(dataInterface);
+}
+
+void Machine::unregisterDataInterface() const
+{
+    mpPrivate->unregisterDataInterface();
+}
+
+std::vector<std::string> Machine::getPortList()
+{
+    return MachinePrivate::getPortList();
+}

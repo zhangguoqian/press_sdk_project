@@ -28,6 +28,15 @@ public:
     void setMpaVisible(bool isVisible);
 
     void updateData();
+    void initDBoxVector(int count);
+
+    void setUpPressValue(const std::vector<float> &list);
+    void setDownPressValue(const std::vector<float> &list);
+    void setTimePressValue(const std::vector<uint32_t> &list);
+
+    std::vector<float> getUpPressValue();
+    std::vector<float> getDownPressValue();
+    std::vector<uint32_t> getTimePressValue();
 
 public slots:
     void slotSetValueChanged(int value);
@@ -40,8 +49,7 @@ private:
     DBoxVector mpDownPressSpinBoxVector;
     SBoxVector mpTimePressSpinBoxVector;
     DBoxVector mpMPaSpinBoxVector;
-    void initDBoxVector(int count);
-    void deleteDBoxVector();
+
 
 };
 

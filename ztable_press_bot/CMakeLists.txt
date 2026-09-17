@@ -2,12 +2,14 @@ cmake_minimum_required(VERSION 3.27)
 project(ztable_press_bot)
 
 set(CMAKE_CXX_STANDARD 17)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-include_directories(./)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if (MSVC)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -22,7 +24,7 @@ elseif (MINGW)
         set(CMAKE_PREFIX_PATH D:/Qt/6.8.3/llvm-mingw_64)
         message(build type = mingw x64)
     else()
-        set(CMAKE_PREFIX_PATH D:/Qt/6.16.2/mingw81_32)
+        set(CMAKE_PREFIX_PATH D:/Qt/5.15.2/mingw81_32)
         message(current build type = mingw x86)
     endif()
 else()
@@ -30,9 +32,6 @@ else()
     message(build type = gun)
 endif ()
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-
-#include(FindCSerialPort)
 
 find_package(Qt6 COMPONENTS
         Core
@@ -46,13 +45,15 @@ find_package(Qt6 COMPONENTS
 file(GLOB_RECURSE UI_SOURCES ui/*.h ui/*.cpp ui/*.ui)
 file(GLOB_RECURSE DATA_SOURCES data/*.h data/*.cpp)
 file(GLOB_RECURSE CONTROL_SOURCES control/*.h control/*.cpp)
-file(GLOB_RECURSE SQL_SOURCES sql/*.h sql/*.cpp)
-file(GLOB_RECURSE LOGO_SOURCES logo.rc)
+file(GLOB_RECURSE COMMON_SOURCES common/*.h common/*.cpp)
+file(GLOB_RECURSE LOGO_SOURCES ztable_press_bot.rc)
 
+include(FindCSerialPort)
+include(FindJsonCpp)
 
-add_executable(${PROJECT_NAME} main.cpp ${UI_SOURCES} ${DATA_SOURCES} ${CONTROL_SOURCES} ${SQL_SOURCES} ${LOGO_SOURCES})
+add_executable(${PROJECT_NAME} main.cpp zgq.h ${UI_SOURCES} ${DATA_SOURCES} ${CONTROL_SOURCES} ${COMMON_SOURCES} ${LOGO_SOURCES})
 
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME} PUBLIC
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
@@ -60,6 +61,7 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::SerialPort
         Qt6::Sql
 )
+target_link_libraries(${PROJECT_NAME} PUBLIC cserialport jsoncpp_static ws2_32)
 
 if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(DEBUG_SUFFIX)

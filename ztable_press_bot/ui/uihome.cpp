@@ -9,515 +9,386 @@
 #include "uihome.h"
 #include "ui_UiHome.h"
 #include "uitranslate.h"
-#include "pcrhead.h"
 #include "admin/controldialog.h"
 #include <QSerialPortInfo>
 #include <QMessageBox>
 #include <QMetaEnum>
 #include <QDateTime>
+#include "zgq.h"
 
-UiHome::UiHome(QWidget *parent) :
-        QMainWindow(parent),
-        ui(new Ui::UiHome),
-        m_MaxStepValue(DEFAULT_MAX_STEP) {
+
+UiHome::UiHome(QWidget* parent) :
+    QMainWindow(parent),
+    ui(new Ui::UiHome),
+    m_MaxStepValue(30)
+{
     ui->setupUi(this);
-    this->setWindowTitle(UiTr::AppName + VersionNumber.toString());
-    this->resize(APP::AppUiSize());
+    ui->labelActMpa->setVisible(false);
+    ui->labelActMpaValue->setVisible(false);
+    ui->labelActMpaUnit->setVisible(false);
+    ui->labelMpa->setVisible(false);
+    ui->labelMpaValue->setVisible(false);
+    ui->labelMpaUnit->setVisible(false);
 
-    // ui->statusbar->showMessage("message");
-    int a = APP::tonToMachineKpa(5.0);
-    int b = APP::tonToMachineKpa(4.9);
-    qDebug() << APP::machineKpaToTon(a);
-    qDebug() << APP::machineKpaToTon(b);
+    ui->pBnStartStop->setStartStopStateText(qtTrId("启动"), qtTrId("停止"));
+    ui->pBnStartStop->setState(BUTTON_CAN_START);
+    ui->pBnPush->setStartStopStateText(qtTrId("脱模"), qtTrId("停止"));
+    ui->pBnPush->setState(BUTTON_CAN_START);
 
     initConnect();
-    setPortWidgetEnabled(false);
-    ui->widgetInfo->setVisible(false);
-    ui->pBnControl->setVisible(false);
-    ui->stackedWidgetMain->setCurrentIndex(0);
 
-    setPBnVisible(false);
-//    startTimer(1000);
+    ui->tableWidgetStepList->initDBoxVector(m_MaxStepValue);;
 
-    {
-        setMaxStepValue(m_MaxStepValue);
-    }
-    ui->cBoxTypeValue->setCurrentIndex(epActualPressData->s_Type);
-    ui->dBoxDiameterValue->setValue(epActualPressData->s_D);
-    ui->dBoxAValue->setValue(epActualPressData->s_A);
-    ui->dBoxBValue->setValue(epActualPressData->s_B);
-    ui->stackedWidget->setCurrentIndex(epActualPressData->s_Type);
-    ui->spinBoxStepValue->setValue(epActualPressData->s_Step);
-    ui->dBoxPushValue->setValue(epActualPressData->s_PushSet);
-    ui->dBoxPushValue->setDecimals(epReadOnlySetData->s_PressPrecision);
-    ui->tableWidgetStepList->setStepValueCount(ui->spinBoxStepValue->value());
-    setTypeValue(ui->cBoxTypeValue->currentIndex());
+    m_DataInterface.setParent(this);
+    epMachine->registerDataInterface(&m_DataInterface);
 
-    initTableWidget();
 }
 
 
-void UiHome::initConnect() {
-    QMetaObject::Connection stepConnect =
-            connect(ui->spinBoxStepValue, SIGNAL(valueChanged(int)), ui->tableWidgetStepList,
-                    SLOT(slotSetValueChanged(int)));
+void UiHome::initConnect()
+{
+    // 步骤值改变
+    connect(ui->spinBoxStepValue, SIGNAL(valueChanged(int)), ui->tableWidgetStepList,SLOT(slotSetValueChanged(int)));
+
+    /**模具参数**/
+    // 形状改变
     connect(ui->cBoxTypeValue, SIGNAL(currentIndexChanged(int)), this, SLOT(slotTypeChanged(int)));
+    // 直径值改变
+    connect(ui->dBoxDiameterValue, SIGNAL(valueChanged(double)), this, SLOT(slotDiameterValueChanged(double)));
+    // A值改变
+    connect(ui->dBoxAValue, SIGNAL(valueChanged(double)), this, SLOT(slotAValueChanged(double)));
+    // B值改变
+    connect(ui->dBoxBValue, SIGNAL(valueChanged(double)), this, SLOT(slotBValueChanged(double)));
+    // 外径值改变
+    connect(ui->dBoxOutDValue, SIGNAL(valueChanged(double)), this, SLOT(slotOuterDiameterValueChanged(double)));
+    // 内径值改变
+    connect(ui->dBoxInDValue, SIGNAL(valueChanged(double)), this, SLOT(slotInnerDiameterValueChanged(double)));
 
-    connect(ui->dBoxDiameterValue, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [=](double value) {
-        epActualPressData->s_D = value;
-        ui->tableWidgetStepList->updateData();
-    });
-    connect(ui->dBoxAValue, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [=](double value) {
-        epActualPressData->s_A = value;
-        ui->tableWidgetStepList->updateData();
-    });
-    connect(ui->dBoxBValue, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [=](double value) {
-        epActualPressData->s_B = value;
-        ui->tableWidgetStepList->updateData();
-    });
-//
-    connect(ui->cBoxTypeValue, QOverload<int>::of(&QComboBox::currentIndexChanged), [=](int value) {
-        epActualPressData->s_Type = value;
-        ui->tableWidgetStepList->updateData();
-    });
+    /**操作按钮**/
 
-    connect(ui->pBnUpdateTty, SIGNAL(clicked(bool)), this, SLOT(slotOpenPortClicked(bool)));
-
+    // 开始/停止按钮点击
     connect(ui->pBnStartStop, SIGNAL(clicked(bool)), this, SLOT(slotStartStopClicked(bool)));
-
-    connect(ui->pBnControl, SIGNAL(clicked(bool)), this, SLOT(slotControlDialog(bool)));
-
-    connect(ui->pBnData, SIGNAL(pressed()), this, SLOT(slotDataListWidget()));
-
-    connect(ui->pBnPush,SIGNAL(clicked()), this, SLOT(slotPushClicked()));
-
-    connect(ui->pBnReturn,SIGNAL(clicked()), this, SLOT(close()));
-
+    // 脱模按钮点击
+    connect(ui->pBnPush,SIGNAL(clicked(bool)), this, SLOT(slotPushClicked(bool)));
+    // 脱模值改变
     connect(ui->dBoxPushValue,SIGNAL(valueChanged(double)), this, SLOT(slotPushValueChanged(double)));
 
-//    connect(ui->pBnData, SIGNAL(pressed()),this,SLOT(slotControlWidget()));
-
-    connect(epMachine, SIGNAL(signalMachineError(QSerialPort::SerialPortError)), this,
-            SLOT(slotMachineError(QSerialPort::SerialPortError)));
-
-    connect(this, SIGNAL(signalGetComPortList()), epMachine, SLOT(slotGetComPortList()));
-    connect(epMachine, SIGNAL(signalPortName(QString)), this, SLOT(slotPortName(QString)));
-    connect(epMachine, SIGNAL(signalTimeTimerPress(int,double,int,int,double,int)), this,
-            SLOT(slotTimeTimerPress(int,double,int,int,double,int)));
-    connect(epMachine, SIGNAL(signalComplete()), this, SLOT(slotComplete()));
+    /**控制按钮**/
+    // 控制按钮点击
+    connect(ui->pBnControl, SIGNAL(clicked(bool)), this, SLOT(slotControlDialog(bool)));
 
 }
 
-void UiHome::initTableWidget() {
-    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
-    ui->tableWidget->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    ui->tableWidget->setEditTriggers(QTableWidget::NoEditTriggers);
-    ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->tableWidget, SIGNAL(customContextMenuRequested(QPoint)),
-            SLOT(slotTableWidgetCustomContextMenuRequested(QPoint)));
-    connect(ui->pBnFirst, SIGNAL(clicked()), SLOT(slotFirstClicked()));
-    connect(ui->pBnTail, SIGNAL(clicked()), SLOT(slotTailClicked()));
-    connect(ui->pBnPre, SIGNAL(clicked()), SLOT(slotPreClicked()));
-    connect(ui->pBnNext, SIGNAL(clicked()), SLOT(slotNextClicked()));
-
-
-    int row = ui->tableWidget->rowCount();
-    mpNoItemList.resize(row);
-    mpDateTimeItemList.resize(row);
-    mpTypeItemList.resize(row);
-    mpSizeItemList.resize(row);
-    mpMaxPressItemList.resize(row);
-
-    for (int i = 0; i < row; ++i) {
-        mpNoItemList[i] = new QTableWidgetItem();
-        ui->tableWidget->setItem(i, 0, mpNoItemList[i]);
-        mpNoItemList[i]->setTextAlignment(Qt::AlignCenter);
-
-        mpDateTimeItemList[i] = new QTableWidgetItem();
-        ui->tableWidget->setItem(i, 1, mpDateTimeItemList[i]);
-        mpDateTimeItemList[i]->setTextAlignment(Qt::AlignCenter);
-
-        mpTypeItemList[i] = new QTableWidgetItem();
-        ui->tableWidget->setItem(i, 2, mpTypeItemList[i]);
-        mpTypeItemList[i]->setTextAlignment(Qt::AlignCenter);
-
-        mpSizeItemList[i] = new QTableWidgetItem();
-        ui->tableWidget->setItem(i, 3, mpSizeItemList[i]);
-        mpSizeItemList[i]->setTextAlignment(Qt::AlignCenter);
-
-        mpMaxPressItemList[i] = new QTableWidgetItem();
-        ui->tableWidget->setItem(i, 4, mpMaxPressItemList[i]);
-        mpMaxPressItemList[i]->setTextAlignment(Qt::AlignCenter);
-    }
-    updateTableWidget();
-//    bool sqlInfo = epDataControl->selectDataResultCount(m_SumDataResultCount);
-//    if(sqlInfo){
-//        if(m_SumDataResultCount==0){
-//            return;
-//        }
-//    }else{
-//        return;
-//    }
-//
-//    sqlInfo = epDataControl->selectDataResultList(m_DataResultList,0,row);
-//    if(sqlInfo){
-//        for (int i = 0; i < m_DataResultList.size(); ++i) {
-//            mpNoItemList[i]->setText(QString::number(m_DataResultList[i].s_Id));
-//            mpDateTimeItemList[i]->setText(m_DataResultList[i].s_DateTime);
-//            ActualPressData actualPressData;
-//            bool jsonInfo = actualPressData.openJsonString(m_DataResultList[i].s_JsonData.toLatin1());
-//            if(jsonInfo){
-//                mpTypeItemList[i]->setText(actualPressData.typeString());
-//                mpSizeItemList[i]->setText(actualPressData.sizeString());
-//                mpMaxPressItemList[i]->setText(QString::number(actualPressData.maxUpValue(),'f',epReadOnlySetData->s_PressPrecision));
-//            }
-//        }
-//    }
+void UiHome::initTableWidget()
+{
 
 }
 
 
-UiHome::~UiHome() {
+UiHome::~UiHome()
+{
     delete ui;
 }
 
-//void UiHome::slotStepValueChanged(int value) {
-//    for (int i = 0; i < m_MaxStepValue; ++i) {
-//        ui->tableWidgetStepList->setColumnHidden(i,i>=value);
-//    }
-////    ui->tableWidgetStepList->setColumnCount(value);
-//}
+void UiHome::setRealTimeData(const RealTimeData &realTimeData)
+{
+    if (m_RealTimeData.m_PTime != realTimeData.m_PTime)
+    {
+        ui->labelActTimeValue->setText(QString::number(realTimeData.m_PTime));
+    }
+    if (m_RealTimeData.m_CPStep != realTimeData.m_CPStep)
+    {
+        ui->labelStepValue->setText(QString::number(realTimeData.m_CPStep));
+    }
+    if (m_RealTimeData.m_ModelState != realTimeData.m_ModelState)
+    {
 
-void UiHome::setMaxStepValue(int mMaxStepValue) {
-    m_MaxStepValue = mMaxStepValue;
-//    ui->spinBoxStepValue->setMaximum(mMaxStepValue);
-    ui->spinBoxStepValue->setRange(1, mMaxStepValue);
+    }
+    if (m_RealTimeData.m_PdChanged != realTimeData.m_PdChanged)
+    {
+        epMachine->addCommand(GET_PD_JSON_NORMAL);
+    }
+    if (m_RealTimeData.m_PressValue != realTimeData.m_PressValue)
+    {
+        ui->labelActPressValue->setText(QString::number(realTimeData.m_PressValue));
+    }
+    if (m_RealTimeData.m_PressState != realTimeData.m_PressState)
+    {
+        if (realTimeData.m_PressState == 0)
+        {
+            ui->pBnStartStop->setChecked(false);
+            ui->pBnPush->setChecked(false);
+            ui->pBnPush->setEnabled(true);
+            ui->pBnStartStop->setEnabled(true);
+        }else if (realTimeData.m_PressState == 1)
+        {
+            ui->pBnStartStop->setChecked(true);
+            ui->pBnPush->setChecked(false);
+            ui->pBnPush->setEnabled(false);
+        }else if (realTimeData.m_PressState == 2)
+        {
+            ui->pBnStartStop->setChecked(false);
+            ui->pBnPush->setChecked(false);
+            ui->pBnStartStop->setEnabled(false);
+        }
+    }
+    static int i = 0;
+    ui->pressChartView->appendPressData(QPointF(i++, realTimeData.m_PressValue));
+    ui->labelUpValue->setText(QString::number(m_PressData.m_SetPValue[realTimeData.m_CPStep]));
+    ui->labelStepValue->setText(QString::number(realTimeData.m_CPStep));
+    m_RealTimeData = realTimeData;
 
-    ui->tableWidgetStepList->setMaxStepValue(m_MaxStepValue);
 }
 
-void UiHome::slotTypeChanged(int value) const {
-    setTypeValue(value);
+void UiHome::setPressData(const PressData& pressData)
+{
+    ui->spinBoxStepValue->setValue(pressData.m_PStep);
+    ui->cBoxTypeValue->setCurrentIndex(pressData.m_Type);
+    ui->dBoxAValue->setValue(pressData.m_A);
+    ui->dBoxBValue->setValue(pressData.m_B);
+    ui->dBoxDiameterValue->setValue(pressData.m_D);
+    ui->dBoxOutDValue->setValue(pressData.m_OuterD);
+    ui->dBoxInDValue->setValue(pressData.m_InnerD);
+    ui->dBoxPushValue->setValue(pressData.m_DemoldValue);
+    ui->tableWidgetStepList->setUpPressValue(pressData.m_SetPValue);
+    ui->tableWidgetStepList->setDownPressValue(pressData.m_AfterValue);
+    ui->tableWidgetStepList->setTimePressValue(pressData.m_KPTime);
+
+    m_PressData = pressData;
 }
 
-void UiHome::setTypeValue(int value) const {
-    if (value == 0) {
+void UiHome::setReadOnlyData(const ReadOnlyData& readOnlyData)
+{
+    setMaxStepValue(readOnlyData.m_MaxPStep);
+    ui->dBoxPushValue->setRange(.0,readOnlyData.m_MaxPLimit/2);
+    ui->pressChartView->setRange(0,readOnlyData.m_MaxPLimit);
+    m_ReadOnlyData = readOnlyData;
+}
+
+void UiHome::setMaxStepValue(int maxStepValue)
+{
+    m_MaxStepValue = maxStepValue;
+    ui->spinBoxStepValue->setRange(1, maxStepValue);
+}
+
+
+void UiHome::uiToJsonString()
+{
+    m_PressData.m_AfterValue = ui->tableWidgetStepList->getDownPressValue();
+    m_PressData.m_SetPValue = ui->tableWidgetStepList->getUpPressValue();
+    m_PressData.m_KPTime = ui->tableWidgetStepList->getTimePressValue();
+    m_PressData.m_PStep = ui->spinBoxStepValue->value();
+    m_PressData.m_Type = ui->cBoxTypeValue->currentIndex();
+    m_PressData.m_A = ui->dBoxAValue->value();
+    m_PressData.m_B = ui->dBoxBValue->value();
+    m_PressData.m_D = ui->dBoxDiameterValue->value();
+    m_PressData.m_OuterD = ui->dBoxOutDValue->value();
+    m_PressData.m_InnerD = ui->dBoxInDValue->value();
+    m_PressData.m_DemoldValue = ui->dBoxPushValue->value();
+
+}
+
+void UiHome::slotTypeChanged(int value)
+{
+    if (value == 0)
+    {
         ui->tableWidgetStepList->setMpaVisible(false);
-    } else {
+    }
+    else
+    {
         ui->tableWidgetStepList->setMpaVisible(true);
     }
     ui->stackedWidget->setCurrentIndex(value);
 }
 
-void UiHome::closeEvent(QCloseEvent *event) {
+
+void UiHome::closeEvent(QCloseEvent* event)
+{
     QWidget::closeEvent(event);
-    if (ui->stackedWidgetMain->currentIndex() == 1) {
+    if (ui->stackedWidgetMain->currentIndex() == 1)
+    {
         ui->stackedWidgetMain->setCurrentIndex(0);
         event->ignore();
-    } else {
+    }
+    else
+    {
         int info = QMessageBox::warning(nullptr, "提示", "是否关闭当前软件？", QMessageBox::Yes, QMessageBox::No);
-        if (info == QMessageBox::Yes) {
+        if (info == QMessageBox::Yes)
+        {
             event->accept();
-        } else {
+        }
+        else
+        {
             event->ignore();
         }
     }
 }
 
-QStringList UiHome::getPortList() {
-    QStringList portList;
-//    ui->cboBoxTty->clear();
-    QList<QSerialPortInfo> serialPortList = QSerialPortInfo::availablePorts();
-    for (auto &var: serialPortList) {
-        portList.append(var.portName());
-    }
-    return portList;
-}
 
-void UiHome::timerEvent(QTimerEvent *event) {
-//    qDebug() <<ui->cboBoxTty->view()->isVisible();
-    if (!ui->pBnUpdateTty->isChecked() && !ui->cboBoxTty->view()->isVisible()) {
-        QString portName = ui->cboBoxTty->currentText();
-        QStringList portNames = getPortList();
-        ui->cboBoxTty->clear();
-        ui->cboBoxTty->addItems(portNames);
-        if (portNames.contains(portName)) {
-            ui->cboBoxTty->setCurrentText(portName);
-        }
-    }
+void UiHome::timerEvent(QTimerEvent* event)
+{
     QObject::timerEvent(event);
 }
 
-void UiHome::slotOpenPortClicked(bool isChecked) {
-    Q_UNUSED(isChecked);
-    if (epMachine->machineIsRunning()) {
-        qDebug() << "machine is running.";
-    } else {
-        emit signalGetComPortList();
-    }
+DataInterface::~DataInterface()
+{
 }
 
-void UiHome::setPortWidgetEnabled(bool isEnabled) {
-    ui->cboBoxTty->setEnabled(!isEnabled);
-    ui->pBnPush->setEnabled(isEnabled);
-    ui->pBnStartStop->setEnabled(isEnabled);
+void DataInterface::setParent(void* parent)
+{
+    mpParent = parent;
 }
 
-void UiHome::slotMachineError(QSerialPort::SerialPortError error) {
-    if (error == QSerialPort::NoError) {
+
+void DataInterface::onReadOnlyData(int errorCode, uint64_t registerNo, const ReadOnlyData& readOnlyData)
+{
+    if (errorCode != RetCommand::RET_SUCCESS)
+    {
         return;
     }
-    epMachine->stopMachine();
-    ui->pBnUpdateTty->setChecked(false);
-    setPortWidgetEnabled(false);
+    auto uiHome = static_cast<UiHome*>(mpParent);
+    uiHome->setReadOnlyData(readOnlyData);
+}
+
+void DataInterface::onRealTimeData(int errorCode, const RealTimeData& realTimeData)
+{
+    if (errorCode != RetCommand::RET_SUCCESS)
+    {
+        return;
+    }
+    auto uiHome = static_cast<UiHome*>(mpParent);
+    uiHome->setRealTimeData(realTimeData);
+}
+
+void DataInterface::onPressData(int errorCode, const PressData& pressData)
+{
+    if (errorCode != RetCommand::RET_SUCCESS)
+    {
+        return;
+    }
+    auto uiHome = static_cast<UiHome*>(mpParent);
+    uiHome->setPressData(pressData);
+}
+
+void DataInterface::onDataError(uint16_t cmdCode, std::vector<uint8_t> response)
+{
+    auto uiHome = static_cast<UiHome*>(mpParent);
+}
+
+void DataInterface::onCommandError(RetCommand errorCode, uint16_t cmdCode)
+{
+    if (errorCode != RetCommand::RET_SUCCESS)
+    {
+        return;
+    }
+    auto uiHome = static_cast<UiHome*>(mpParent);
+}
+
+void DataInterface::onCommandPassWarningError(uint16_t cmdCode)
+{
+}
+
+void UiHome::slotOpenPortClicked(bool isChecked)
+{
+    Q_UNUSED(isChecked);
+}
+
+
+void UiHome::slotMachineError(QSerialPort::SerialPortError error)
+{
+    if (error == QSerialPort::NoError)
+    {
+        return;
+    }
+
     QMetaEnum metaEnum = QMetaEnum::fromType<QSerialPort::SerialPortError>();
     QMessageBox::warning(this, "警告", "串口错误,错误信息:" + QString("%1").arg(metaEnum.valueToKey(error)));
     qDebug() << "slotMachineError().";
 }
 
-void UiHome::slotStartStopClicked(bool isClicked) {
-    Q_UNUSED(isClicked);
-    QString text = ui->pBnStartStop->text();
-    if (text=="启动") {
-        ui->pBnStartStop->setText("停止");
-        epMachine->setPortName(ui->cboBoxTty->currentText());
-        epMachine->setPressCmdList(epActualPressData->getPressCmdList());
-        epMachine->startMachine();
-        ui->pressChartView->clearPressData();
-    } else {
-        ui->pBnStartStop->setText("启动");
-        epMachine->stopMachine();
-        ui->widgetInfo->setVisible(false);
-        m_DataResult.s_DateTime = QDateTime::currentDateTime().toString("yyyy/MM/dd hh:mm:ss");
-        m_DataResult.s_JsonData = epActualPressData->saveJsonString();
-        m_DataResult.s_Complete = 0;
-        m_DataResult.s_Line = ui->pressChartView->lineToJsonString();
-        bool sqlInfo = epDataControl->addDataResult(m_DataResult);
-        if (sqlInfo) {
-            updateTableWidget();
-        }
+void UiHome::slotStartStopClicked(bool isClicked)
+{
+    if (isClicked)
+    {
+        uiToJsonString();
+        epMachine->addCommand(SET_PRESS_STEP(m_PressData));
     }
+
+    epMachine->addCommand(isClicked?SET_PRESS_START:SET_PRESS_STOP);
 }
 
-void UiHome::slotControlDialog(bool isClicked) {
+void UiHome::slotControlDialog(bool isClicked)
+{
     Q_UNUSED(isClicked)
     ControlDialog controlDialog;
     controlDialog.exec();
 }
 
-void UiHome::slotPortName(QString port) {
-    ui->cboBoxTty->clear();
-    if (port.isEmpty()) {
-        setPortWidgetEnabled(false);
-        QMessageBox::warning(this, "警告", "没有发现设备。");
-    } else {
-        ui->cboBoxTty->addItem(port);
-        setPortWidgetEnabled(true);
-    }
-}
 
-void UiHome::slotTimeTimerPress(int step, double setValue, int time, int timer, double press, int liquidPress) {
-//    qDebug() << time << timer << press;
-    if (!ui->widgetInfo->isVisible()) {
+void UiHome::slotTimeTimerPress(int step, double setValue, int time, int timer, double press, int liquidPress)
+{
+    //    qDebug() << time << timer << press;
+    if (!ui->widgetInfo->isVisible())
+    {
         ui->widgetInfo->setVisible(true);
     }
     ui->labelStepValue->setText(QString::number(step + 1));
-    ui->labelUpValue->setText(QString::number(setValue, 'f', epReadOnlySetData->s_PressPrecision));
-    ui->labelActTimeValue->setText(QString::number(timer));
-    ui->labelActPressValue->setText(QString::number(press, 'f', epReadOnlySetData->s_PressPrecision));
-    ui->labelActMpaValue->setText(QString::number(liquidPress / 1000.0, 'f', epReadOnlySetData->s_PressPrecision));
-    double value = APP::tonToTypeMpa(press, ui->stackedWidget->currentIndex(),
-                                     ui->dBoxDiameterValue->value(),
-                                     ui->dBoxAValue->value(),
-                                     ui->dBoxBValue->value()
-    );
-    ui->labelMpaValue->setText(QString::number(value, 'f', epReadOnlySetData->s_PressPrecision));
+
     ui->pressChartView->appendPressData(QPointF{time / 1000.0, press});
 }
 
-void UiHome::slotComplete() {
+void UiHome::slotComplete()
+{
     ui->pBnStartStop->setText("启动");
-    epMachine->stopMachine();
     ui->widgetInfo->setVisible(false);
-    m_DataResult.s_DateTime = QDateTime::currentDateTime().toString("yyyy/MM/dd hh:mm:ss");
-    m_DataResult.s_JsonData = epActualPressData->saveJsonString();
-    m_DataResult.s_Complete = 1;
-    m_DataResult.s_Line = ui->pressChartView->lineToJsonString();
-    bool sqlInfo = epDataControl->addDataResult(m_DataResult);
-    if (sqlInfo) {
-        updateTableWidget();
-    }
 }
 
-void UiHome::setPBnVisible(bool isVisible) {
-//    ui->pBnPush->setVisible(isVisible);
-    ui->pBnSet->setVisible(isVisible);
-//    ui->pBnData->setVisible(isVisible);
-}
 
-void UiHome::slotDataListWidget() {
-//    qDebug() << "slotStackWidget()";
+
+void UiHome::slotDataListWidget()
+{
+    //    qDebug() << "slotStackWidget()";
     ui->stackedWidgetMain->setCurrentIndex(1);
 }
 
-void UiHome::slotControlWidget() {
+void UiHome::slotControlWidget()
+{
     ui->stackedWidgetMain->setCurrentIndex(0);
 }
 
-void UiHome::slotTableWidgetCustomContextMenuRequested(QPoint point) {
-    Q_UNUSED(point)
-    int row = ui->tableWidget->currentRow();
-    if (m_DataResultList.size() > row) {
-        QMenu *pMenu = new QMenu();
-        QAction *pActionOpen = new QAction("查看");
-        connect(pActionOpen, &QAction::triggered, this, [=]() {
+void UiHome::slotTableWidgetCustomContextMenuRequested(QPoint point)
+{
 
-        });
-        QAction *pActionUse = new QAction("使用");
-        connect(pActionUse, &QAction::triggered, this, [=]() {
-            DataResult dataResult;
-            bool sqlInfo = epDataControl->selectDataResult(dataResult, mpNoItemList[row]->text().toInt(),
-                                                           mpDateTimeItemList[row]->text());
-            if (sqlInfo) {
-
-                if (epActualPressData->openJsonString(dataResult.s_JsonData.toLatin1())) {
-                    ui->cBoxTypeValue->setCurrentIndex(epActualPressData->s_Type);
-                    ui->dBoxDiameterValue->setValue(epActualPressData->s_D);
-                    ui->dBoxAValue->setValue(epActualPressData->s_A);
-                    ui->dBoxBValue->setValue(epActualPressData->s_B);
-                    ui->stackedWidget->setCurrentIndex(epActualPressData->s_Type);
-                    ui->spinBoxStepValue->setValue(epActualPressData->s_Step);
-                    ui->tableWidgetStepList->setStepValueCount(ui->spinBoxStepValue->value());
-                    ui->stackedWidgetMain->setCurrentIndex(0);
-                }
-                ui->pressChartView->jsonStringToLine(dataResult.s_Line);
-            }
-        });
-        QAction *pActionDelete = new QAction("删除");
-        connect(pActionDelete, &QAction::triggered, this, [=]() {
-            int no = mpNoItemList[row]->text().toInt();
-            QString dateTime = mpDateTimeItemList[row]->text();
-            bool sqlInfo = epDataControl->deleteDataResult(no, dateTime);
-            if (sqlInfo) {
-                updateTableWidget();
-            }
-        });
-        QAction *pActionDeletePage = new QAction("删除页");
-        connect(pActionDeletePage, &QAction::triggered, this, [=]() {
-            bool sqlInfo = epDataControl->deleteCurrentDataResultPage(m_CurrentPage, m_DataResultList.size());
-            if (sqlInfo) {
-                updateTableWidget();
-            }
-        });
-        QAction *pActionDeleteAll = new QAction("删除全部");
-        connect(pActionDeleteAll, &QAction::triggered, this, [=]() {
-            bool sqlInfo = epDataControl->deleteAllResult();
-            if (sqlInfo) {
-                updateTableWidget();
-            }
-        });
-//        pMenu->addAction(pActionOpen);
-        pMenu->addAction(pActionUse);
-        pMenu->addAction(pActionDelete);
-        pMenu->addAction(pActionDeletePage);
-        pMenu->addAction(pActionDeleteAll);
-
-        pMenu->exec(QCursor::pos());
-        delete pActionOpen;
-        delete pActionUse;
-        delete pActionDelete;
-        delete pActionDeletePage;
-        delete pActionDeleteAll;
-        delete pMenu;
-    }
 }
 
-void UiHome::updateTableWidget() {
-    int row = ui->tableWidget->rowCount();
-    bool sqlInfo = epDataControl->selectDataResultCount(m_SumDataResultCount);
-    if (sqlInfo) {
-        if (m_SumDataResultCount == 0) {
-            for (int i = 0; i < row; ++i) {
-                mpNoItemList[i]->setText("");
-                mpDateTimeItemList[i]->setText("");
-                mpTypeItemList[i]->setText("");
-                mpSizeItemList[i]->setText("");
-                mpMaxPressItemList[i]->setText("");
-            }
-            m_SumPage = 1;
-            return;
-        } else {
-            m_SumPage = m_SumDataResultCount / row + (m_SumDataResultCount % row ? 1 : 0);
-            if (m_CurrentPage == m_SumPage) {
-                m_CurrentPage--;
-            }
-        }
-    } else {
-        m_SumPage = 1;
-        return;
-    }
+void UiHome::updateTableWidget()
+{
 
-    sqlInfo = epDataControl->selectDataResultList(m_DataResultList, m_CurrentPage * row, row);
-
-    int size = m_DataResultList.size();
-    if (sqlInfo) {
-        for (int i = 0; i < size; ++i) {
-            mpNoItemList[i]->setText(QString::number(m_DataResultList[i].s_Id));
-            mpDateTimeItemList[i]->setText(m_DataResultList[i].s_DateTime);
-            ActualPressData actualPressData;
-            bool jsonInfo = actualPressData.openJsonString(m_DataResultList[i].s_JsonData.toLatin1());
-            if (jsonInfo) {
-                mpTypeItemList[i]->setText(actualPressData.typeString());
-                mpSizeItemList[i]->setText(actualPressData.sizeString());
-                mpMaxPressItemList[i]->setText(
-                        QString::number(actualPressData.maxUpValue(), 'f', epReadOnlySetData->s_PressPrecision));
-            }
-        }
-        for (int i = size; i < row; ++i) {
-            mpNoItemList[i]->setText("");
-            mpDateTimeItemList[i]->setText("");
-            mpTypeItemList[i]->setText("");
-            mpSizeItemList[i]->setText("");
-            mpMaxPressItemList[i]->setText("");
-        }
-    }
-    ui->labelPageValue->setText(QString("%1/%2").arg(m_CurrentPage + 1).arg(m_SumPage));
 }
 
-void UiHome::slotFirstClicked() {
-    m_CurrentPage = 0;
+void UiHome::slotFirstClicked()
+{
     updateTableWidget();
 }
 
-void UiHome::slotTailClicked() {
-    m_CurrentPage = m_SumPage - 1;
+void UiHome::slotTailClicked()
+{
     updateTableWidget();
 }
 
-void UiHome::slotPreClicked() {
-    if (m_CurrentPage > 0) {
-        m_CurrentPage--;
-        updateTableWidget();
-    }
-
+void UiHome::slotPreClicked()
+{
 }
 
-void UiHome::slotNextClicked() {
-    if (m_CurrentPage < m_SumPage - 1) {
-        m_CurrentPage++;
-        updateTableWidget();
-    }
+void UiHome::slotNextClicked()
+{
 }
 
-void UiHome::slotPushClicked() {
-    epMachine->setPortName(ui->cboBoxTty->currentText());
-    epMachine->setPressCmdList(epActualPressData->getPushCmdList());
-    epMachine->startPust();
-    ui->pressChartView->clearPressData();
+void UiHome::slotPushClicked(bool isChecked)
+{
+    epMachine->addCommand(isChecked?SET_PRESS_START:SET_PRESS_STOP);
 }
 
-void UiHome::slotPushValueChanged(double value) {
-    epActualPressData->s_PushSet = value;
+void UiHome::slotPushValueChanged(double value)
+{
 }
-

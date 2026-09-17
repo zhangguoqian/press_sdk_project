@@ -22,6 +22,16 @@ public:
 
 private:
     Ui::ControlDialog *ui;
+    void _show_text_log(const std::vector<uint8_t> &data);
+    void _show_error_log(const char* error, int info);
+private Q_SLOTS:
+    void slotGetRodData();
+    void slotGetPdData();
+    void slotGetRtData();
+    void slotRun();
+    void slotStop();
+    void slotAddRodCommand();
+    void slotAddPdCommand();
 };
 
 

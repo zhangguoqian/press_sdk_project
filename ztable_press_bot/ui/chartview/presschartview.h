@@ -34,7 +34,7 @@ public:
 
     void clearPressData();
 
-
+    void setRange(double min, double max);
 private:
     QValueAxis *mpXAxis;
     QValueAxis *mpYAxis;
