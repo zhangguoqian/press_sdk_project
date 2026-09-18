@@ -35,40 +35,13 @@ uint64_t Machine::getMachineRegisterNo() const
     return mpPrivate->getMachineRegisterNo();
 }
 
-void Machine::setCommand(uint16_t command, const std::vector<uint8_t>& data) const
-{
-    mpPrivate->setCommand(command, data);
-}
 
-std::vector<uint8_t> Machine::getResponse() const
-{
-    return mpPrivate->getResponse();
-}
 
 const char* Machine::getLastErrorInfo() const
 {
     return mpPrivate->getLastErrorInfo();
 }
 
-int Machine::runCommand(const std::pair<uint16_t, std::vector<uint8_t>>& commandData) const
-{
-    return mpPrivate->runCommand(commandData);
-}
-
-int Machine::runCommand(uint16_t command, const std::vector<uint8_t>& data) const
-{
-    return mpPrivate->runCommand(command, data);
-}
-
-int Machine::runCommand() const
-{
-    return mpPrivate->runCommand();
-}
-
-void Machine::addCommand(const std::pair<uint16_t, std::vector<uint8_t>>& commandData) const
-{
-    mpPrivate->addCommand(commandData);
-}
 
 void Machine::run() const
 {
@@ -83,6 +56,11 @@ void Machine::stop() const
 bool Machine::isRunning() const
 {
     return mpPrivate->isRunning();
+}
+
+bool Machine::getReadOnlyData(ReadOnlyData& data, uint8_t isCompressed)
+{
+    return mpPrivate->getReadOnlyData(data, isCompressed);
 }
 
 void Machine::registerDataInterface(MachineDataInterface* dataInterface) const

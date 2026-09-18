@@ -25,48 +25,50 @@ public:
     void disconnect() const;
     bool isConnected() const;
     uint64_t getMachineRegisterNo() const;
-    void setCommand(uint16_t command, const std::vector<uint8_t>& data);
-    std::vector<uint8_t> getResponse() const;
+
+    bool getReadOnlyData(ReadOnlyData& data,uint8_t isCompressed = 0);
+    bool getPressedData(PressData& data,uint8_t isCompressed = 0);
+    bool getRealTimeData(RealTimeData& data,uint8_t isCompressed = 0);
+
     int runCommand();
-    int runCommand(uint16_t command, const std::vector<uint8_t>& data);
-    int runCommand(const std::pair<uint16_t, std::vector<uint8_t>>& commandData);
 
     void run();
     void stop();
     bool isRunning() const;
-    void addCommand(const std::pair<uint16_t, std::vector<uint8_t>>& commandData);
 
     static std::vector<std::string> getPortList();
-    const char *getLastErrorInfo();
+    const char* getLastErrorInfo();
 
-    void registerDataInterface(MachineDataInterface *dataInterface);
+    void registerDataInterface(MachineDataInterface* dataInterface);
     void unregisterDataInterface();
 
 private:
-    std::vector<uint8_t> _combined_send_data();
-    int _is_valid_response_data(std::vector<uint8_t>& response);
+    std::vector<uint8_t> _combinedSendData(uint64_t &registerNo,uint16_t &command);
+    int _isValidResponseData(std::vector<uint8_t>& response,uint64_t registerNo,uint16_t command);
+
     char m_ErrorInfo[128] = {0};
 
     std::unique_ptr<PortBase> mpPort = nullptr;
-    uint64_t m_RegisterNo = 0;
-    uint16_t m_Command = 0;
-    std::vector<uint8_t> m_CommandData = {};
-    std::vector<uint8_t> m_ResponseData = {};
 
-    std::unique_ptr<std::thread> mpRunThread = nullptr;
-    std::mutex m_Mutex;
+    std::atomic<uint64_t> m_RegisterNo{0};       //!< 机器注册号
+
+    std::atomic<uint16_t> m_Command{0};          //!< 命令
+    std::atomic<uint8_t> m_GetCommandData{0};    //!< 命令数据获取
+    std::vector<uint8_t> m_SetCommandData = {};     //!< 命令数据设置
+    std::mutex m_SetCommandMutex{};                 //!< 命令数据设置互斥锁
+
+    std::atomic<uint8_t> m_SetResponseData{0};   //!< 响应数据设置
+    std::vector<uint8_t> m_GetResponseData = {};    //!< 响应数据队列
+    std::mutex m_GetResponseDataMutex{};            //!< 响应数据队列互斥锁
+
+    std::unique_ptr<std::thread> mpRunThread = nullptr; //!< 运行线程
+    std::atomic<bool> m_IsRunning = false; //!< 是否运行中
+
+    std::atomic<int> m_RunCode{1};
 
 
-    std::atomic<bool> m_IsRunning = false;
-    std::queue<std::pair<uint16_t, std::vector<uint8_t>>> m_CommandQueue;
-
-    MachineData m_MachineData;
-
-    MachineDataInterface* mpMachineDataInterface = nullptr;
-    std::mutex m_MachineDataMutex;
-
-    std::pair<uint16_t,std::vector<uint8_t>> m_ResponsePair; // 命令 -> 响应数据
-    std::mutex m_ResponseMapMutex;
+    MachineDataInterface* mpMachineDataInterface = nullptr; //!< 数据接口
+    std::mutex m_MachineDataMutex{}; //!< 数据接口互斥锁
 };
 
 #endif

@@ -60,16 +60,16 @@ void ControlDialog::slotGetRodData()
 {
     if (epMachine->isConnected())
     {
-        int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_ROD_JSON_COMPRESS:GET_ROD_JSON_NORMAL);
-        if (0 == info)
-        {
-            auto response = epMachine->getResponse();
-            _show_text_log(response);
-        }
-        else
-        {
-            _show_error_log(epMachine->getLastErrorInfo(), info);
-        }
+        // int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_ROD_JSON_COMPRESS:GET_ROD_JSON_NORMAL);
+        // if (0 == info)
+        // {
+        //     auto response = epMachine->getResponse();
+        //     _show_text_log(response);
+        // }
+        // else
+        // {
+        //     _show_error_log(epMachine->getLastErrorInfo(), info);
+        // }
     }
 }
 
@@ -77,16 +77,16 @@ void ControlDialog::slotGetPdData()
 {
     if (epMachine->isConnected())
     {
-        int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_PD_JSON_COMPRESS:GET_PD_JSON_NORMAL);
-        if (0 == info)
-        {
-            auto response = epMachine->getResponse();
-            _show_text_log(response);
-        }
-        else
-        {
-            _show_error_log(epMachine->getLastErrorInfo(), info);
-        }
+        // int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_PD_JSON_COMPRESS:GET_PD_JSON_NORMAL);
+        // if (0 == info)
+        // {
+        //     auto response = epMachine->getResponse();
+        //     _show_text_log(response);
+        // }
+        // else
+        // {
+        //     _show_error_log(epMachine->getLastErrorInfo(), info);
+        // }
     }
 }
 
@@ -94,16 +94,16 @@ void ControlDialog::slotGetRtData()
 {
     if (epMachine->isConnected())
     {
-        int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_RT_JSON_COMPRESS:GET_RT_JSON_NORMAL);
-        if (0 == info)
-        {
-            auto response = epMachine->getResponse();
-            _show_text_log(response);
-        }
-        else
-        {
-            _show_error_log(epMachine->getLastErrorInfo(), info);
-        }
+        // int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_RT_JSON_COMPRESS:GET_RT_JSON_NORMAL);
+        // if (0 == info)
+        // {
+        //     auto response = epMachine->getResponse();
+        //     _show_text_log(response);
+        // }
+        // else
+        // {
+        //     _show_error_log(epMachine->getLastErrorInfo(), info);
+        // }
     }
 }
 
@@ -149,7 +149,7 @@ void ControlDialog::slotAddRodCommand()
 {
     if (epMachine->isConnected())
     {
-        epMachine->addCommand(GET_ROD_JSON_NORMAL);
+        // epMachine->addCommand(GET_ROD_JSON_NORMAL);
     }
 }
 
@@ -157,6 +157,6 @@ void ControlDialog::slotAddPdCommand()
 {
     if (epMachine->isConnected())
     {
-        epMachine->addCommand(GET_PD_JSON_NORMAL);
+        // epMachine->addCommand(GET_PD_JSON_NORMAL);
     }
 }

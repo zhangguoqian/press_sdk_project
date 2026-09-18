@@ -38,21 +38,25 @@ void Login::initPortList()
 
 void Login::slotConnect()
 {
+    static int  i = 0;
     std::string portName = ui->cboBoxTty->currentText().toStdString();
-    if (epMachine->connect(portName.c_str()))
+    if (i==0)
     {
-        if (0==epMachine->runCommand(GET_ROD_JSON_NORMAL))
+        if (epMachine->connect(portName.c_str()))
         {
-            accept();
+            epMachine->run();
+            i++;
         }
         else
         {
-            epMachine->disconnect();
-            QMessageBox::critical(this,"Error","Get current state failed.");
+            QMessageBox::critical(this,"Error","Connect to port failed.");
         }
-    }
-    else
+    }else
     {
-        QMessageBox::critical(this,"Error","Connect to port failed.");
+        ReadOnlyData data;
+
+        epMachine->getReadOnlyData(data,0);
+
     }
+
 }

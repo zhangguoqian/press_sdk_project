@@ -106,7 +106,7 @@ void UiHome::setRealTimeData(const RealTimeData &realTimeData)
     }
     if (m_RealTimeData.m_PdChanged != realTimeData.m_PdChanged)
     {
-        epMachine->addCommand(GET_PD_JSON_NORMAL);
+
     }
     if (m_RealTimeData.m_PressValue != realTimeData.m_PressValue)
     {
@@ -308,13 +308,13 @@ void UiHome::slotMachineError(QSerialPort::SerialPortError error)
 
 void UiHome::slotStartStopClicked(bool isClicked)
 {
-    if (isClicked)
-    {
-        uiToJsonString();
-        epMachine->addCommand(SET_PRESS_STEP(m_PressData));
-    }
-
-    epMachine->addCommand(isClicked?SET_PRESS_START:SET_PRESS_STOP);
+    // if (isClicked)
+    // {
+    //     uiToJsonString();
+    //     epMachine->addCommand(SET_PRESS_STEP(m_PressData));
+    // }
+    //
+    // epMachine->addCommand(isClicked?SET_PRESS_START:SET_PRESS_STOP);
 }
 
 void UiHome::slotControlDialog(bool isClicked)
@@ -386,7 +386,7 @@ void UiHome::slotNextClicked()
 
 void UiHome::slotPushClicked(bool isChecked)
 {
-    epMachine->addCommand(isChecked?SET_PRESS_START:SET_PRESS_STOP);
+    // epMachine->addCommand(isChecked?SET_PRESS_START:SET_PRESS_STOP);
 }
 
 void UiHome::slotPushValueChanged(double value)

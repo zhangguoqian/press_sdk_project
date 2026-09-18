@@ -17,21 +17,18 @@
 static const std::pair<uint16_t, std::vector<uint8_t>> GET_VERSION = {CMDID_VERSION, {0x00}};
 static const std::pair<uint16_t, std::vector<uint8_t>> GET_ZH_NAME = {CMDID_NAME, {0x01}};
 static const std::pair<uint16_t, std::vector<uint8_t>> GET_EN_NAME = {CMDID_NAME, {0x02}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_MACHINE_TYPE = {CMDID_MACHINE_TYPE, {0x00}};
+static constexpr uint16_t GET_MACHINE_TYPE = CMDID_MACHINE_TYPE;
 static const std::pair<uint16_t, std::vector<uint8_t>> GET_SERIAL_NUMBER = {CMDID_SERIAL_NUMBER, {0x00}};
 static const std::pair<uint16_t, std::vector<uint8_t>> GET_PRESS_PARAMETER = {CMDID_PRESS_PARAMETER, {0x00}};
 static const std::pair<uint16_t, std::vector<uint8_t>> GET_OTHER_INFO = {CMDID_OTHER_INFO, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_ROD_JSON_NORMAL = {CMDID_ROD_JSON, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_ROD_JSON_COMPRESS = {CMDID_ROD_JSON, {0x01}};
 
+static constexpr uint16_t GET_ROD_JSON = CMDID_ROD_JSON;
 /**压力参数获取**/
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_PD_JSON_NORMAL = {CMDID_PD_JSON, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_PD_JSON_COMPRESS = {CMDID_PD_JSON, {0x01}};
-
+static constexpr uint16_t GET_PD_JSON = CMDID_PD_JSON;
 /**实时参数获取**/
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_RT_JSON_NORMAL = {CMDID_GET_CURRENT_STATE_JSON, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_RT_JSON_COMPRESS = {CMDID_GET_CURRENT_STATE_JSON, {0x01}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_RT_STATE = {CMDID_GET_CURRENT_STATE, {0x00}};
+static constexpr uint16_t GET_RT_JSON = CMDID_GET_CURRENT_STATE_JSON;
+
+
 
 /**设置**/
 static const std::pair<uint16_t, std::vector<uint8_t>> SET_PRESS_START = {CMDID_SET_START_PRESS, {0x01}};
