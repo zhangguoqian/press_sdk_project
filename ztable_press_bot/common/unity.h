@@ -7,6 +7,11 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
 
 class Unity
 {
@@ -15,6 +20,8 @@ public:
     //! @param data [in] the data to calculate the checksum
     //! @return uint8_t the checksum
     static uint8_t getChecksum(const std::vector<uint8_t>& data);
+
+    static std::string getCurrentTime();
 };
 
 

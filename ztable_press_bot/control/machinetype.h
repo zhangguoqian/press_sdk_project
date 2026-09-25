@@ -220,7 +220,7 @@ inline std::ostream& operator<<(std::ostream& os, const RealTimeData& realTimeDa
 #ifdef QT_CORE_LIB
 #include <QDebug>
 
-inline QDebug& operator<<(QDebug& os, const RealTimeData& realTimeData)
+inline QDebug operator<<(QDebug os, const RealTimeData& realTimeData)
 {
     os << '{';
     os << "ModelState: " << static_cast<int>(realTimeData.m_ModelState);
@@ -233,7 +233,7 @@ inline QDebug& operator<<(QDebug& os, const RealTimeData& realTimeData)
     return os;
 }
 
-inline QDebug& operator<<(QDebug& os, const PressData& pressData)
+inline QDebug operator<<(QDebug os, const PressData& pressData)
 {
     os << '{';
     os << "PStep: " << pressData.m_PStep;
@@ -253,7 +253,7 @@ inline QDebug& operator<<(QDebug& os, const PressData& pressData)
     return os;
 }
 
-inline QDebug& operator<<(QDebug& os, const ReadOnlyData& readOnlyData)
+inline QDebug operator << (QDebug os, const ReadOnlyData& readOnlyData)
 {
     os << "NameZH: " << QString::fromStdString(readOnlyData.m_NameZH);
     os << "NameEN: " << QString::fromStdString(readOnlyData.m_NameEN);

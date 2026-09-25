@@ -50,6 +50,8 @@ public:
     bool isRunning() const;
 
     bool getReadOnlyData(ReadOnlyData& data,uint8_t isCompressed = 0);
+    bool getPressData(PressData& data,uint8_t isCompressed = 0);
+    bool getRealTimeData(RealTimeData& data,uint8_t isCompressed = 0);
 
     //! @brief 注册数据接口
     //! @param dataInterface [in] the dataInterface the 数据接口

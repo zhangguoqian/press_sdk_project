@@ -58,52 +58,37 @@ void ControlDialog::_show_error_log(const char* error, int info)
 
 void ControlDialog::slotGetRodData()
 {
-    if (epMachine->isConnected())
+    if (epMachine->isRunning())
     {
-        // int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_ROD_JSON_COMPRESS:GET_ROD_JSON_NORMAL);
-        // if (0 == info)
-        // {
-        //     auto response = epMachine->getResponse();
-        //     _show_text_log(response);
-        // }
-        // else
-        // {
-        //     _show_error_log(epMachine->getLastErrorInfo(), info);
-        // }
+        ReadOnlyData readOnlyData;
+        if (epMachine->getReadOnlyData(readOnlyData))
+        {
+            qDebug() << readOnlyData;
+        }
     }
 }
 
 void ControlDialog::slotGetPdData()
 {
-    if (epMachine->isConnected())
+    if (epMachine->isRunning())
     {
-        // int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_PD_JSON_COMPRESS:GET_PD_JSON_NORMAL);
-        // if (0 == info)
-        // {
-        //     auto response = epMachine->getResponse();
-        //     _show_text_log(response);
-        // }
-        // else
-        // {
-        //     _show_error_log(epMachine->getLastErrorInfo(), info);
-        // }
+        PressData pressData;
+        if (epMachine->getPressData(pressData))
+        {
+            qDebug() << pressData;
+        }
     }
 }
 
 void ControlDialog::slotGetRtData()
 {
-    if (epMachine->isConnected())
+    if (epMachine->isRunning())
     {
-        // int info = epMachine->runCommand(ui->cBoxIsCompress->isChecked()?GET_RT_JSON_COMPRESS:GET_RT_JSON_NORMAL);
-        // if (0 == info)
-        // {
-        //     auto response = epMachine->getResponse();
-        //     _show_text_log(response);
-        // }
-        // else
-        // {
-        //     _show_error_log(epMachine->getLastErrorInfo(), info);
-        // }
+        RealTimeData realTimeData;
+        if (epMachine->getRealTimeData(realTimeData))
+        {
+            qDebug() << realTimeData;
+        }
     }
 }
 
@@ -114,6 +99,7 @@ void ControlDialog::slotRun()
         if (!epMachine->isRunning())
         {
             epMachine->run();
+
             // epMachine->registerCommandErrorCallback([](RetCommand errorCode,uint16_t command, const std::vector<uint8_t>& data)
             // {
             //     qDebug() << errorCode << " " << command << " " << data;

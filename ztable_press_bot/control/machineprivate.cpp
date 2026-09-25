@@ -59,32 +59,47 @@ uint64_t MachinePrivate::getMachineRegisterNo() const
 
 bool MachinePrivate::getReadOnlyData(ReadOnlyData& data, uint8_t isCompressed)
 {
-    m_Command.store(GET_ROD_JSON);
-    m_GetCommandData.store(isCompressed);
-    auto now = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(WAIT_MILLION_SECONDS);
-    do
+    std::vector<uint8_t> responseListData;
+    bool ret = _commandByteData(GET_ROD_JSON,isCompressed,responseListData);
+    if (ret)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (0==m_RunCode.load())
+        if (0==m_MachineData.jsonToReadOnlyData(responseListData))
         {
-            uint8_t out = m_GetCommandData.load();
-            qDebug() << "out:" << out;
-            return out == 0;
+            data = m_MachineData.getReadOnlyData();
+            return true;
         }
-    }while (now > std::chrono::high_resolution_clock::now());
+    }
     return false;
 }
 
-bool MachinePrivate::getPressedData(PressData& data, uint8_t isCompressed)
+bool MachinePrivate::getPressData(PressData& data, uint8_t isCompressed)
 {
-    m_Command.store(GET_PD_JSON);
-    m_GetCommandData.store(isCompressed);
+    std::vector<uint8_t> responseListData;
+    bool ret = _commandByteData(GET_PD_JSON,isCompressed,responseListData);
+    if (ret)
+    {
+        if (0==m_MachineData.jsonToPressData(responseListData))
+        {
+            data = m_MachineData.getPressData();
+            return true;
+        }
+    }
+    return ret;
 }
 
 bool MachinePrivate::getRealTimeData(RealTimeData& data, uint8_t isCompressed)
 {
-    m_Command.store(GET_RT_JSON);
-    m_GetCommandData.store(isCompressed);
+    std::vector<uint8_t> responseListData;
+    bool ret = _commandByteData(GET_RT_JSON,isCompressed,responseListData);
+    if (ret)
+    {
+        if (0==m_MachineData.jsonToRealTimeData(responseListData))
+        {
+            data = m_MachineData.getRealTimeData();
+            return true;
+        }
+    }
+    return ret;
 }
 
 
@@ -92,7 +107,7 @@ std::vector<uint8_t> MachinePrivate::_combinedSendData(uint64_t &registerNo,uint
 {
     std::vector<uint8_t> sendData;
     registerNo = m_RegisterNo.load();
-    command = htons(m_Command.load());
+    command = htons(m_Command.load(std::memory_order_acquire));
     sendData.reserve(CMD_LEN);
     sendData.insert(sendData.end(),
                     reinterpret_cast<uint8_t*>(&registerNo),
@@ -101,9 +116,9 @@ std::vector<uint8_t> MachinePrivate::_combinedSendData(uint64_t &registerNo,uint
                     reinterpret_cast<uint8_t*>(&command),
                     reinterpret_cast<uint8_t*>(&command) + sizeof(command)); // 命令:len=2
     uint16_t dataLen = 0x0001;
-    if (command & 0x1000) //设置命令
+    if (command & 0x0010) //设置命令
     {
-        dataLen = m_SetCommandData.size();
+        dataLen = m_CommandListData.size();
         sendData.reserve(CMD_LEN+dataLen);
         dataLen = htons(dataLen);
         sendData.insert(sendData.end(),
@@ -111,7 +126,7 @@ std::vector<uint8_t> MachinePrivate::_combinedSendData(uint64_t &registerNo,uint
                        reinterpret_cast<uint8_t*>(&dataLen) + sizeof(dataLen)); // 命令:len=2
         {
             std::lock_guard<std::mutex> lock(m_SetCommandMutex);
-            sendData.insert(sendData.end(), m_SetCommandData.begin(), m_SetCommandData.end()); // 命令数据设置:len=?
+            sendData.insert(sendData.end(), m_CommandListData.begin(), m_CommandListData.end()); // 命令数据设置:len=?
             uint8_t checkSum = Unity::getChecksum(sendData);
             sendData.emplace_back(checkSum); // 校验和:len=1
         }
@@ -122,7 +137,7 @@ std::vector<uint8_t> MachinePrivate::_combinedSendData(uint64_t &registerNo,uint
         sendData.insert(sendData.end(),
                         reinterpret_cast<uint8_t*>(&dataLen),
                         reinterpret_cast<uint8_t*>(&dataLen) + sizeof(dataLen)); // 命令:len=2
-        uint8_t getCommandData = m_GetCommandData.load();
+        uint8_t getCommandData = m_CommandByteData.load();
         sendData.emplace_back(getCommandData); // 命令数据获取:len=1
         uint8_t checkSum = Unity::getChecksum(sendData);
         sendData.emplace_back(checkSum); // 校验和:len=1
@@ -147,30 +162,57 @@ int MachinePrivate::_isValidResponseData(std::vector<uint8_t>& response,uint64_t
     if (registerNo == 0)
     {
         m_RegisterNo.store(readRegisterNo);
-    }else if (readRegisterNo != registerNo)
+    }
+    else if (readRegisterNo != registerNo)
     {
         return -5;
     }
 
     uint16_t readCommand = 0;
     memcpy(&readCommand, response.data() + 8, 2);
-    if (readCommand == command)
+    if (readCommand != command)
     {
         return -6;
     }
     uint16_t readDataLen = 0;
     memcpy(&readDataLen, response.data() + 10, 2);
-    if (readCommand & 0x1000) //设置命令
+    readDataLen = htons(readDataLen);
+    if (readCommand & 0x0010) //设置命令响应 (单字节)
     {
-        m_SetResponseData.store(response[12],std::memory_order_relaxed);
+        m_ResponseByteData.store(response[12], std::memory_order_relaxed);
+        m_ResponseReady.store(true, std::memory_order_release);
+        m_GetResponseDataCond.notify_one();
     }
-    else //获取命令
+    else //获取命令响应 (列表数据)
     {
-        std::lock_guard<std::mutex> lock(m_GetResponseDataMutex);
-        m_GetResponseData = std::vector<uint8_t>(response.begin() + 12, response.begin() + 12 + readDataLen);
+        {
+            std::lock_guard<std::mutex> lock(m_GetResponseDataMutex);
+            m_ResponseListData.assign(response.begin() + 12, response.begin() + 12 + readDataLen);
+        }
+        m_ResponseReady.store(true, std::memory_order_release);
+        m_GetResponseDataCond.notify_one();
     }
 
     return 0;
+}
+
+bool MachinePrivate::_commandByteData(uint16_t command, uint8_t byteData,std::vector<uint8_t> &responseListData)
+{
+    responseListData.clear();
+    m_RunCode.store(-1, std::memory_order_release);
+    m_ResponseReady.store(false, std::memory_order_release);
+    m_IsHasCommand.store(true, std::memory_order_release);
+    m_Command.store(command, std::memory_order_release);
+    m_CommandByteData.store(byteData, std::memory_order_release);
+
+    auto now = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(WAIT_MILLION_SECONDS);
+    std::unique_lock<std::mutex> lock(m_GetResponseDataMutex);
+    if (!m_GetResponseDataCond.wait_until(lock, now, [&]{ return m_ResponseReady.load(std::memory_order_acquire); }))
+    {
+        return false;
+    }
+    responseListData = m_ResponseListData;
+    return 0 == m_RunCode.load(std::memory_order_acquire);
 }
 
 int MachinePrivate::runCommand()
@@ -188,19 +230,20 @@ int MachinePrivate::runCommand()
         return -2;
     }
     uint8_t pData[1024];
-    int cycle = 6;
+    int cycle = 10;
     int retLen = 0;
-    do
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (cycle > 0)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         ret = mpPort->read(pData + retLen, 1024);
-        if (ret <= 0 && cycle != 6)
+        if (ret <= 0 && cycle < 8)
         {
             break;
         }
         retLen += ret;
+        cycle --;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    while (cycle-- > 0);
     std::vector<uint8_t> data = std::vector<uint8_t>(pData, pData + retLen);
     int info = _isValidResponseData(data,registerNo,command);
     if (0 != info)
@@ -220,11 +263,16 @@ void MachinePrivate::run()
     {
         while (m_IsRunning.load())
         {
-            int ret = runCommand();
-            m_RunCode.store(ret);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (m_IsHasCommand.load(std::memory_order_acquire))
+            {
+                m_IsHasCommand.store(false);
+                m_RunCode.store(runCommand(),std::memory_order_release);
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            }
         }
-
     });
 }
 

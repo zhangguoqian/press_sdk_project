@@ -27,7 +27,7 @@ public:
     uint64_t getMachineRegisterNo() const;
 
     bool getReadOnlyData(ReadOnlyData& data,uint8_t isCompressed = 0);
-    bool getPressedData(PressData& data,uint8_t isCompressed = 0);
+    bool getPressData(PressData& data,uint8_t isCompressed = 0);
     bool getRealTimeData(RealTimeData& data,uint8_t isCompressed = 0);
 
     int runCommand();
@@ -45,6 +45,8 @@ public:
 private:
     std::vector<uint8_t> _combinedSendData(uint64_t &registerNo,uint16_t &command);
     int _isValidResponseData(std::vector<uint8_t>& response,uint64_t registerNo,uint16_t command);
+    bool _commandByteData(uint16_t command,uint8_t byteData,std::vector<uint8_t> &responseListData);
+
 
     char m_ErrorInfo[128] = {0};
 
@@ -52,19 +54,24 @@ private:
 
     std::atomic<uint64_t> m_RegisterNo{0};       //!< 机器注册号
 
+    std::atomic<bool> m_IsHasCommand{false};       //!< 是否有命令
     std::atomic<uint16_t> m_Command{0};          //!< 命令
-    std::atomic<uint8_t> m_GetCommandData{0};    //!< 命令数据获取
-    std::vector<uint8_t> m_SetCommandData = {};     //!< 命令数据设置
+    std::atomic<uint8_t> m_CommandByteData{0};    //!< 命令数据获取
+    std::vector<uint8_t> m_CommandListData = {};     //!< 命令数据设置
     std::mutex m_SetCommandMutex{};                 //!< 命令数据设置互斥锁
 
-    std::atomic<uint8_t> m_SetResponseData{0};   //!< 响应数据设置
-    std::vector<uint8_t> m_GetResponseData = {};    //!< 响应数据队列
+    std::atomic<uint8_t> m_ResponseByteData{0};   //!< 响应字节数据
+    std::vector<uint8_t> m_ResponseListData = {};    //!< 响应列表数据
     std::mutex m_GetResponseDataMutex{};            //!< 响应数据队列互斥锁
+    std::condition_variable m_GetResponseDataCond{};
 
     std::unique_ptr<std::thread> mpRunThread = nullptr; //!< 运行线程
     std::atomic<bool> m_IsRunning = false; //!< 是否运行中
 
-    std::atomic<int> m_RunCode{1};
+    std::atomic<int> m_RunCode{-1};
+    std::atomic<bool> m_ResponseReady{false};
+
+    MachineData m_MachineData{};
 
 
     MachineDataInterface* mpMachineDataInterface = nullptr; //!< 数据接口

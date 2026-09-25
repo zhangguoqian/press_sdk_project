@@ -63,6 +63,16 @@ bool Machine::getReadOnlyData(ReadOnlyData& data, uint8_t isCompressed)
     return mpPrivate->getReadOnlyData(data, isCompressed);
 }
 
+bool Machine::getPressData(PressData& data, uint8_t isCompressed)
+{
+    return mpPrivate->getPressData(data, isCompressed);
+}
+
+bool Machine::getRealTimeData(RealTimeData& data, uint8_t isCompressed)
+{
+    return mpPrivate->getRealTimeData(data, isCompressed);
+}
+
 void Machine::registerDataInterface(MachineDataInterface* dataInterface) const
 {
     mpPrivate->registerDataInterface(dataInterface);

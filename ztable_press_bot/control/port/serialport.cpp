@@ -8,6 +8,7 @@
 Serialport::Serialport() : PortBase()
 {
     mpSerialPort = std::make_shared<itas109::CSerialPort>();
+
 }
 
 Serialport::~Serialport()
