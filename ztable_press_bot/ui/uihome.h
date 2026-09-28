@@ -18,9 +18,7 @@ public:
     void onReadOnlyData(int errorCode,uint64_t registerNo, const ReadOnlyData& readOnlyData) override;
     void onRealTimeData(int errorCode, const RealTimeData& realTimeData) override;
     void onPressData(int errorCode, const PressData& pressData) override;
-    void onDataError(uint16_t cmdCode,std::vector<uint8_t> response) override;
-    void onCommandError(RetCommand errorCode, uint16_t cmdCode) override;
-    void onCommandPassWarningError(uint16_t cmdCode) override;
+    void onError(uint16_t cmdCode,std::vector<uint8_t> response) override;
 private:
     void *mpParent = nullptr;
 };

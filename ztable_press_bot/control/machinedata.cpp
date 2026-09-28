@@ -331,6 +331,53 @@ int MachineData::jsonToPressData(const std::vector<uint8_t>& data)
     return jsonToPressData(str);
 }
 
+std::string ReadOnlyData::toJsonString() const
+{
+    Json::Value root{};
+
+    root["NameZH"]       = m_NameZH;
+    root["NameEN"]       = m_NameEN;
+    root["Type"]         = m_Type;
+    root["SerialNumber"] = m_SerialNumber;
+
+    root["Screenshot"]   = m_Screenshot;
+    root["StartDelay"]   = m_StartDelay;
+    root["VersionType"]  = m_VersionType;
+    root["IsHideLang"]   = m_IsHideLang;
+    root["Remote"]       = m_Remote;
+    root["Network"]      = m_Network;
+    root["FontZH"]       = m_FontZH;
+    root["FontEN"]       = m_FontEN;
+
+    root["MaxPStep"]     = m_MaxPStep;
+    root["MaxPLimit"]    = m_MaxPLimit;
+    root["MinPLimit"]    = m_MinPLimit;
+    root["Max_Min"]      = m_Max_Min;
+    root["Diameter"]     = m_Diameter;
+    root["PDecimal"]     = m_PDecimal;
+    root["PressDecimal"] = m_PressDecimal;
+    root["PModel"]       = m_PModel;
+    root["OutType"]      = m_OutType;
+
+    root["MaxTStep"]     = m_MaxTStep;
+    root["MaxTLimit"]    = m_MaxTLimit;
+    root["MinTLimit"]    = m_MinTLimit;
+    root["TDecimal"]     = m_TDecimal;
+    root["IsHasWater"]   = m_IsHasWater;
+    root["IsHasSpeed"]   = m_IsHasSpeed;
+
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";
+    builder["precision"] = 4;
+    return Json::writeString(builder, root);
+}
+
+std::vector<uint8_t> PressData::toFrameData() const
+{
+    std::string str = toJsonString();
+    return {str.begin(), str.end()};
+}
+
 std::string PressData::toJsonString() const
 {
     Json::Value root{};
@@ -367,15 +414,25 @@ std::string PressData::toJsonString() const
     root["KPTime"] = array;
 
     array.clear();
-
-    //	str = root.toStyledString();
-    //	Json::FastWriter writer;
-    //	str = writer.write(root);
-
     Json::StreamWriterBuilder builder;
-    //  builder["indentation"] = "   "; // 带缩进（默认），生成格式化JSON
     builder["indentation"] = "";
     builder["precision"] = 4;
-    // str = Json::writeString(builder, root);
+    return Json::writeString(builder, root);
+}
+
+std::string RealTimeData::toJsonString() const
+{
+    Json::Value root{};
+
+    root["ModelState"] = m_ModelState;
+    root["PressState"] = m_PressState;
+    root["CPStep"]     = m_CPStep;
+    root["PressValue"] = m_PressValue;
+    root["PTime"]      = m_PTime;
+    root["PdChanged"]  = m_PdChanged;
+
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";
+    builder["precision"] = 4;
     return Json::writeString(builder, root);
 }

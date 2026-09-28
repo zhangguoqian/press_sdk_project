@@ -9,7 +9,6 @@
 #include <iostream>
 #include <thread>
 
-constexpr uint64_t ONE_MILLION_SECOND    = 1000;
 constexpr uint64_t WAIT_MILLION_SECONDS  = 300;
 
 constexpr int CMD_LEN = 14;
@@ -31,7 +30,12 @@ bool MachinePrivate::connect(const char* portName)
         mpPort = std::make_unique<Serialport>();
     }
     mpPort->setPortName(portName);
-    return mpPort->open();
+    bool ret = mpPort->open();
+    if (!ret)
+    {
+        _setError(MachineError::ConnectFailed);
+    }
+    return ret;
 }
 
 void MachinePrivate::disconnect() const
@@ -60,201 +64,388 @@ uint64_t MachinePrivate::getMachineRegisterNo() const
 bool MachinePrivate::getReadOnlyData(ReadOnlyData& data, uint8_t isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    bool ret = _commandByteData(GET_ROD_JSON,isCompressed,responseListData);
-    if (ret)
+    if (!_requestCommand(GET_ROD_JSON, isCompressed, responseListData))
     {
-        if (0==m_MachineData.jsonToReadOnlyData(responseListData))
+        if (auto* iface = _safeGetInterface())
         {
-            data = m_MachineData.getReadOnlyData();
-            return true;
+            iface->onReadOnlyData(static_cast<int>(m_LastError.load()), m_RegisterNo.load(), ReadOnlyData{});
         }
+        return false;
     }
-    return false;
+    if (0 != m_MachineData.jsonToReadOnlyData(responseListData))
+    {
+        _setError(MachineError::JsonParseFailed);
+        if (auto* iface = _safeGetInterface())
+        {
+            iface->onReadOnlyData(static_cast<int>(MachineError::JsonParseFailed), m_RegisterNo.load(), ReadOnlyData{});
+        }
+        return false;
+    }
+    data = m_MachineData.getReadOnlyData();
+    if (auto* iface = _safeGetInterface())
+    {
+        iface->onReadOnlyData(0, m_RegisterNo.load(), data);
+    }
+    return true;
 }
 
 bool MachinePrivate::getPressData(PressData& data, uint8_t isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    bool ret = _commandByteData(GET_PD_JSON,isCompressed,responseListData);
-    if (ret)
+    if (!_requestCommand(GET_PD_JSON, isCompressed, responseListData))
     {
-        if (0==m_MachineData.jsonToPressData(responseListData))
+        if (auto* iface = _safeGetInterface())
         {
-            data = m_MachineData.getPressData();
+            iface->onPressData(static_cast<int>(m_LastError.load()), PressData{});
+        }
+        return false;
+    }
+    if (0 != m_MachineData.jsonToPressData(responseListData))
+    {
+        _setError(MachineError::JsonParseFailed);
+        if (auto* iface = _safeGetInterface())
+        {
+            iface->onPressData(static_cast<int>(MachineError::JsonParseFailed), PressData{});
+        }
+        return false;
+    }
+    data = m_MachineData.getPressData();
+    if (auto* iface = _safeGetInterface())
+    {
+        iface->onPressData(0, data);
+    }
+    return true;
+}
+
+bool MachinePrivate::setPressData(const PressData& data, uint8_t isCompressed)
+{
+    static constexpr uint16_t CMD = SET_PD_JSON;
+    std::vector<uint8_t> responseListData;
+    std::vector<uint8_t> commandListData;
+    commandListData.emplace_back(isCompressed);
+    std::vector<uint8_t> tempDataList = data.toFrameData();
+    commandListData.insert(commandListData.end(), tempDataList.begin(), tempDataList.end());
+    if (!_requestCommand(CMD, commandListData, responseListData))
+    {
+        if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+        return false;
+    }
+    if (responseListData.size() == 1)
+    {
+        if (responseListData[0] == 0x00)
+        {
             return true;
         }
+        else if (responseListData[0] == 0x01)
+        {
+            _setError(MachineError::OutSignalBlocked);
+            if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+            return false;
+        }
+        else if (responseListData[0] == 0x02)
+        {
+            _setError(MachineError::ImmediateSignalBlocked);
+            return true;
+        }
+        else if (responseListData[0] == 0x03)
+        {
+            _setError(MachineError::StateUnchanged);
+            if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+            return false;
+        }
+        else
+        {
+            _setError(MachineError::UnknownError);
+            if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+            return false;
+        }
     }
-    return ret;
+    if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+    return false;
 }
 
 bool MachinePrivate::getRealTimeData(RealTimeData& data, uint8_t isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    bool ret = _commandByteData(GET_RT_JSON,isCompressed,responseListData);
-    if (ret)
+    if (!_requestCommand(GET_RT_JSON, isCompressed, responseListData))
     {
-        if (0==m_MachineData.jsonToRealTimeData(responseListData))
+        if (auto* iface = _safeGetInterface())
         {
-            data = m_MachineData.getRealTimeData();
+            iface->onRealTimeData(static_cast<int>(m_LastError.load()), RealTimeData{});
+        }
+        return false;
+    }
+    if (0 != m_MachineData.jsonToRealTimeData(responseListData))
+    {
+        _setError(MachineError::JsonParseFailed);
+        if (auto* iface = _safeGetInterface())
+        {
+            iface->onRealTimeData(static_cast<int>(MachineError::JsonParseFailed), RealTimeData{});
+        }
+        return false;
+    }
+    data = m_MachineData.getRealTimeData();
+    if (auto* iface = _safeGetInterface())
+    {
+        iface->onRealTimeData(0, data);
+    }
+    return true;
+}
+
+bool MachinePrivate::setPressing(uint8_t isPressing)
+{
+    static constexpr uint16_t CMD = SET_PRESS;
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(CMD, isPressing, responseListData))
+    {
+        if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+        return false;
+    }
+    if (responseListData.size() == 1)
+    {
+        if (responseListData[0] == 0x00) return true;
+        if (responseListData[0] == 0x01)
+        {
+            _setError(MachineError::OutSignalBlocked);
+            if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+            return false;
+        }
+        if (responseListData[0] == 0x02)
+        {
+            _setError(MachineError::ImmediateSignalBlocked);
             return true;
         }
-    }
-    return ret;
-}
-
-
-std::vector<uint8_t> MachinePrivate::_combinedSendData(uint64_t &registerNo,uint16_t &command)
-{
-    std::vector<uint8_t> sendData;
-    registerNo = m_RegisterNo.load();
-    command = htons(m_Command.load(std::memory_order_acquire));
-    sendData.reserve(CMD_LEN);
-    sendData.insert(sendData.end(),
-                    reinterpret_cast<uint8_t*>(&registerNo),
-                    reinterpret_cast<uint8_t*>(&registerNo) + sizeof(registerNo)); // 注册号:len=8
-    sendData.insert(sendData.end(),
-                    reinterpret_cast<uint8_t*>(&command),
-                    reinterpret_cast<uint8_t*>(&command) + sizeof(command)); // 命令:len=2
-    uint16_t dataLen = 0x0001;
-    if (command & 0x0010) //设置命令
-    {
-        dataLen = m_CommandListData.size();
-        sendData.reserve(CMD_LEN+dataLen);
-        dataLen = htons(dataLen);
-        sendData.insert(sendData.end(),
-                       reinterpret_cast<uint8_t*>(&dataLen),
-                       reinterpret_cast<uint8_t*>(&dataLen) + sizeof(dataLen)); // 命令:len=2
+        if (responseListData[0] == 0x03)
         {
-            std::lock_guard<std::mutex> lock(m_SetCommandMutex);
-            sendData.insert(sendData.end(), m_CommandListData.begin(), m_CommandListData.end()); // 命令数据设置:len=?
-            uint8_t checkSum = Unity::getChecksum(sendData);
-            sendData.emplace_back(checkSum); // 校验和:len=1
+            _setError(MachineError::StateUnchanged);
+            if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+            return false;
         }
+        _setError(MachineError::UnknownError);
+        if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+        return false;
     }
-    else //获取命令
-    {
-        dataLen = htons(dataLen);
-        sendData.insert(sendData.end(),
-                        reinterpret_cast<uint8_t*>(&dataLen),
-                        reinterpret_cast<uint8_t*>(&dataLen) + sizeof(dataLen)); // 命令:len=2
-        uint8_t getCommandData = m_CommandByteData.load();
-        sendData.emplace_back(getCommandData); // 命令数据获取:len=1
-        uint8_t checkSum = Unity::getChecksum(sendData);
-        sendData.emplace_back(checkSum); // 校验和:len=1
-    }
-
-    return sendData;
+    if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+    return false;
 }
 
-int MachinePrivate::_isValidResponseData(std::vector<uint8_t>& response,uint64_t registerNo,uint16_t command)
+bool MachinePrivate::setDemolding(uint8_t isDemolding)
 {
-    int len = CMD_LEN;
-    if (response.size() < len)
+    static constexpr uint16_t CMD = SET_DEMOLD;
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(CMD, isDemolding, responseListData))
     {
-        return -3;
+        if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+        return false;
+    }
+    if (responseListData.size() == 1)
+    {
+        if (responseListData[0] == 0x00) return true;
+        if (responseListData[0] == 0x01)
+        {
+            _setError(MachineError::OutSignalBlocked);
+            if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+            return false;
+        }
+        if (responseListData[0] == 0x02)
+        {
+            _setError(MachineError::ImmediateSignalBlocked);
+            return true;
+        }
+        if (responseListData[0] == 0x03)
+        {
+            _setError(MachineError::StateUnchanged);
+            if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+            return false;
+        }
+        _setError(MachineError::UnknownError);
+        if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+        return false;
+    }
+    if (auto* iface = _safeGetInterface()) iface->onError(CMD, responseListData);
+    return false;
+}
+
+std::vector<uint8_t> MachinePrivate::_buildSendFrame(const FrameData& frameData)
+{
+    std::vector<uint8_t> data;
+    data.reserve(CMD_LEN);
+    uint16_t len = htons(frameData.s_FrameDataList.size());
+    uint64_t registerNo = m_RegisterNo.load();
+    data.insert(data.end(), reinterpret_cast<const uint8_t*>(&registerNo), reinterpret_cast<const uint8_t*>(&registerNo)+sizeof(registerNo));
+    data.insert(data.end(), reinterpret_cast<const uint8_t*>(&frameData.s_Command), reinterpret_cast<const uint8_t*>(&frameData.s_Command)+sizeof(frameData.s_Command));
+    data.insert(data.end(), reinterpret_cast<const uint8_t*>(&len), reinterpret_cast<const uint8_t*>(&len)+sizeof(len));
+    data.insert(data.end(), frameData.s_FrameDataList.begin(), frameData.s_FrameDataList.end());
+    uint8_t checkSum = Unity::getChecksum(data);
+    data.emplace_back(checkSum);
+    return data;
+}
+
+MachineError MachinePrivate::_parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out)
+{
+    out.s_Command = command;
+
+    if (response.size() < CMD_LEN)
+    {
+        return MachineError::ResponseTooShort;
     }
     if (response.back() != Unity::getChecksum({response.begin(), response.end() - 1}))
     {
-        return -4;
+        return MachineError::ChecksumMismatch;
     }
+
     uint64_t readRegisterNo = 0;
     memcpy(&readRegisterNo, response.data(), 8);
-    if (registerNo == 0)
+    uint64_t expectedNo = m_RegisterNo.load();
+    if (expectedNo == 0)
     {
         m_RegisterNo.store(readRegisterNo);
     }
-    else if (readRegisterNo != registerNo)
+    else if (readRegisterNo != expectedNo)
     {
-        return -5;
+        return MachineError::RegisterNoMismatch;
     }
 
     uint16_t readCommand = 0;
     memcpy(&readCommand, response.data() + 8, 2);
     if (readCommand != command)
     {
-        return -6;
+        return MachineError::CommandMismatch;
     }
+
     uint16_t readDataLen = 0;
     memcpy(&readDataLen, response.data() + 10, 2);
     readDataLen = htons(readDataLen);
-    if (readCommand & 0x0010) //设置命令响应 (单字节)
+
+    if (readCommand & 0x0010)
     {
-        m_ResponseByteData.store(response[12], std::memory_order_relaxed);
-        m_ResponseReady.store(true, std::memory_order_release);
-        m_GetResponseDataCond.notify_one();
+        out.s_FrameDataList.push_back(response[12]);
     }
-    else //获取命令响应 (列表数据)
+    else
     {
-        {
-            std::lock_guard<std::mutex> lock(m_GetResponseDataMutex);
-            m_ResponseListData.assign(response.begin() + 12, response.begin() + 12 + readDataLen);
-        }
-        m_ResponseReady.store(true, std::memory_order_release);
-        m_GetResponseDataCond.notify_one();
+        out.s_FrameDataList.assign(response.begin() + 12, response.begin() + 12 + readDataLen);
     }
 
-    return 0;
+    return MachineError::None;
 }
 
-bool MachinePrivate::_commandByteData(uint16_t command, uint8_t byteData,std::vector<uint8_t> &responseListData)
+bool MachinePrivate::_requestCommand(uint16_t command, uint8_t byteData, std::vector<uint8_t>& responseListData)
 {
-    responseListData.clear();
-    m_RunCode.store(-1, std::memory_order_release);
-    m_ResponseReady.store(false, std::memory_order_release);
-    m_IsHasCommand.store(true, std::memory_order_release);
-    m_Command.store(command, std::memory_order_release);
-    m_CommandByteData.store(byteData, std::memory_order_release);
+    std::lock_guard<std::mutex> serialLock(m_RequestSerialMutex);
 
-    auto now = std::chrono::high_resolution_clock::now() + std::chrono::milliseconds(WAIT_MILLION_SECONDS);
-    std::unique_lock<std::mutex> lock(m_GetResponseDataMutex);
-    if (!m_GetResponseDataCond.wait_until(lock, now, [&]{ return m_ResponseReady.load(std::memory_order_acquire); }))
+    _setError(MachineError::None);
+
+    if (!m_IsRunning.load())
+    {
+        _setError(MachineError::Stopped);
+        return false;
+    }
+
+    {
+        std::lock_guard<std::mutex> rlock(m_ResponseMutex);
+        while (!m_ResponseQueue.empty())
+        {
+            m_ResponseQueue.pop();
+        }
+    }
+
+    FrameData request;
+
+    request.s_Command = htons(command);
+    request.s_FrameDataList.push_back(byteData);
+
+    {
+        std::lock_guard<std::mutex> lock(m_CommandMutex);
+        m_CommandQueue.push(request);
+    }
+    m_CommandCond.notify_one();
+
+    FrameData response;
+    {
+        std::unique_lock<std::mutex> lock(m_ResponseMutex);
+        if (!m_ResponseCond.wait_for(lock, std::chrono::milliseconds(WAIT_MILLION_SECONDS), [this] {
+            return !m_ResponseQueue.empty() || !m_IsRunning.load();
+        }))
+        {
+            _setError(MachineError::Timeout);
+            return false;
+        }
+        if (!m_IsRunning.load() && m_ResponseQueue.empty())
+        {
+            _setError(MachineError::Stopped);
+            return false;
+        }
+        response = m_ResponseQueue.front();
+        m_ResponseQueue.pop();
+    }
+
+    if (m_LastError.load() != MachineError::None)
     {
         return false;
     }
-    responseListData = m_ResponseListData;
-    return 0 == m_RunCode.load(std::memory_order_acquire);
+
+    responseListData = std::move(response.s_FrameDataList);
+    return true;
 }
 
-int MachinePrivate::runCommand()
+bool MachinePrivate::_requestCommand(uint16_t command, std::vector<uint8_t> listData,std::vector<uint8_t>& responseListData)
 {
-    if (nullptr == mpPort)
+    std::lock_guard<std::mutex> serialLock(m_RequestSerialMutex);
+
+    _setError(MachineError::None);
+
+    if (!m_IsRunning.load())
     {
-        return -1;
+        _setError(MachineError::Stopped);
+        return false;
     }
-    uint64_t registerNo = 0;
-    uint16_t command = 0;
-    std::vector<uint8_t> sendData = _combinedSendData(registerNo,command);
-    int ret = mpPort->write(sendData.data(), sendData.size());
-    if (ret != sendData.size())
+
     {
-        return -2;
-    }
-    uint8_t pData[1024];
-    int cycle = 10;
-    int retLen = 0;
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    while (cycle > 0)
-    {
-        ret = mpPort->read(pData + retLen, 1024);
-        if (ret <= 0 && cycle < 8)
+        std::lock_guard<std::mutex> rlock(m_ResponseMutex);
+        while (!m_ResponseQueue.empty())
         {
-            break;
+            m_ResponseQueue.pop();
         }
-        retLen += ret;
-        cycle --;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    std::vector<uint8_t> data = std::vector<uint8_t>(pData, pData + retLen);
-    int info = _isValidResponseData(data,registerNo,command);
-    if (0 != info)
+
+    FrameData request;
+
+    request.s_Command = htons(command);
+    request.s_FrameDataList = listData;
+
     {
-        return info;
+        std::lock_guard<std::mutex> lock(m_CommandMutex);
+        m_CommandQueue.push(request);
     }
-    return 0;
+    m_CommandCond.notify_one();
+
+    FrameData response;
+    {
+        std::unique_lock<std::mutex> lock(m_ResponseMutex);
+        if (!m_ResponseCond.wait_for(lock, std::chrono::milliseconds(WAIT_MILLION_SECONDS), [this] {
+            return !m_ResponseQueue.empty() || !m_IsRunning.load();
+        }))
+        {
+            _setError(MachineError::Timeout);
+            return false;
+        }
+        if (!m_IsRunning.load() && m_ResponseQueue.empty())
+        {
+            _setError(MachineError::Stopped);
+            return false;
+        }
+        response = m_ResponseQueue.front();
+        m_ResponseQueue.pop();
+    }
+
+    if (m_LastError.load() != MachineError::None)
+    {
+        return false;
+    }
+
+    responseListData = std::move(response.s_FrameDataList);
+    return true;
 }
-
-
-
 
 void MachinePrivate::run()
 {
@@ -263,15 +454,76 @@ void MachinePrivate::run()
     {
         while (m_IsRunning.load())
         {
-            if (m_IsHasCommand.load(std::memory_order_acquire))
+            FrameData request;
             {
-                m_IsHasCommand.store(false);
-                m_RunCode.store(runCommand(),std::memory_order_release);
+                std::unique_lock<std::mutex> lock(m_CommandMutex);
+                m_CommandCond.wait(lock, [this] {
+                    return !m_CommandQueue.empty() || !m_IsRunning.load();
+                });
+                if (!m_IsRunning.load() && m_CommandQueue.empty())
+                {
+                    break;
+                }
+                request = std::move(m_CommandQueue.front());
+                m_CommandQueue.pop();
             }
-            else
+
+            if (nullptr == mpPort)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                _setError(MachineError::PortNotOpen);
+                FrameData flag;
+                std::lock_guard<std::mutex> rlock(m_ResponseMutex);
+                m_ResponseQueue.push(flag);
+                m_ResponseCond.notify_one();
+                continue;
             }
+
+            std::vector<uint8_t> sendData = _buildSendFrame(request);
+            int ret = mpPort->write(sendData.data(), sendData.size());
+            if (ret != static_cast<int>(sendData.size()))
+            {
+                _setError(MachineError::WriteFailed);
+                FrameData flag;
+                std::lock_guard<std::mutex> rlock(m_ResponseMutex);
+                m_ResponseQueue.push(flag);
+                m_ResponseCond.notify_one();
+                continue;
+            }
+
+            uint8_t pData[1024];
+            int cycle = 10;
+            int retLen = 0;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            while (cycle > 0)
+            {
+                ret = mpPort->read(pData + retLen, 1024);
+                if (ret <= 0 && cycle < 8)
+                {
+                    break;
+                }
+                retLen += ret;
+                cycle--;
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+
+            std::vector<uint8_t> rawResponse(pData, pData + retLen);
+            FrameData parsed;
+            MachineError parseErr = _parseResponseFrame(rawResponse, request.s_Command, parsed);
+            if (parseErr != MachineError::None)
+            {
+                _setError(parseErr);
+                FrameData flag;
+                std::lock_guard<std::mutex> rlock(m_ResponseMutex);
+                m_ResponseQueue.push(flag);
+                m_ResponseCond.notify_one();
+                continue;
+            }
+
+            {
+                std::lock_guard<std::mutex> rlock(m_ResponseMutex);
+                m_ResponseQueue.push(parsed);
+            }
+            m_ResponseCond.notify_one();
         }
     });
 }
@@ -279,6 +531,8 @@ void MachinePrivate::run()
 void MachinePrivate::stop()
 {
     m_IsRunning.store(false);
+    m_CommandCond.notify_all();
+    m_ResponseCond.notify_all();
     if (mpRunThread && mpRunThread->joinable())
     {
         mpRunThread->join();
@@ -301,9 +555,48 @@ std::vector<std::string> MachinePrivate::getPortList()
     return portList;
 }
 
+void MachinePrivate::_setError(MachineError err)
+{
+    m_LastError.store(err);
+}
+
 const char* MachinePrivate::getLastErrorInfo()
 {
-    return m_ErrorInfo;
+    static const char* None = "No error";
+    static const char* PortNotOpen = "Port is not open";
+    static const char* WriteFailed = "Failed to write to port";
+    static const char* ResponseTooShort = "Response data is too short";
+    static const char* ChecksumMismatch = "Checksum mismatch";
+    static const char* RegisterNoMismatch = "Register number mismatch";
+    static const char* CommandMismatch = "Command mismatch";
+    static const char* Timeout = "Request timeout";
+    static const char* Stopped = "Machine has stopped";
+    static const char* ConnectFailed = "Failed to connect port";
+    static const char* JsonParseFailed = "Failed to parse JSON data";
+    static const char* OutSignalBlocked = "Output signal blocked";
+    static const char* ImmediateSignalBlocked = "Immediate signal blocked";
+    static const char* StateUnchanged = "State unchanged";
+    static const char* UnknownError = "Unknown error";
+
+    switch (m_LastError.load())
+    {
+    case MachineError::None:               return None;
+    case MachineError::PortNotOpen:        return PortNotOpen;
+    case MachineError::WriteFailed:         return WriteFailed;
+    case MachineError::ResponseTooShort:   return ResponseTooShort;
+    case MachineError::ChecksumMismatch:   return ChecksumMismatch;
+    case MachineError::RegisterNoMismatch: return RegisterNoMismatch;
+    case MachineError::CommandMismatch:    return CommandMismatch;
+    case MachineError::Timeout:            return Timeout;
+    case MachineError::Stopped:            return Stopped;
+    case MachineError::ConnectFailed:      return ConnectFailed;
+    case MachineError::JsonParseFailed:    return JsonParseFailed;
+    case MachineError::OutSignalBlocked: return OutSignalBlocked;
+    case MachineError::ImmediateSignalBlocked: return ImmediateSignalBlocked;
+    case MachineError::StateUnchanged: return StateUnchanged;
+    case MachineError::UnknownError: return UnknownError;
+    default:                               return "Unknown error";
+    }
 }
 
 void MachinePrivate::registerDataInterface(MachineDataInterface* dataInterface)
@@ -316,4 +609,15 @@ void MachinePrivate::unregisterDataInterface()
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     mpMachineDataInterface = nullptr;
+}
+
+MachineDataInterface* MachinePrivate::_safeGetInterface()
+{
+    std::lock_guard<std::mutex> lock(m_MachineDataMutex);
+    return mpMachineDataInterface;
+}
+
+const MachineData& MachinePrivate::getMachineData() const
+{
+    return m_MachineData;
 }

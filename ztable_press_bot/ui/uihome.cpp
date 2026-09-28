@@ -242,35 +242,24 @@ void DataInterface::setParent(void* parent)
 
 void DataInterface::onReadOnlyData(int errorCode, uint64_t registerNo, const ReadOnlyData& readOnlyData)
 {
-    if (errorCode != RetCommand::RET_SUCCESS)
-    {
-        return;
-    }
+
     auto uiHome = static_cast<UiHome*>(mpParent);
     uiHome->setReadOnlyData(readOnlyData);
 }
 
 void DataInterface::onRealTimeData(int errorCode, const RealTimeData& realTimeData)
 {
-    if (errorCode != RetCommand::RET_SUCCESS)
-    {
-        return;
-    }
     auto uiHome = static_cast<UiHome*>(mpParent);
     uiHome->setRealTimeData(realTimeData);
 }
 
 void DataInterface::onPressData(int errorCode, const PressData& pressData)
 {
-    if (errorCode != RetCommand::RET_SUCCESS)
-    {
-        return;
-    }
     auto uiHome = static_cast<UiHome*>(mpParent);
     uiHome->setPressData(pressData);
 }
 
-void DataInterface::onDataError(uint16_t cmdCode, std::vector<uint8_t> response)
+void DataInterface::onError(uint16_t cmdCode, std::vector<uint8_t> response)
 {
     auto uiHome = static_cast<UiHome*>(mpParent);
 }

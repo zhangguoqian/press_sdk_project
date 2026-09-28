@@ -68,9 +68,24 @@ bool Machine::getPressData(PressData& data, uint8_t isCompressed)
     return mpPrivate->getPressData(data, isCompressed);
 }
 
+bool Machine::setPressData(const PressData& data, uint8_t isCompressed)
+{
+    return mpPrivate->setPressData(data, isCompressed);
+}
+
 bool Machine::getRealTimeData(RealTimeData& data, uint8_t isCompressed)
 {
     return mpPrivate->getRealTimeData(data, isCompressed);
+}
+
+bool Machine::setPressing(uint8_t isPressing)
+{
+    return mpPrivate->setPressing(isPressing);
+}
+
+bool Machine::setDemolding(uint8_t isDemolding)
+{
+    return mpPrivate->setDemolding(isDemolding);
 }
 
 void Machine::registerDataInterface(MachineDataInterface* dataInterface) const

@@ -13,54 +13,20 @@
 #include <iostream>
 #include "typeprivate.h"
 
-/**机器参数获取**/
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_VERSION = {CMDID_VERSION, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_ZH_NAME = {CMDID_NAME, {0x01}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_EN_NAME = {CMDID_NAME, {0x02}};
+/**机器版本**/
 static constexpr uint16_t GET_MACHINE_TYPE = CMDID_MACHINE_TYPE;
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_SERIAL_NUMBER = {CMDID_SERIAL_NUMBER, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_PRESS_PARAMETER = {CMDID_PRESS_PARAMETER, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> GET_OTHER_INFO = {CMDID_OTHER_INFO, {0x00}};
-
+/**机器参数获取**/
 static constexpr uint16_t GET_ROD_JSON = CMDID_ROD_JSON;
 /**压力参数获取**/
 static constexpr uint16_t GET_PD_JSON = CMDID_PD_JSON;
+/**设置压力参数**/
+static constexpr uint16_t SET_PD_JSON = SET_CMD(CMDID_PD_JSON);
 /**实时参数获取**/
 static constexpr uint16_t GET_RT_JSON = CMDID_GET_CURRENT_STATE_JSON;
-
-
-
-/**设置**/
-static const std::pair<uint16_t, std::vector<uint8_t>> SET_PRESS_START = {CMDID_SET_START_PRESS, {0x01}};
-static const std::pair<uint16_t, std::vector<uint8_t>> SET_PRESS_STOP = {CMDID_SET_START_PRESS, {0x00}};
-static const std::pair<uint16_t, std::vector<uint8_t>> SET_DEMOLD_START = {CMDID_SET_START_DEMOLD, {0x01}};
-static const std::pair<uint16_t, std::vector<uint8_t>> SET_DEMOLD_STOP = {CMDID_SET_START_DEMOLD, {0x00}};
-
-// CMDID_PRESS_STEP       		= 0x0100,
-// CMDID_PRESS_CALIBRATE		= 0x0101,
-// CMDID_MOLD_TYPE             = 0x0102,
-// CMDID_CIRCLE_D              = 0x0103,
-// CMDID_RECT_AB    			= 0x0104,
-// CMDID_RING_OUT_IN 			= 0x0105,
-// CMDID_AIR_TIME              = 0x0106,
-// CMDID_INDEX_PRESS           = 0x0107,
-// CMDID_INDEX_AFTER           = 0x0108,
-// CMDID_INDEX_KPTIME          = 0x0109,
-// CMDID_INDEX_PSTEP_PARAMETER = 0x010A,
-// CMDID_PRESS_DECIMAL 		= 0x010B,
-// CMDID_PRESSURE_DECIMAL 		= 0x010C,
-// CMDID_PMODEL 				= 0x010D,
-// CMDID_DEMOLD_VALUE 			= 0x010E,
-
-enum RetCommand
-{
-    RET_SUCCESS = 0,
-    RET_PORT_CONNECTED = -1,
-    RET_WRITE_ERROR = -2,
-    RET_READ_TOO_SHORT = -3,
-    RET_INVALID_CHECKSUM = -4,
-    RET_TIME_TOO_LONG = 1,
-};
+/**启动或停止**/
+static constexpr uint16_t SET_PRESS = CMDID_SET_START_PRESS;
+/**脱模或停止脱模**/
+static constexpr uint16_t SET_DEMOLD = CMDID_SET_START_DEMOLD;
 
 
 struct ReadOnlyData
@@ -96,6 +62,8 @@ struct ReadOnlyData
     uint8_t m_TDecimal;
     uint8_t m_IsHasWater;
     uint8_t m_IsHasSpeed;
+
+    std::string toJsonString() const;
 };
 
 struct PressData
@@ -116,18 +84,9 @@ struct PressData
     std::vector<float> m_AfterValue;
     std::vector<uint32_t> m_KPTime;
 
+    std::vector<uint8_t> toFrameData() const;
     std::string toJsonString() const;
 };
-
-static std::pair<uint16_t, std::vector<uint8_t>> SET_PRESS_STEP(const PressData& pressData)
-{
-    std::string json = pressData.toJsonString();
-    // uint8_t *p = json.c_str();
-    std::vector<uint8_t> pressStep;
-    pressStep.insert(pressStep.begin(), 0x00);
-    pressStep.insert(pressStep.end(), json.data(), json.data() + json.size());
-    return {SET_CMD(CMDID_PD_JSON), pressStep};
-}
 
 
 struct RealTimeData
@@ -138,6 +97,7 @@ struct RealTimeData
     float m_PressValue{ .0f }; //压力数据
     uint32_t m_PTime{ 0 }; //倒计时
     uint8_t m_PdChanged{ 0 }; //压力数据是否改变
+    std::string toJsonString() const;
 };
 
 
@@ -148,9 +108,7 @@ public:
     virtual void onReadOnlyData(int errorCode,uint64_t registerNo, const ReadOnlyData& readOnlyData) = 0;
     virtual void onRealTimeData(int errorCode, const RealTimeData& realTimeData) = 0;
     virtual void onPressData(int errorCode, const PressData& pressData) = 0;
-    virtual void onDataError(uint16_t cmdCode,std::vector<uint8_t> response) = 0;
-    virtual void onCommandError(RetCommand errorCode, uint16_t cmdCode) = 0;
-    virtual void onCommandPassWarningError(uint16_t cmdCode) = 0;
+    virtual void onError(uint16_t cmdCode,std::vector<uint8_t> response) = 0;
 };
 
 

@@ -11,7 +11,6 @@
 
 class MachinePrivate;
 
-
 class Machine
 {
 public:
@@ -33,14 +32,9 @@ public:
     //! @brief 获取机器注册号
     //! @return uint64_t the机器注册号
     uint64_t getMachineRegisterNo() const;
-
-
     //! @brief 获取最后错误信息
     //! @return char* the 最后一个错误信息
     const char* getLastErrorInfo() const;
-
-
-
     //! @brief 运行机器
     void run() const;
     //! @brief 停止机器
@@ -48,17 +42,39 @@ public:
     //! @brief 判断机器是否运行
     //! @return bool 是否运行
     bool isRunning() const;
-
+    //! @brief 获取只读数据
+    //! @param data [in] the data the 数据
+    //! @param isCompressed [in] the isCompressed the 是否压缩
+    //! @return bool 是否成功
     bool getReadOnlyData(ReadOnlyData& data,uint8_t isCompressed = 0);
+    //! @brief 获取压数据
+    //! @param data [in] the data the 数据
+    //! @param isCompressed [in] the isCompressed the 是否压缩
+    //! @return bool 是否成功
     bool getPressData(PressData& data,uint8_t isCompressed = 0);
+    //! @brief 设置压数据
+    //! @param data [in] the data the 数据
+    //! @param isCompressed [in] the isCompressed the 是否压缩
+    //! @return bool 是否成功
+    bool setPressData(const PressData& data,uint8_t isCompressed = 0);
+    //! @brief 获取实时数据
+    //! @param data [in] the data the 数据
+    //! @param isCompressed [in] the isCompressed the 是否压缩
+    //! @return bool 是否成功
     bool getRealTimeData(RealTimeData& data,uint8_t isCompressed = 0);
-
+    //! @brief 设置压
+    //! @param isPressing [in] the isPressing the 是否压
+    //! @return bool 是否成功
+    bool setPressing(uint8_t isPressing);
+    //! @brief 设置脱模
+    //! @param isDemolding [in] the isDemolding the 是否脱模
+    //! @return bool 是否成功
+    bool setDemolding(uint8_t isDemolding);
     //! @brief 注册数据接口
     //! @param dataInterface [in] the dataInterface the 数据接口
     void registerDataInterface(MachineDataInterface* dataInterface) const;
     //! @brief 注销数据接口
     void unregisterDataInterface() const;
-
     //! @brief 获取端口列表
     //! @return std::vector<std::string> the 端口列表
     static std::vector<std::string> getPortList();

@@ -22,7 +22,7 @@ public:
 
 private:
     Ui::ControlDialog *ui;
-    void _show_text_log(const std::vector<uint8_t> &data);
+    void _show_text_log(const QString &data);
     void _show_error_log(const char* error, int info);
 private Q_SLOTS:
     void slotGetRodData();
@@ -30,8 +30,9 @@ private Q_SLOTS:
     void slotGetRtData();
     void slotRun();
     void slotStop();
-    void slotAddRodCommand();
-    void slotAddPdCommand();
+    void slotPressing(bool);
+    void slotDemolding(bool);
+    void slotSetPressData();
 };
 
 

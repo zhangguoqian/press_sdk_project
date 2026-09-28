@@ -33,7 +33,7 @@ else()
 endif ()
 
 
-find_package(Qt6 COMPONENTS
+find_package(Qt5 COMPONENTS
         Core
         Gui
         Widgets
@@ -54,12 +54,12 @@ include(FindJsonCpp)
 add_executable(${PROJECT_NAME} main.cpp zgq.h ${UI_SOURCES} ${DATA_SOURCES} ${CONTROL_SOURCES} ${COMMON_SOURCES} ${LOGO_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-        Qt6::Core
-        Qt6::Gui
-        Qt6::Widgets
-        Qt6::Charts
-        Qt6::SerialPort
-        Qt6::Sql
+        Qt5::Core
+        Qt5::Gui
+        Qt5::Widgets
+        Qt5::Charts
+        Qt5::SerialPort
+        Qt5::Sql
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC cserialport jsoncpp_static ws2_32)
 
@@ -103,7 +103,7 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     foreach (QT_LIB Core Gui Widgets Charts SerialPort Sql)
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
-                "${QT_INSTALL_PATH}/bin/Qt6${QT_LIB}${DEBUG_SUFFIX}.dll"
+                "${QT_INSTALL_PATH}/bin/Qt5${QT_LIB}${DEBUG_SUFFIX}.dll"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach (QT_LIB)
 endif ()

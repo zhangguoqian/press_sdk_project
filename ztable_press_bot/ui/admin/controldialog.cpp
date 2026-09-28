@@ -22,8 +22,9 @@ ControlDialog::ControlDialog(QWidget* parent) :
     connect(ui->pBnGetRtData,SIGNAL(clicked()), this,SLOT(slotGetRtData()));
     connect(ui->pBnRun,SIGNAL(clicked()), this,SLOT(slotRun()));
     connect(ui->pBnStop,SIGNAL(clicked()), this,SLOT(slotStop()));
-    connect(ui->pBnAddRodData,SIGNAL(clicked()), this,SLOT(slotAddRodCommand()));
-    connect(ui->pBnAddPdData,SIGNAL(clicked()), this,SLOT(slotAddPdCommand()));
+    // connect(ui->pBnPress,SIGNAL(clicked(bool)), this,SLOT(slotPressing(bool)));
+    // connect(ui->pBnDemold,SIGNAL(clicked(bool)), this,SLOT(slotDemolding(bool)));
+    // connect(ui->pBnSetPdData,SIGNAL(clicked()), this,SLOT(slotSetPressData()));
 }
 
 ControlDialog::~ControlDialog()
@@ -31,23 +32,10 @@ ControlDialog::~ControlDialog()
     delete ui;
 }
 
-void ControlDialog::_show_text_log(const std::vector<uint8_t>& data)
+void ControlDialog::_show_text_log(const QString &data)
 {
     ui->textEdit->append(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
-    QByteArray log = QByteArray::fromRawData((char*)data.data(),data.size());
-    if (ui->cBoxIsCompress->isChecked())
-    {
-        uint8_t *tempData = new uint8_t[data.size() * 10];
-        std::vector<uint8_t> srcData = data;
-        ulong len = 0;
-        int info = decompressData(tempData, &len, reinterpret_cast<const uint8_t*>(log.data()), log.size());
-        if (0 == info)
-        {
-            log = QByteArray::fromRawData((char*)tempData, len);
-        }
-        delete[] tempData;
-    }
-    ui->textEdit->append(QString(log.toHex(' ')));
+    ui->textEdit->append(data);
 }
 
 void ControlDialog::_show_error_log(const char* error, int info)
@@ -64,32 +52,40 @@ void ControlDialog::slotGetRodData()
         if (epMachine->getReadOnlyData(readOnlyData))
         {
             qDebug() << readOnlyData;
+            _show_text_log(QString::fromStdString(readOnlyData.toJsonString()));
+        }else
+        {
+            _show_error_log(epMachine->getLastErrorInfo(), 0);
         }
     }
 }
 
 void ControlDialog::slotGetPdData()
 {
-    if (epMachine->isRunning())
+    PressData pressData;
+    if (epMachine->getPressData(pressData))
     {
-        PressData pressData;
-        if (epMachine->getPressData(pressData))
-        {
-            qDebug() << pressData;
-        }
+        qDebug() << pressData;
+        _show_text_log(QString::fromStdString(pressData.toJsonString()));
+    }else
+    {
+        _show_error_log(epMachine->getLastErrorInfo(), 0);
     }
 }
 
 void ControlDialog::slotGetRtData()
 {
-    if (epMachine->isRunning())
+
+    RealTimeData realTimeData;
+    if (epMachine->getRealTimeData(realTimeData))
     {
-        RealTimeData realTimeData;
-        if (epMachine->getRealTimeData(realTimeData))
-        {
-            qDebug() << realTimeData;
-        }
+        qDebug() << realTimeData;
+        _show_text_log(QString::fromStdString(realTimeData.toJsonString()));
+    }else
+    {
+        _show_error_log(epMachine->getLastErrorInfo(), 0);
     }
+
 }
 
 void ControlDialog::slotRun()
@@ -99,23 +95,6 @@ void ControlDialog::slotRun()
         if (!epMachine->isRunning())
         {
             epMachine->run();
-
-            // epMachine->registerCommandErrorCallback([](RetCommand errorCode,uint16_t command, const std::vector<uint8_t>& data)
-            // {
-            //     qDebug() << errorCode << " " << command << " " << data;
-            // });
-            // epMachine->registerRealTimeDataCallback([](int errorCode,const RealTimeData& realTimeData)
-            // {
-            //     std::cout << errorCode << realTimeData;
-            // });
-            // epMachine->registerPressDataCallback([](int errorCode,const PressData& pressData)
-            // {
-            //     std::cout << errorCode << pressData;
-            // });
-            // epMachine->registerReadOnlyDataCallback([](int errorCode,const ReadOnlyData& readOnlyData)
-            // {
-            //     std::cout << errorCode << readOnlyData;
-            // });
         }
     }
 }
@@ -131,18 +110,74 @@ void ControlDialog::slotStop()
     }
 }
 
-void ControlDialog::slotAddRodCommand()
+void ControlDialog::slotPressing(bool isPressing)
 {
-    if (epMachine->isConnected())
+    if (isPressing)
     {
-        // epMachine->addCommand(GET_ROD_JSON_NORMAL);
+        bool ret = epMachine->setPressing(isPressing);
+        if (ret)
+        {
+            _show_text_log(QString("start press success"));
+        }else
+        {
+            _show_error_log(epMachine->getLastErrorInfo(), 0);
+        }
+    }else
+    {
+        bool ret = epMachine->setPressing(isPressing);
+        if (ret)
+        {
+            _show_text_log("stop press success");
+        }else
+        {
+            _show_error_log(epMachine->getLastErrorInfo(), 0);
+        }
     }
 }
 
-void ControlDialog::slotAddPdCommand()
+void ControlDialog::slotDemolding(bool isDemolding)
 {
-    if (epMachine->isConnected())
+    if (isDemolding)
     {
-        // epMachine->addCommand(GET_PD_JSON_NORMAL);
+        bool ret = epMachine->setDemolding(isDemolding);
+        if (ret)
+        {
+            _show_text_log(QString("start demolding success"));
+        }else
+        {
+            _show_error_log(epMachine->getLastErrorInfo(), 0);
+        }
+    }else
+    {
+        bool ret = epMachine->setDemolding(isDemolding);
+        if (ret)
+        {
+            _show_text_log("stop demolding success");
+        }else
+        {
+            _show_error_log(epMachine->getLastErrorInfo(), 0);
+        }
     }
 }
+
+void ControlDialog::slotSetPressData()
+{
+    PressData pressData;
+    if (epMachine->getPressData(pressData))
+    {
+        qDebug() << pressData;
+        _show_text_log(QString::fromStdString(pressData.toJsonString()));
+    }else
+    {
+        _show_error_log(epMachine->getLastErrorInfo(), 0);
+    }
+    pressData.m_PStep = 1;
+    if (epMachine->setPressData(pressData))
+    {
+        _show_text_log("set press data success");
+    }else
+    {
+        _show_error_log(epMachine->getLastErrorInfo(), 0);
+    }
+}
+

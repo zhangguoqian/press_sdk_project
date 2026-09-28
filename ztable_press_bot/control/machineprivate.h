@@ -12,8 +12,36 @@
 #include <queue>
 #include <thread>
 #include <mutex>
-#include <unordered_map>
+#include <condition_variable>
+#include <atomic>
 
+
+enum class MachineError
+{
+    None = 0,
+    PortNotOpen,
+    WriteFailed,
+    ResponseTooShort,
+    ChecksumMismatch,
+    RegisterNoMismatch,
+    CommandMismatch,
+    Timeout,
+    Stopped,
+    ConnectFailed,
+    JsonParseFailed,
+
+    OutSignalBlocked,
+    ImmediateSignalBlocked,
+    StateUnchanged,
+
+    UnknownError,
+};
+
+struct FrameData
+{
+    uint16_t s_Command = 0;
+    std::vector<uint8_t> s_FrameDataList = {};
+};
 
 class MachinePrivate
 {
@@ -28,9 +56,10 @@ public:
 
     bool getReadOnlyData(ReadOnlyData& data,uint8_t isCompressed = 0);
     bool getPressData(PressData& data,uint8_t isCompressed = 0);
+    bool setPressData(const PressData& data,uint8_t isCompressed = 0);
     bool getRealTimeData(RealTimeData& data,uint8_t isCompressed = 0);
-
-    int runCommand();
+    bool setPressing(uint8_t isPressing);
+    bool setDemolding(uint8_t isDemolding);
 
     void run();
     void stop();
@@ -42,40 +71,37 @@ public:
     void registerDataInterface(MachineDataInterface* dataInterface);
     void unregisterDataInterface();
 
+    const MachineData& getMachineData() const;
+
 private:
-    std::vector<uint8_t> _combinedSendData(uint64_t &registerNo,uint16_t &command);
-    int _isValidResponseData(std::vector<uint8_t>& response,uint64_t registerNo,uint16_t command);
-    bool _commandByteData(uint16_t command,uint8_t byteData,std::vector<uint8_t> &responseListData);
+    std::vector<uint8_t> _buildSendFrame(const FrameData& frameData);
+    MachineError _parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out);
+    bool _requestCommand(uint16_t command, uint8_t byteData, std::vector<uint8_t>& responseListData);
+    bool _requestCommand(uint16_t command, std::vector<uint8_t> listData, std::vector<uint8_t>& responseListData);
+    void _setError(MachineError err);
+    MachineDataInterface* _safeGetInterface();
 
+    std::mutex m_RequestSerialMutex{};
 
-    char m_ErrorInfo[128] = {0};
+    std::mutex m_CommandMutex{};
+    std::queue<FrameData> m_CommandQueue = {};
+    std::condition_variable m_CommandCond{};
 
+    std::mutex m_ResponseMutex{};
+    std::queue<FrameData> m_ResponseQueue = {};
+    std::condition_variable m_ResponseCond{};
+
+    std::unique_ptr<std::thread> mpRunThread = nullptr;
+    std::atomic<bool> m_IsRunning = false;
+
+    std::atomic<uint64_t> m_RegisterNo{0};
     std::unique_ptr<PortBase> mpPort = nullptr;
 
-    std::atomic<uint64_t> m_RegisterNo{0};       //!< 机器注册号
-
-    std::atomic<bool> m_IsHasCommand{false};       //!< 是否有命令
-    std::atomic<uint16_t> m_Command{0};          //!< 命令
-    std::atomic<uint8_t> m_CommandByteData{0};    //!< 命令数据获取
-    std::vector<uint8_t> m_CommandListData = {};     //!< 命令数据设置
-    std::mutex m_SetCommandMutex{};                 //!< 命令数据设置互斥锁
-
-    std::atomic<uint8_t> m_ResponseByteData{0};   //!< 响应字节数据
-    std::vector<uint8_t> m_ResponseListData = {};    //!< 响应列表数据
-    std::mutex m_GetResponseDataMutex{};            //!< 响应数据队列互斥锁
-    std::condition_variable m_GetResponseDataCond{};
-
-    std::unique_ptr<std::thread> mpRunThread = nullptr; //!< 运行线程
-    std::atomic<bool> m_IsRunning = false; //!< 是否运行中
-
-    std::atomic<int> m_RunCode{-1};
-    std::atomic<bool> m_ResponseReady{false};
+    std::atomic<MachineError> m_LastError{MachineError::None};
 
     MachineData m_MachineData{};
-
-
-    MachineDataInterface* mpMachineDataInterface = nullptr; //!< 数据接口
-    std::mutex m_MachineDataMutex{}; //!< 数据接口互斥锁
+    MachineDataInterface* mpMachineDataInterface = nullptr;
+    std::mutex m_MachineDataMutex{};
 };
 
 #endif
