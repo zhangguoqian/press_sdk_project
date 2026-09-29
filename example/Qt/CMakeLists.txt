@@ -91,7 +91,7 @@ if (WIN32)
             endif ()
         endif ()
 
-        set(DEBUG_SUFFIX_GENEX "$<$<CONFIG:Debug>:d>")
+        set(DEBUG_SUFFIX_GENEX "$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>")
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory

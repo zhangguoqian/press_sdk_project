@@ -3,9 +3,9 @@
 #include <climits>
 #include <stdexcept>
 
-#ifdef _WIN32
-#   pragma comment(lib, "ws2_32.lib")
-#endif
+// #ifdef _WIN32
+// #   pragma comment(lib, "ws2_32.lib")
+// #endif
 
 TcpSocket::TcpSocket() = default;
 
@@ -38,7 +38,7 @@ bool TcpSocket::open() {
     unsigned long mode = 1;
     ::ioctlsocket(m_socket, FIONBIO, &mode);
 
-    auto do_connect = [this, family]() -> bool {
+    auto do_connect = [this]() -> bool {
         if (m_host_v6) {
             sockaddr_in6 addr{};
             addr.sin6_family = AF_INET6;

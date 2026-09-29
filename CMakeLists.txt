@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(ztable_press_bot_project
+project(press_sdk_project
     VERSION 1.0.0
-    DESCRIPTION "ZTable Press Bot - Machine control library and Qt example"
+    DESCRIPTION "Press SDK - Machine control library and Qt example"
     LANGUAGES CXX
 )
 
