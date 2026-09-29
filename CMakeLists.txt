@@ -1,9 +1,22 @@
 cmake_minimum_required(VERSION 3.27)
-project(ztable_press_bot_project)
+
+project(ztable_press_bot_project
+    VERSION 1.0.0
+    DESCRIPTION "ZTable Press Bot - Machine control library and Qt example"
+    LANGUAGES CXX
+)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_subdirectory(press)
 
-add_subdirectory(ztable_press_bot)
-
-
+option(BUILD_QT_EXAMPLE "Build the Qt GUI example application" ON)
+if (BUILD_QT_EXAMPLE)
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTORCC ON)
+    set(CMAKE_AUTOUIC ON)
+    set(CMAKE_INCLUDE_CURRENT_DIR ON)
+    add_subdirectory(example/Qt)
+endif ()
