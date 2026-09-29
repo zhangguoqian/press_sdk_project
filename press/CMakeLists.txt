@@ -8,6 +8,12 @@ project(press
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/press/version.h"
+    @ONLY
+)
+
 file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
@@ -25,6 +31,7 @@ endif ()
 target_include_directories(press
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/press>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/press>
         $<INSTALL_INTERFACE:include/press>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -71,6 +78,10 @@ install(TARGETS press
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/press/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/press
     FILES_MATCHING PATTERN "*.h"
+)
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/press/version.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/press
 )
 
 install(EXPORT pressTargets

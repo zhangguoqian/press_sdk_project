@@ -1,4 +1,4 @@
-# ZTable Press Bot
+# Press Sdk
 
 > Press machine host control library and Qt example application
 
@@ -11,12 +11,25 @@
 
 ---
 
+## Project Progress
+
+- [X] Add SDK support for press machines
+- [ ] Add SDK support for automatic hot press machines
+- [X] Complete API documentation for the press library
+- [ ] Improve the Qt example application UI
+- [X] Support additional communication protocols (e.g. TCP sockets)
+- [ ] Optimize performance and stability
+
+---
+
 ## Overview
 
-**ZTable Press Bot** is a cross-platform host-control project for press machines (powder-forming hydraulic presses). The project consists of two parts:
+**Press Sdk** is a cross-platform host-control project for press machines (powder-forming hydraulic presses). The project consists of two parts:
 
 - **press library** — A core C++ shared library that encapsulates the machine communication protocol and provides a thread-safe synchronous / asynchronous API
 - **Qt example application** — A Qt5/Qt6-based graphical host-control software demonstrating pressure parameter configuration, real-time state monitoring, and press cycle control using the press library
+
+For more product information, visit **[zk-yq.com](https://zk-yq.com/)**.
 
 ### Features
 
@@ -64,8 +77,7 @@ ztable_press_bot_project/
 │   │   ├── chartview/          # Real-time pressure chart
 │   │   ├── steplist/           # Press step table
 │   │   └── widget/             # Custom widgets
-│   └── ztable_press_bot.*      # Application icon & resources
-├── setup/                      # Installer related
+│   └── ztable_press_bot.ico    # Application icon & resources
 └── LICENSE                     # MIT License
 ```
 
@@ -122,7 +134,7 @@ target_link_libraries(your_target PRIVATE press::press)
 #### Option 3: install first, then use
 
 ```bash
-cmake -B build -DCMAKE_INSTALL_PREFIX=./install
+cmake -B build
 cmake --build build
 cmake --install build
 ```
@@ -160,10 +172,16 @@ machine.isRunning(); // Query running state
 ```cpp
 PressData pd;
 if (machine.getPressData(pd)) {
-    pd.m_PStep = 3;                             // Number of steps
-    pd.m_SetPValue = {10.0f, 20.0f, 30.0f};     // Pressure per step
-    pd.m_AfterValue = {5.0f, 10.0f, 15.0f};     // Hold-pressure per step
-    pd.m_KPTime = {5000, 5000, 5000};            // Hold-pressure time per step (ms)
+    pd.m_PStep = 3;                    // Number of steps
+    pd.m_SetPValue[0] = 10.0f;         // Step 1 pressure
+    pd.m_SetPValue[1] = 20.0f;         // Step 2 pressure
+    pd.m_SetPValue[2] = 30.0f;         // Step 3 pressure
+    pd.m_AfterValue[0] = 5.0f;         // Step 1 hold-pressure
+    pd.m_AfterValue[1] = 10.0f;        // Step 2 hold-pressure
+    pd.m_AfterValue[2] = 15.0f;        // Step 3 hold-pressure
+    pd.m_KPTime[0] = 5000;             // Step 1 hold-pressure time (ms)
+    pd.m_KPTime[1] = 5000;             // Step 2 hold-pressure time (ms)
+    pd.m_KPTime[2] = 5000;             // Step 3 hold-pressure time (ms)
     machine.setPressData(pd);
 }
 ```

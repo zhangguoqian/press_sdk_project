@@ -75,6 +75,10 @@ else ()
     )
 endif ()
 
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/example
+)
+
 if (WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 setupapi)
 

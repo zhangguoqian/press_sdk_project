@@ -184,9 +184,18 @@ public:
     //! 枚举当前系统可用的通信端口。
     static std::vector<std::string> getPortList();
 
-
+    //! 获取当前库的版本号。
+    //! @return Version string.
+    static std::string version();
 private:
+#ifdef _MSC_VER
+#   pragma warning(push)
+#   pragma warning(disable: 4251)
+#endif
     std::unique_ptr<MachinePrivate> mpPrivate;
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 };
 
 #endif

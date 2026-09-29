@@ -4,6 +4,7 @@
 
 #include "machine.h"
 #include "machineprivate.h"
+#include "version.h"
 
 
 Machine::Machine() : mpPrivate(std::make_unique<MachinePrivate>())
@@ -95,4 +96,9 @@ void Machine::unregisterDataInterface()
 std::vector<std::string> Machine::getPortList()
 {
     return MachinePrivate::getPortList();
+}
+
+std::string Machine::version()
+{
+    return PRESS_VERSION;
 }

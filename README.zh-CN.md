@@ -1,4 +1,4 @@
-# ZTable Press Bot
+# Press Sdk
 
 > 压片机上位机控制库与 Qt 示例应用
 
@@ -10,13 +10,25 @@
 [English](README.md) | **中文**
 
 ---
+## 项目进度
+
+- [X] 压片机设备添加SDK支持
+- [ ] 自动热压机设备添加SDK支持
+- [X] 完善 press 库的 API 文档
+- [ ] 完善 Qt 示例应用的用户界面
+- [X] 支持更多通信协议（如 TCP 套接字）
+- [ ] 优化性能和稳定性
+
+
 
 ## 简介
 
-**ZTable Press Bot** 是一个用于控制压片机（粉末成型液压机）的跨平台上位机项目。项目包含两部分：
+**Press Sdk** 是一个用于控制压片机（粉末成型液压机）的跨平台上位机项目。项目包含两部分：
 
 - **press 库**：核心 C++ 动态库，封装了与压片机的通信协议，提供线程安全的同步/异步 API
 - **Qt 示例应用**：基于 Qt5/Qt6 的图形界面上位机软件，演示如何使用 press 库进行压力参数配置、实时状态监控和压制循环控制
+
+产品官网：**[zk-yq.com](https://zk-yq.com/)**
 
 ### 核心特性
 
@@ -64,8 +76,7 @@ ztable_press_bot_project/
 │   │   ├── chartview/          # 实时压力图表
 │   │   ├── steplist/           # 压制步骤表格
 │   │   └── widget/             # 自定义控件
-│   └── ztable_press_bot.*      # 应用图标与资源
-├── setup/                      # 安装包相关
+│   └── ztable_press_bot.ico    # 应用图标与资源
 └── LICENSE                     # MIT 协议
 ```
 
@@ -122,7 +133,7 @@ target_link_libraries(your_target PRIVATE press::press)
 #### 方式三：手动安装后使用
 
 ```bash
-cmake -B build -DCMAKE_INSTALL_PREFIX=./install
+cmake -B build
 cmake --build build
 cmake --install build
 ```
@@ -160,10 +171,16 @@ machine.isRunning(); // 查询运行状态
 ```cpp
 PressData pd;
 if (machine.getPressData(pd)) {
-    pd.m_PStep = 3;                             // 设置步数
-    pd.m_SetPValue = {10.0f, 20.0f, 30.0f};     // 每步压力
-    pd.m_AfterValue = {5.0f, 10.0f, 15.0f};     // 每步保压
-    pd.m_KPTime = {5000, 5000, 5000};            // 每步保压时间(ms)
+    pd.m_PStep = 3;                       // 设置步数
+    pd.m_SetPValue[0] = 10.0f;            // 步骤1 压力
+    pd.m_SetPValue[1] = 20.0f;            // 步骤2 压力
+    pd.m_SetPValue[2] = 30.0f;            // 步骤3 压力
+    pd.m_AfterValue[0] = 5.0f;            // 步骤1 保压值
+    pd.m_AfterValue[1] = 10.0f;           // 步骤2 保压值
+    pd.m_AfterValue[2] = 15.0f;           // 步骤3 保压值
+    pd.m_KPTime[0] = 5000;                // 步骤1 保压时间(ms)
+    pd.m_KPTime[1] = 5000;                // 步骤2 保压时间(ms)
+    pd.m_KPTime[2] = 5000;                // 步骤3 保压时间(ms)
     machine.setPressData(pd);
 }
 ```

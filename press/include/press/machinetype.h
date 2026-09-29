@@ -75,7 +75,7 @@ enum PortType
  * 捕获运行期间不变的静态配置，如机器身份、压力/温度限制和界面设置。
  *****************************************************************************/
 
-struct PRESS_EXPORT ReadOnlyData
+struct ReadOnlyData
 {
     std::string m_NameZH;           //!< Chinese device name / 中文设备名
     std::string m_NameEN;           //!< English device name / 英文设备名
@@ -111,7 +111,7 @@ struct PRESS_EXPORT ReadOnlyData
     uint8_t  m_IsHasSpeed;          //!< Has speed mode flag / 是否有速度模式
 
     //! Serialize to JSON string / 序列化为Json字符串
-    std::string toJsonString() const;
+    PRESS_EXPORT std::string toJsonString() const;
 };
 
 
@@ -123,7 +123,7 @@ struct PRESS_EXPORT ReadOnlyData
  * 定义多步压制曲线，包含步数、压力值、保压和每步保压时间。
  *****************************************************************************/
 constexpr uint8_t MAX_PStep = 30;
-struct PRESS_EXPORT PressData
+struct PressData
 {
     uint8_t m_PStep;                //!< Current pressure step count / 压力步数
     uint8_t m_Type;                 //!< Press type selector / 压制类型选择
@@ -142,9 +142,9 @@ struct PRESS_EXPORT PressData
     std::array<uint32_t, MAX_PStep> m_KPTime; //!< Keep-pressure time per step (ms) / 每步保压时间(毫秒)
 
     //! Serialize to frame data (wire format) / 序列化为帧数据(传输格式)
-    std::vector<uint8_t> toFrameData() const;
+    PRESS_EXPORT std::vector<uint8_t> toFrameData() const;
     //! Serialize to JSON string / 序列化为Json字符串
-    std::string toJsonString() const;
+    PRESS_EXPORT std::string toJsonString() const;
 };
 
 
@@ -156,7 +156,7 @@ struct PRESS_EXPORT PressData
  * 设备运行时持续更新，反映当前工作模式、加压状态、活动步骤、实时压力和倒计时。
  *****************************************************************************/
 
-struct PRESS_EXPORT RealTimeData
+struct RealTimeData
 {
     uint8_t m_ModelState{ 0 };      //!< 0=normal, 1=speed, 2=3-speed mode / 切换普通模式/速度模式1/三速模式
     uint8_t m_PressState{ 0 };      //!< 0=idle, 1=pressing, 2=demolding / 0未加压,1加压中,2脱模中
@@ -166,7 +166,7 @@ struct PRESS_EXPORT RealTimeData
     uint8_t m_PdChanged{ 0 };       //!< PressData modification flag / 压力数据是否已变更
 
     //! Serialize to JSON string / 序列化为Json字符串
-    std::string toJsonString() const;
+    PRESS_EXPORT std::string toJsonString() const;
 };
 
 
