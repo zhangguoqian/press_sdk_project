@@ -17,13 +17,18 @@ int main(int argc, char* argv[])
     epMachine = new Machine();
     QApplication a(argc, argv);
     Login login;
-    if (login.exec() == QDialog::Accepted)
+    if (epMachine->connect("COM6"))
     {
-        UiHome uiHome;
-        uiHome.show();
-        epMachine->run();
-        return QApplication::exec();
+        ControlDialog dialog;
+        dialog.exec();
     }
+    // if (login.exec() == QDialog::Accepted)
+    // {
+    //     UiHome uiHome;
+    //     uiHome.show();
+    //     epMachine->run();
+    //     return QApplication::exec();
+    // }
     return 0;
 }
 

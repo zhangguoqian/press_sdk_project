@@ -264,18 +264,9 @@ void DataInterface::onError(uint16_t cmdCode, std::vector<uint8_t> response)
     auto uiHome = static_cast<UiHome*>(mpParent);
 }
 
-void DataInterface::onCommandError(RetCommand errorCode, uint16_t cmdCode)
-{
-    if (errorCode != RetCommand::RET_SUCCESS)
-    {
-        return;
-    }
-    auto uiHome = static_cast<UiHome*>(mpParent);
-}
 
-void DataInterface::onCommandPassWarningError(uint16_t cmdCode)
-{
-}
+
+
 
 void UiHome::slotOpenPortClicked(bool isChecked)
 {
