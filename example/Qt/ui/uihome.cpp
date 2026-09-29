@@ -6,6 +6,7 @@
 
 #include <QDebug>
 #include <QMenu>
+#include <algorithm>
 #include "uihome.h"
 #include "ui_UiHome.h"
 #include "uitranslate.h"
@@ -150,9 +151,15 @@ void UiHome::setPressData(const PressData& pressData)
     ui->dBoxOutDValue->setValue(pressData.m_OuterD);
     ui->dBoxInDValue->setValue(pressData.m_InnerD);
     ui->dBoxPushValue->setValue(pressData.m_DemoldValue);
-    ui->tableWidgetStepList->setUpPressValue(pressData.m_SetPValue);
-    ui->tableWidgetStepList->setDownPressValue(pressData.m_AfterValue);
-    ui->tableWidgetStepList->setTimePressValue(pressData.m_KPTime);
+
+    std::vector<float> upVec(pressData.m_SetPValue.begin(), pressData.m_SetPValue.end());
+    ui->tableWidgetStepList->setUpPressValue(upVec);
+
+    std::vector<float> downVec(pressData.m_AfterValue.begin(), pressData.m_AfterValue.end());
+    ui->tableWidgetStepList->setDownPressValue(downVec);
+
+    std::vector<uint32_t> timeVec(pressData.m_KPTime.begin(), pressData.m_KPTime.end());
+    ui->tableWidgetStepList->setTimePressValue(timeVec);
 
     m_PressData = pressData;
 }
@@ -174,9 +181,15 @@ void UiHome::setMaxStepValue(int maxStepValue)
 
 void UiHome::uiToJsonString()
 {
-    m_PressData.m_AfterValue = ui->tableWidgetStepList->getDownPressValue();
-    m_PressData.m_SetPValue = ui->tableWidgetStepList->getUpPressValue();
-    m_PressData.m_KPTime = ui->tableWidgetStepList->getTimePressValue();
+    auto afterVec = ui->tableWidgetStepList->getDownPressValue();
+    std::copy(afterVec.begin(), afterVec.end(), m_PressData.m_AfterValue.begin());
+
+    auto setVec = ui->tableWidgetStepList->getUpPressValue();
+    std::copy(setVec.begin(), setVec.end(), m_PressData.m_SetPValue.begin());
+
+    auto timeVec = ui->tableWidgetStepList->getTimePressValue();
+    std::copy(timeVec.begin(), timeVec.end(), m_PressData.m_KPTime.begin());
+
     m_PressData.m_PStep = ui->spinBoxStepValue->value();
     m_PressData.m_Type = ui->cBoxTypeValue->currentIndex();
     m_PressData.m_A = ui->dBoxAValue->value();

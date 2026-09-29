@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <vector>
+#include <array>
 #include <string>
 #include <cstdint>
 #include "typeprivate.h"
@@ -121,7 +122,7 @@ struct PRESS_EXPORT ReadOnlyData
  * after-pressure (hold), and keep-pressure time for each step.
  * 定义多步压制曲线，包含步数、压力值、保压和每步保压时间。
  *****************************************************************************/
-
+constexpr uint8_t MAX_PStep = 30;
 struct PRESS_EXPORT PressData
 {
     uint8_t m_PStep;                //!< Current pressure step count / 压力步数
@@ -136,9 +137,9 @@ struct PRESS_EXPORT PressData
     uint8_t m_Speed;                //!< 0 = isostatic, 1 = normal / 0等静压，1普通
     float   m_DemoldValue;          //!< Demolding pressure / 脱模压力值
 
-    std::vector<float>  m_SetPValue; //!< Target pressure per step / 每步设定压力
-    std::vector<float>  m_AfterValue;//!< Hold pressure per step / 每步保压值
-    std::vector<uint32_t> m_KPTime; //!< Keep-pressure time per step (ms) / 每步保压时间(毫秒)
+    std::array<float, MAX_PStep>  m_SetPValue; //!< Target pressure per step / 每步设定压力
+    std::array<float, MAX_PStep>  m_AfterValue;//!< Hold pressure per step / 每步保压值
+    std::array<uint32_t, MAX_PStep> m_KPTime; //!< Keep-pressure time per step (ms) / 每步保压时间(毫秒)
 
     //! Serialize to frame data (wire format) / 序列化为帧数据(传输格式)
     std::vector<uint8_t> toFrameData() const;

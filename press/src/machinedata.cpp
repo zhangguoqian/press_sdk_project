@@ -4,6 +4,7 @@
 
 #include "machinedata.h"
 #include "tool/jsontovalue.h"
+#include <algorithm>
 
 
 ReadOnlyData MachineData::getReadOnlyData() const
@@ -285,21 +286,29 @@ int MachineData::jsonToPressData(const std::string& json) // NOLINT(*-convert-me
         return 10;
     }
 
-    code = JsonToValue::getFloatVector("SetPValue", root, m_PressData.m_SetPValue, 0.0f, 200.0f, 30);
+    std::vector<float> tmpFv;
+    code = JsonToValue::getFloatVector("SetPValue", root, tmpFv, 0.0f, 200.0f, 30);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 11;
     }
-    code = JsonToValue::getFloatVector("AfterValue", root, m_PressData.m_AfterValue, 0.0f, 200.0f, 30);
+    std::copy(tmpFv.begin(), tmpFv.end(), m_PressData.m_SetPValue.begin());
+
+    tmpFv.clear();
+    code = JsonToValue::getFloatVector("AfterValue", root, tmpFv, 0.0f, 200.0f, 30);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 12;
     }
-    code = JsonToValue::getUInt32Vector("KPTime", root, m_PressData.m_KPTime, 0, 0xFFFFFFFF, 30);
+    std::copy(tmpFv.begin(), tmpFv.end(), m_PressData.m_AfterValue.begin());
+
+    std::vector<uint32_t> tmpU32;
+    code = JsonToValue::getUInt32Vector("KPTime", root, tmpU32, 0, 0xFFFFFFFF, 30);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 13;
     }
+    std::copy(tmpU32.begin(), tmpU32.end(), m_PressData.m_KPTime.begin());
     return 0;
 }
 
