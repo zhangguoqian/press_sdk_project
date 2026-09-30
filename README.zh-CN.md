@@ -19,15 +19,17 @@
 - [X] 支持更多通信协议（如 TCP 套接字）
 - [ ] 优化性能和稳定性
 
-
+---
 
 ## 简介
 
 Press SDK 是一个面向压片机设备的跨平台 C++11 控制库，并附带一个 Qt 示例应用。它主要用于封装设备通信、参数读取/写入、实时状态监控以及控制命令执行，并为上位机软件提供稳定的 API 接口。
 
-项目整体分为两部分：
+项目整体分为四部分：
 
-- Press 库：负责协议处理、数据模型、JSON/帧转换、通信端口抽象以及线程安全 API。
+- Press 库：负责协议处理、数据模型、JSON/帧转换、通信端口抽象以及线程安全 C++ API。
+- C 互操作层：通过 `cpress_*` 前缀函数暴露 C ABI，支持 C 应用、DLL 消费方和跨语言绑定。
+- 语言绑定层：在 `interface/` 目录下提供 Java、C#、Python、JavaScript、Dart 等多种语言的原生绑定示例。
 - Qt 示例程序：演示如何连接压片机、读取压力参数、查看实时状态、发送运行控制命令，并验证 SDK 的使用方式。
 
 当前 SDK 以串口通信和 TCP 连接两种方式为主，适用于压片机类设备的控制场景，并保留了继续扩展到其他设备类型的接口设计。
@@ -57,9 +59,14 @@ press_sdk_project/
 │   │   └── press/
 │   │       ├── cpress.h
 │   │       ├── press.hpp
+│   │       ├── pressinterface.hpp
 │   │       ├── presstype.h
 │   │       └── typeprivate.h
 │   └── src/
+│       ├── c/
+│       │   └── cpress.cpp
+│       ├── jni/
+│       │   └── press_jni.cpp
 │       ├── press.cpp
 │       ├── pressprivate.cpp
 │       ├── pressprivate.h
@@ -73,10 +80,10 @@ press_sdk_project/
 │       │   ├── tcpsocket.cpp
 │       │   └── tcpsocket.h
 │       ├── tool/
+│       │   ├── jsondata.cpp
+│       │   ├── jsondata.h
 │       │   ├── jsontovalue.cpp
-│       │   ├── jsontovalue.h
-│       │   ├── machinedata.cpp
-│       │   └── machinedata.h
+│       │   └── jsontovalue.h
 │       └── json/
 │           ├── json_reader.cpp
 │           ├── json_value.cpp

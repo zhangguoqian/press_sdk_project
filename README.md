@@ -26,10 +26,11 @@
 
 Press SDK is a cross-platform C++11 host-control library for press machines and a Qt example application. It provides the communication layer, parameter access, real-time status monitoring, and control commands needed by upper-layer software.
 
-The project is organized into three main parts:
+The project is organized into four main parts:
 
 - Press library: protocol handling, data models, JSON and frame conversion, communication abstraction, and a thread-safe C++ API.
 - C interop layer: a public C ABI exposed through `cpress_*` functions for C, scripting, and cross-language integrations.
+- Language bindings: native binding examples for Java, C#, Python, JavaScript, and Dart under `interface/`.
 - Qt example application: a reference UI showing how to connect to a device, read and write pressure settings, and monitor current state.
 
 The current SDK focuses on serial and TCP communication for press-machine protocols and keeps the abstraction extensible for other device families.
@@ -74,11 +75,9 @@ press_sdk_project/
 │       │   ├── json_value.cpp
 │       │   ├── json_writer.cpp
 │       │   └── ...
-│       ├── machine.cpp
-│       ├── machineprivate.cpp
-│       ├── machineprivate.h
-│       ├── machinedata.cpp
-│       ├── machinedata.h
+│       ├── press.cpp
+│       ├── pressprivate.cpp
+│       ├── pressprivate.h
 │       ├── port/
 │       │   ├── portbase.h
 │       │   ├── serialport.cpp
@@ -86,6 +85,8 @@ press_sdk_project/
 │       │   ├── tcpsocket.cpp
 │       │   └── tcpsocket.h
 │       └── tool/
+│           ├── jsondata.cpp
+│           ├── jsondata.h
 │           ├── jsontovalue.cpp
 │           ├── jsontovalue.h
 │           └── ...
@@ -436,57 +437,6 @@ cmake --build build
 ## License
 
 This project is open source under the [MIT License](LICENSE).
-
----
-
-## Author
-
-Created by 11518 on 2024/7/29.
-
----
-
-## Cross-Platform Build Notes
-
-### Windows (MSVC / MinGW)
-
-```bash
-# MSVC x64
-cmake -B build -G "Visual Studio 17 2022" -A x64
-
-# MinGW
-cmake -B build -G "MinGW Makefiles"
-```
-
-### Linux
-
-```bash
-sudo apt install build-essential cmake qt5-default
-cmake -B build -DCMAKE_PREFIX_PATH=/opt/Qt/6.8.0/gcc_64
-cmake --build build
-```
-
-### macOS
-
-```bash
-brew install cmake qt
-cmake -B build -DCMAKE_PREFIX_PATH=$(brew --prefix qt)
-cmake --build build
-```
-
-### Android
-
-```bash
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-      -DANDROID_ABI=arm64-v8a \
-      -DCMAKE_PREFIX_PATH=/opt/Qt/6.8.0/android_arm64_v8a
-cmake --build build
-```
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
 
 ---
 
