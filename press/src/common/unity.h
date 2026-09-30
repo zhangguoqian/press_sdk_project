@@ -2,8 +2,8 @@
 // Created by 11518 on 2026/9/13.
 //
 
-#ifndef ZTABLE_PRESS_BOT_PROJECT_UNITY_H
-#define ZTABLE_PRESS_BOT_PROJECT_UNITY_H
+#ifndef PRESS_SDK_PROJECT_UNITY_H
+#define PRESS_SDK_PROJECT_UNITY_H
 
 #include <cstdint>
 #include <vector>
@@ -25,4 +25,4 @@ public:
 };
 
 
-#endif //ZTABLE_PRESS_BOT_PROJECT_UNITY_H
+#endif //PRESS_SDK_PROJECT_UNITY_H

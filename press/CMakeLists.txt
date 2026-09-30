@@ -77,7 +77,7 @@ install(TARGETS press
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/press/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/press
-    FILES_MATCHING PATTERN "*.h"
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/press/version.h"

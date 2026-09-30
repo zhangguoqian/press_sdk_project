@@ -2,8 +2,8 @@
 // Created by 11518 on 2024/7/30.
 //
 
-#ifndef ZTABLE_PRESS_BOT_PROJECT_UIHOME_H
-#define ZTABLE_PRESS_BOT_PROJECT_UIHOME_H
+#ifndef PRESS_SDK_PROJECT_UIHOME_H
+#define PRESS_SDK_PROJECT_UIHOME_H
 
 #include <QMainWindow>
 #include <QTableWidgetItem>
@@ -90,4 +90,4 @@ private:
 };
 
 
-#endif //ZTABLE_PRESS_BOT_PROJECT_UIHOME_H
+#endif //PRESS_SDK_PROJECT_UIHOME_H

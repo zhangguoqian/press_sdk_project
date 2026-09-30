@@ -2,7 +2,7 @@
 // Created by 11518 on 2026/9/13.
 //
 #include "machineprivate.h"
-#include "machine.h"
+#include "press.hpp"
 #include "port/serialport.h"
 #include "port/tcpsocket.h"
 #include "common/unity.h"
@@ -155,7 +155,7 @@ bool MachinePrivate::setPressData(const PressData& data, bool isCompressed)
     std::vector<uint8_t> responseListData;
     std::vector<uint8_t> commandListData;
     commandListData.emplace_back(static_cast<uint8_t>(isCompressed));
-    std::vector<uint8_t> tempDataList = data.toFrameData();
+    std::vector<uint8_t> tempDataList = toFrameData(data);
     commandListData.insert(commandListData.end(), tempDataList.begin(), tempDataList.end());
     if (!_requestCommand(SET_PD_JSON, commandListData, responseListData))
     {

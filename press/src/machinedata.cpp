@@ -3,8 +3,10 @@
 //
 
 #include "machinedata.h"
+#include "press.hpp"
 #include "tool/jsontovalue.h"
 #include <algorithm>
+#include <cstring>
 
 
 ReadOnlyData MachineData::getReadOnlyData() const
@@ -46,21 +48,31 @@ int MachineData::jsonToReadOnlyData(const std::string& json) // NOLINT(*-convert
         return -1;
     }
     RetValueCode code = RetValueCode::VALUE_NO_ERROR;
-    code = JsonToValue::getStringValue("NameZH", root, m_ReadOnlyData.m_NameZH);
+    std::string tempStr;
+    code = JsonToValue::getStringValue("NameZH", root, tempStr);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 1;
     }
-    code = JsonToValue::getStringValue("NameEN", root, m_ReadOnlyData.m_NameEN);
+    std::strncpy(m_ReadOnlyData.m_NameZH, tempStr.c_str(), sizeof(m_ReadOnlyData.m_NameZH) - 1);
+    m_ReadOnlyData.m_NameZH[sizeof(m_ReadOnlyData.m_NameZH) - 1] = '\0';
+
+    code = JsonToValue::getStringValue("NameEN", root, tempStr);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 2;
     }
-    code = JsonToValue::getStringValue("Type", root, m_ReadOnlyData.m_Type);
+    std::strncpy(m_ReadOnlyData.m_NameEN, tempStr.c_str(), sizeof(m_ReadOnlyData.m_NameEN) - 1);
+    m_ReadOnlyData.m_NameEN[sizeof(m_ReadOnlyData.m_NameEN) - 1] = '\0';
+
+    code = JsonToValue::getStringValue("Type", root, tempStr);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 3;
     }
+    std::strncpy(m_ReadOnlyData.m_Type, tempStr.c_str(), sizeof(m_ReadOnlyData.m_Type) - 1);
+    m_ReadOnlyData.m_Type[sizeof(m_ReadOnlyData.m_Type) - 1] = '\0';
+
     code = JsonToValue::getUInt8Value("Screenshot", root, m_ReadOnlyData.m_Screenshot, 0, 1);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
@@ -292,7 +304,7 @@ int MachineData::jsonToPressData(const std::string& json) // NOLINT(*-convert-me
     {
         return 11;
     }
-    std::copy(tmpFv.begin(), tmpFv.end(), m_PressData.m_SetPValue.begin());
+    std::copy(tmpFv.begin(), tmpFv.end(), m_PressData.m_SetPValue);
 
     tmpFv.clear();
     code = JsonToValue::getFloatVector("AfterValue", root, tmpFv, 0.0f, 200.0f, 30);
@@ -300,7 +312,7 @@ int MachineData::jsonToPressData(const std::string& json) // NOLINT(*-convert-me
     {
         return 12;
     }
-    std::copy(tmpFv.begin(), tmpFv.end(), m_PressData.m_AfterValue.begin());
+    std::copy(tmpFv.begin(), tmpFv.end(), m_PressData.m_AfterValue);
 
     std::vector<uint32_t> tmpU32;
     code = JsonToValue::getUInt32Vector("KPTime", root, tmpU32, 0, 0xFFFFFFFF, 30);
@@ -308,7 +320,7 @@ int MachineData::jsonToPressData(const std::string& json) // NOLINT(*-convert-me
     {
         return 13;
     }
-    std::copy(tmpU32.begin(), tmpU32.end(), m_PressData.m_KPTime.begin());
+    std::copy(tmpU32.begin(), tmpU32.end(), m_PressData.m_KPTime);
     return 0;
 }
 
@@ -330,40 +342,40 @@ int MachineData::jsonToPressData(const std::vector<uint8_t>& data)
     return jsonToPressData(str);
 }
 
-std::string ReadOnlyData::toJsonString() const
+std::string toJsonString(const ReadOnlyData& data)
 {
     Json::Value root{};
 
-    root["NameZH"]       = m_NameZH;
-    root["NameEN"]       = m_NameEN;
-    root["Type"]         = m_Type;
-    root["SerialNumber"] = m_SerialNumber;
+    root["NameZH"]       = data.m_NameZH;
+    root["NameEN"]       = data.m_NameEN;
+    root["Type"]         = data.m_Type;
+    root["SerialNumber"] = data.m_SerialNumber;
 
-    root["Screenshot"]   = m_Screenshot;
-    root["StartDelay"]   = m_StartDelay;
-    root["VersionType"]  = m_VersionType;
-    root["IsHideLang"]   = m_IsHideLang;
-    root["Remote"]       = m_Remote;
-    root["Network"]      = m_Network;
-    root["FontZH"]       = m_FontZH;
-    root["FontEN"]       = m_FontEN;
+    root["Screenshot"]   = data.m_Screenshot;
+    root["StartDelay"]   = data.m_StartDelay;
+    root["VersionType"]  = data.m_VersionType;
+    root["IsHideLang"]   = data.m_IsHideLang;
+    root["Remote"]       = data.m_Remote;
+    root["Network"]      = data.m_Network;
+    root["FontZH"]       = data.m_FontZH;
+    root["FontEN"]       = data.m_FontEN;
 
-    root["MaxPStep"]     = m_MaxPStep;
-    root["MaxPLimit"]    = m_MaxPLimit;
-    root["MinPLimit"]    = m_MinPLimit;
-    root["Max_Min"]      = m_Max_Min;
-    root["Diameter"]     = m_Diameter;
-    root["PDecimal"]     = m_PDecimal;
-    root["PressDecimal"] = m_PressDecimal;
-    root["PModel"]       = m_PModel;
-    root["OutType"]      = m_OutType;
+    root["MaxPStep"]     = data.m_MaxPStep;
+    root["MaxPLimit"]    = data.m_MaxPLimit;
+    root["MinPLimit"]    = data.m_MinPLimit;
+    root["Max_Min"]      = data.m_Max_Min;
+    root["Diameter"]     = data.m_Diameter;
+    root["PDecimal"]     = data.m_PDecimal;
+    root["PressDecimal"] = data.m_PressDecimal;
+    root["PModel"]       = data.m_PModel;
+    root["OutType"]      = data.m_OutType;
 
-    root["MaxTStep"]     = m_MaxTStep;
-    root["MaxTLimit"]    = m_MaxTLimit;
-    root["MinTLimit"]    = m_MinTLimit;
-    root["TDecimal"]     = m_TDecimal;
-    root["IsHasWater"]   = m_IsHasWater;
-    root["IsHasSpeed"]   = m_IsHasSpeed;
+    root["MaxTStep"]     = data.m_MaxTStep;
+    root["MaxTLimit"]    = data.m_MaxTLimit;
+    root["MinTLimit"]    = data.m_MinTLimit;
+    root["TDecimal"]     = data.m_TDecimal;
+    root["IsHasWater"]   = data.m_IsHasWater;
+    root["IsHasSpeed"]   = data.m_IsHasSpeed;
 
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
@@ -371,43 +383,41 @@ std::string ReadOnlyData::toJsonString() const
     return Json::writeString(builder, root);
 }
 
-std::vector<uint8_t> PressData::toFrameData() const
+std::vector<uint8_t> toFrameData(const PressData& data)
 {
-    std::string str = toJsonString();
+    std::string str = toJsonString(data);
     return {str.begin(), str.end()};
 }
 
-std::string PressData::toJsonString() const
+std::string toJsonString(const PressData& data)
 {
     Json::Value root{};
 
-    root["PStep"] = m_PStep;
-    root["Type"] = m_Type;
-    //	root["PDecimal"] = m_PDecimal;
-    //	root["PressDecimal"] = m_PressDecimal;
-    root["A"] = m_A;
-    root["B"] = m_B;
-    root["D"] = m_D;
-    root["OuterD"] = m_OuterD;
-    root["InnerD"] = m_InnerD;
-    root["CheckValue"] = m_CheckValue;
-    root["Speed"] = m_Speed;
-    root["DemoldValue"] = m_DemoldValue;
+    root["PStep"] = data.m_PStep;
+    root["Type"] = data.m_Type;
+    root["A"] = data.m_A;
+    root["B"] = data.m_B;
+    root["D"] = data.m_D;
+    root["OuterD"] = data.m_OuterD;
+    root["InnerD"] = data.m_InnerD;
+    root["CheckValue"] = data.m_CheckValue;
+    root["Speed"] = data.m_Speed;
+    root["DemoldValue"] = data.m_DemoldValue;
 
     Json::Value array;
-    for(const auto &var:m_SetPValue){
+    for(const auto &var:data.m_SetPValue){
         array.append(var);
     }
     root["SetPValue"] = array;
 
     array.clear();
-    for(const auto &var:m_AfterValue){
+    for(const auto &var:data.m_AfterValue){
         array.append(var);
     }
     root["AfterValue"] = array;
 
     array.clear();
-    for(const auto &var:m_KPTime){
+    for(const auto &var:data.m_KPTime){
         array.append(var);
     }
     root["KPTime"] = array;
@@ -419,16 +429,16 @@ std::string PressData::toJsonString() const
     return Json::writeString(builder, root);
 }
 
-std::string RealTimeData::toJsonString() const
+std::string toJsonString(const RealTimeData& data)
 {
     Json::Value root{};
 
-    root["ModelState"] = m_ModelState;
-    root["PressState"] = m_PressState;
-    root["CPStep"]     = m_CPStep;
-    root["PressValue"] = m_PressValue;
-    root["PTime"]      = m_PTime;
-    root["PdChanged"]  = m_PdChanged;
+    root["ModelState"] = data.m_ModelState;
+    root["PressState"] = data.m_PressState;
+    root["CPStep"]     = data.m_CPStep;
+    root["PressValue"] = data.m_PressValue;
+    root["PTime"]      = data.m_PTime;
+    root["PdChanged"]  = data.m_PdChanged;
 
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "";
