@@ -11,7 +11,7 @@ namespace
 class CMachineDataAdapter : public PressDataInterface
 {
 public:
-    explicit CMachineDataAdapter(const PressCDataCallbacks& callbacks)
+    explicit CMachineDataAdapter(const CPressDataCallbacks& callbacks)
         : m_callbacks(callbacks)
     {
     }
@@ -65,25 +65,25 @@ public:
     }
 
 private:
-    PressCDataCallbacks m_callbacks;
+    CPressDataCallbacks m_callbacks;
 };
 } // namespace
 
-struct PressCContext
+struct CPressContext
 {
     std::unique_ptr<Press> impl;
     std::unique_ptr<CMachineDataAdapter> callbackAdapter;
-    PressCDataCallbacks callbacks;
+    CPressDataCallbacks callbacks;
 };
 
-PRESS_C_EXPORT PressCContext* cpress_create(void)
+PRESS_C_EXPORT CPressContext* cpress_create(void)
 {
-    PressCContext* context = new PressCContext();
+    CPressContext* context = new CPressContext();
     context->impl = std::unique_ptr<Press>(new Press());
     return context;
 }
 
-PRESS_C_EXPORT void cpress_destroy(PressCContext* handle)
+PRESS_C_EXPORT void cpress_destroy(CPressContext* handle)
 {
     if (handle == nullptr)
     {
@@ -98,7 +98,7 @@ PRESS_C_EXPORT void cpress_destroy(PressCContext* handle)
     delete handle;
 }
 
-PRESS_C_EXPORT int cpress_connect(PressCContext* handle, const char* portName, int portType)
+PRESS_C_EXPORT int cpress_connect(CPressContext* handle, const char* portName, int portType)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -108,7 +108,7 @@ PRESS_C_EXPORT int cpress_connect(PressCContext* handle, const char* portName, i
     return handle->impl->connect(portName, static_cast<PortType>(portType)) ? 1 : 0;
 }
 
-PRESS_C_EXPORT void cpress_disconnect(PressCContext* handle)
+PRESS_C_EXPORT void cpress_disconnect(CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -118,7 +118,7 @@ PRESS_C_EXPORT void cpress_disconnect(PressCContext* handle)
     handle->impl->disconnect();
 }
 
-PRESS_C_EXPORT int cpress_is_connected(const PressCContext* handle)
+PRESS_C_EXPORT int cpress_is_connected(const CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -128,7 +128,7 @@ PRESS_C_EXPORT int cpress_is_connected(const PressCContext* handle)
     return handle->impl->isConnected() ? 1 : 0;
 }
 
-PRESS_C_EXPORT uint64_t cpress_get_machine_register_no(const PressCContext* handle)
+PRESS_C_EXPORT uint64_t cpress_get_machine_register_no(const CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -138,7 +138,7 @@ PRESS_C_EXPORT uint64_t cpress_get_machine_register_no(const PressCContext* hand
     return handle->impl->getMachineRegisterNo();
 }
 
-PRESS_C_EXPORT const char* cpress_get_last_error_info(const PressCContext* handle)
+PRESS_C_EXPORT const char* cpress_get_last_error_info(const CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -148,7 +148,7 @@ PRESS_C_EXPORT const char* cpress_get_last_error_info(const PressCContext* handl
     return handle->impl->getLastErrorInfo();
 }
 
-PRESS_C_EXPORT void cpress_run(PressCContext* handle)
+PRESS_C_EXPORT void cpress_run(CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -158,7 +158,7 @@ PRESS_C_EXPORT void cpress_run(PressCContext* handle)
     handle->impl->run();
 }
 
-PRESS_C_EXPORT void cpress_stop(PressCContext* handle)
+PRESS_C_EXPORT void cpress_stop(CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -168,7 +168,7 @@ PRESS_C_EXPORT void cpress_stop(PressCContext* handle)
     handle->impl->stop();
 }
 
-PRESS_C_EXPORT int cpress_is_running(const PressCContext* handle)
+PRESS_C_EXPORT int cpress_is_running(const CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -178,7 +178,7 @@ PRESS_C_EXPORT int cpress_is_running(const PressCContext* handle)
     return handle->impl->isRunning() ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_read_only_data(PressCContext* handle,
+PRESS_C_EXPORT int cpress_get_read_only_data(CPressContext* handle,
                                             ReadOnlyData* data,
                                             int isCompressed)
 {
@@ -190,7 +190,7 @@ PRESS_C_EXPORT int cpress_get_read_only_data(PressCContext* handle,
     return handle->impl->getReadOnlyData(*data, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_press_data(PressCContext* handle,
+PRESS_C_EXPORT int cpress_get_press_data(CPressContext* handle,
                                         PressData* data,
                                         int isCompressed)
 {
@@ -202,7 +202,7 @@ PRESS_C_EXPORT int cpress_get_press_data(PressCContext* handle,
     return handle->impl->getPressData(*data, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_set_press_data(PressCContext* handle,
+PRESS_C_EXPORT int cpress_set_press_data(CPressContext* handle,
                                         const PressData* data,
                                         int isCompressed)
 {
@@ -214,7 +214,7 @@ PRESS_C_EXPORT int cpress_set_press_data(PressCContext* handle,
     return handle->impl->setPressData(*data, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_real_time_data(PressCContext* handle,
+PRESS_C_EXPORT int cpress_get_real_time_data(CPressContext* handle,
                                            RealTimeData* data,
                                            int isCompressed)
 {
@@ -226,7 +226,7 @@ PRESS_C_EXPORT int cpress_get_real_time_data(PressCContext* handle,
     return handle->impl->getRealTimeData(*data, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_set_pressing(PressCContext* handle, int isPressing)
+PRESS_C_EXPORT int cpress_set_pressing(CPressContext* handle, int isPressing)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -236,7 +236,7 @@ PRESS_C_EXPORT int cpress_set_pressing(PressCContext* handle, int isPressing)
     return handle->impl->setPressing(isPressing != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_set_demolding(PressCContext* handle, int isDemolding)
+PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -246,8 +246,8 @@ PRESS_C_EXPORT int cpress_set_demolding(PressCContext* handle, int isDemolding)
     return handle->impl->setDemolding(isDemolding != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT void cpress_register_data_interface(PressCContext* handle,
-                                                 const PressCDataCallbacks* callbacks)
+PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle,
+                                                 const CPressDataCallbacks* callbacks)
 {
     if (handle == nullptr || handle->impl == nullptr || callbacks == nullptr)
     {
@@ -259,7 +259,7 @@ PRESS_C_EXPORT void cpress_register_data_interface(PressCContext* handle,
     handle->impl->registerDataInterface(handle->callbackAdapter.get());
 }
 
-PRESS_C_EXPORT void cpress_unregister_data_interface(PressCContext* handle)
+PRESS_C_EXPORT void cpress_unregister_data_interface(CPressContext* handle)
 {
     if (handle == nullptr || handle->impl == nullptr)
     {
@@ -268,7 +268,7 @@ PRESS_C_EXPORT void cpress_unregister_data_interface(PressCContext* handle)
 
     handle->impl->unregisterDataInterface();
     handle->callbackAdapter.reset();
-    handle->callbacks = PressCDataCallbacks();
+    handle->callbacks = CPressDataCallbacks();
 }
 
 PRESS_C_EXPORT const char* cpress_version(void)

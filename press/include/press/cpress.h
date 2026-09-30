@@ -51,7 +51,7 @@ extern "C" {
 
 //! Opaque handle to the underlying Press object / 底层 Press 对象的不透明句柄
 //! Use press_create() and press_destroy() to manage lifetime / 使用 press_create() 和 press_destroy() 管理生命周期
-typedef struct PressCContext PressCContext;
+typedef struct CPressContext CPressContext;
 
 //! Read-only data callback prototype / 只读数据回调原型
 //! @param userData      Caller-provided context / 调用方提供的上下文
@@ -93,22 +93,22 @@ typedef void (*PressCErrorCallback)(void* userData, uint16_t cmdCode, const uint
 //!       safely release its local copy after the function returns.
 //!       回调会在 SDK 工作线程中触发。注册时会按值复制该结构体，因此调用方
 //!       在函数返回后可安全释放其本地副本。
-typedef struct PressCDataCallbacks
+typedef struct CPressDataCallbacks
 {
     void* userData;
     PressCReadOnlyDataCallback onReadOnlyData;
     PressCRealTimeDataCallback onRealTimeData;
     PressCPressDataCallback onPressData;
     PressCErrorCallback onError;
-} PressCDataCallbacks;
+} CPressDataCallbacks;
 
 //! Create a new Press SDK handle / 创建新的 Press SDK 句柄
-//! @return Pointer to a new PressCContext, or NULL on failure / 新的 PressCContext 指针；失败返回 NULL
-PRESS_C_EXPORT PressCContext* cpress_create(void);
+//! @return Pointer to a new CPressContext, or NULL on failure / 新的 CPressContext 指针；失败返回 NULL
+PRESS_C_EXPORT CPressContext* cpress_create(void);
 
 //! Destroy a Press SDK handle / 销毁 Press SDK 句柄
 //! @param handle Context to destroy / 要销毁的上下文
-PRESS_C_EXPORT void cpress_destroy(PressCContext* handle);
+PRESS_C_EXPORT void cpress_destroy(CPressContext* handle);
 
 //! Connect to a serial or TCP port / 连接串口或 TCP 端口
 //! @param handle     Active context / 有效的上下文
@@ -117,25 +117,25 @@ PRESS_C_EXPORT void cpress_destroy(PressCContext* handle);
 //!                  Use 0 for SerialPortType and 1 for TcpSocketPortType.
 //!                  0 表示 SerialPortType，1 表示 TcpSocketPortType。
 //! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
-PRESS_C_EXPORT int cpress_connect(PressCContext* handle, const char* portName, int portType);
+PRESS_C_EXPORT int cpress_connect(CPressContext* handle, const char* portName, int portType);
 
 //! Disconnect from the machine and close the connection / 断开与设备的连接并关闭端口
-PRESS_C_EXPORT void cpress_disconnect(PressCContext* handle);
+PRESS_C_EXPORT void cpress_disconnect(CPressContext* handle);
 
 //! Check connection state / 查询连接状态
 //! @return 1 if connected, 0 otherwise / 已连接返回 1，否则返回 0
-PRESS_C_EXPORT int cpress_is_connected(const PressCContext* handle);
+PRESS_C_EXPORT int cpress_is_connected(const CPressContext* handle);
 
 //! Query the unique hardware register number / 获取唯一设备注册号
 //! @return Device register number / 设备注册号
-PRESS_C_EXPORT uint64_t cpress_get_machine_register_no(const PressCContext* handle);
+PRESS_C_EXPORT uint64_t cpress_get_machine_register_no(const CPressContext* handle);
 
 //! Query the last error message / 获取最后一条错误信息
 //! @return Null-terminated string. The pointer remains valid until the next API
 //!         call that updates the same handle's internal error state, or until the
 //!         handle is destroyed. / 以 '\0' 结尾的字符串。该指针在同一句柄的
 //!         下一次错误状态更新前，或在句柄销毁前保持有效。
-PRESS_C_EXPORT const char* cpress_get_last_error_info(const PressCContext* handle);
+PRESS_C_EXPORT const char* cpress_get_last_error_info(const CPressContext* handle);
 
 //! Start the SDK scheduler thread that drives all protocol I/O.
 //! The scheduler is started automatically after cpress_connect() succeeds,
@@ -144,15 +144,15 @@ PRESS_C_EXPORT const char* cpress_get_last_error_info(const PressCContext* handl
 //! 启动 SDK 调度线程，所有协议 I/O 都由该线程驱动。
 //! cpress_connect() 成功后会自动启动调度线程，因此本函数可省略，保留是为了向后兼容。
 //! 若要启动设备加压动作，请使用 cpress_set_pressing(handle, 1)。
-PRESS_C_EXPORT void cpress_run(PressCContext* handle);
+PRESS_C_EXPORT void cpress_run(CPressContext* handle);
 
 //! Stop the SDK scheduler thread and disconnect from the machine.
 //! 停止 SDK 调度线程并断开与设备的连接。
-PRESS_C_EXPORT void cpress_stop(PressCContext* handle);
+PRESS_C_EXPORT void cpress_stop(CPressContext* handle);
 
 //! Query whether the machine is currently running / 查询设备是否正在运行
 //! @return 1 if running, 0 otherwise / 运行中返回 1，否则返回 0
-PRESS_C_EXPORT int cpress_is_running(const PressCContext* handle);
+PRESS_C_EXPORT int cpress_is_running(const CPressContext* handle);
 
 //! Read the read-only device information / 读取只读设备信息
 //! @param handle       Active context / 有效的上下文
@@ -161,27 +161,27 @@ PRESS_C_EXPORT int cpress_is_running(const PressCContext* handle);
 //!                    0 = false, non-zero = true. / 是否使用压缩 JSON 模式。
 //!                    0 表示 false，非 0 表示 true。
 //! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
-PRESS_C_EXPORT int cpress_get_read_only_data(PressCContext* handle, ReadOnlyData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_get_read_only_data(CPressContext* handle, ReadOnlyData* data, int isCompressed);
 
 //! Read pressure configuration / 读取压力参数
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_get_press_data(PressCContext* handle, PressData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_get_press_data(CPressContext* handle, PressData* data, int isCompressed);
 
 //! Write pressure configuration / 写入压力参数
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_set_press_data(PressCContext* handle, const PressData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_set_press_data(CPressContext* handle, const PressData* data, int isCompressed);
 
 //! Read live machine state / 读取实时机器状态
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_get_real_time_data(PressCContext* handle, RealTimeData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_get_real_time_data(CPressContext* handle, RealTimeData* data, int isCompressed);
 
 //! Start or stop the pressing action only / 启动或停止单独的加压动作
 //! @param isPressing   0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
-PRESS_C_EXPORT int cpress_set_pressing(PressCContext* handle, int isPressing);
+PRESS_C_EXPORT int cpress_set_pressing(CPressContext* handle, int isPressing);
 
 //! Start or stop the demolding action only / 启动或停止单独的脱模动作
 //! @param isDemolding  0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
-PRESS_C_EXPORT int cpress_set_demolding(PressCContext* handle, int isDemolding);
+PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding);
 
 //! Register callback handlers / 注册回调处理器
 //! @param handle     Active context / 有效的上下文
@@ -189,10 +189,10 @@ PRESS_C_EXPORT int cpress_set_demolding(PressCContext* handle, int isDemolding);
 //!                   needed. Callbacks are invoked on the SDK worker thread.
 //!                   / 回调表。每个回调指针在不需要时都可为 NULL。回调会在 SDK
 //!                   工作线程中触发。
-PRESS_C_EXPORT void cpress_register_data_interface(PressCContext* handle, const PressCDataCallbacks* callbacks);
+PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle, const CPressDataCallbacks* callbacks);
 
 //! Unregister callback handlers / 注销回调处理器
-PRESS_C_EXPORT void cpress_unregister_data_interface(PressCContext* handle);
+PRESS_C_EXPORT void cpress_unregister_data_interface(CPressContext* handle);
 
 //! Get the SDK version string / 获取 SDK 版本字符串
 //! @return Version string. The returned pointer points to internal static storage

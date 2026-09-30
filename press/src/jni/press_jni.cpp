@@ -3,7 +3,9 @@
 #include "press/cpress.h"
 
 #include <cstring>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace
@@ -12,6 +14,21 @@ constexpr const char* kPressSdkClassName = "PressSdk";
 constexpr const char* kReadOnlyDataClassName = "PressSdk$ReadOnlyData";
 constexpr const char* kPressDataClassName = "PressSdk$PressData";
 constexpr const char* kRealTimeDataClassName = "PressSdk$RealTimeData";
+constexpr const char* kDataCallbacksClassName = "PressSdk$DataCallbacks";
+
+struct JniCallbackContext
+{
+    JavaVM* vm = nullptr;
+    jobject callbacks = nullptr;
+    jclass callbacksClass = nullptr;
+    jmethodID onReadOnlyDataMethod = nullptr;
+    jmethodID onRealTimeDataMethod = nullptr;
+    jmethodID onPressDataMethod = nullptr;
+    jmethodID onErrorMethod = nullptr;
+};
+
+static std::mutex g_callbackMapMutex;
+static std::unordered_map<CPressContext*, JniCallbackContext*> g_callbackMap;
 
 static void setStringField(JNIEnv* env, jobject object, const char* fieldName, const char* value)
 {
@@ -262,19 +279,243 @@ static void readPressData(JNIEnv* env, jobject object, PressData* nativeData)
     env->DeleteLocalRef(clazz);
 }
 
+static jobject newJavaObject(JNIEnv* env, const char* className)
+{
+    jclass clazz = env->FindClass(className);
+    if (clazz == nullptr)
+    {
+        return nullptr;
+    }
+
+    jmethodID ctor = env->GetMethodID(clazz, "<init>", "()V");
+    jobject instance = env->NewObject(clazz, ctor);
+    env->DeleteLocalRef(clazz);
+    return instance;
+}
+
+static JNIEnv* attachCurrentThread(JavaVM* vm)
+{
+    JNIEnv* env = nullptr;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_8) == JNI_EDETACHED)
+    {
+        if (vm->AttachCurrentThread(reinterpret_cast<void**>(&env), nullptr) != JNI_OK)
+        {
+            return nullptr;
+        }
+    }
+    return env;
+}
+
+static void detachCurrentThread(JavaVM* vm)
+{
+    vm->DetachCurrentThread();
+}
+
+static void jniOnReadOnlyData(void* userData,
+                              int errorCode,
+                              uint64_t registerNo,
+                              const ReadOnlyData* readOnlyData)
+{
+    auto* ctx = static_cast<JniCallbackContext*>(userData);
+    if (ctx == nullptr || ctx->vm == nullptr || ctx->callbacks == nullptr)
+    {
+        return;
+    }
+
+    JNIEnv* env = attachCurrentThread(ctx->vm);
+    if (env == nullptr)
+    {
+        return;
+    }
+
+    jobject javaData = newJavaObject(env, kReadOnlyDataClassName);
+    if (javaData != nullptr && readOnlyData != nullptr)
+    {
+        fillReadOnlyData(env, javaData, *readOnlyData);
+    }
+
+    if (ctx->onReadOnlyDataMethod != nullptr)
+    {
+        env->CallVoidMethod(ctx->callbacks,
+                            ctx->onReadOnlyDataMethod,
+                            errorCode,
+                            static_cast<jlong>(registerNo),
+                            javaData);
+    }
+
+    if (javaData != nullptr)
+    {
+        env->DeleteLocalRef(javaData);
+    }
+    detachCurrentThread(ctx->vm);
+}
+
+static void jniOnRealTimeData(void* userData,
+                              int errorCode,
+                              const RealTimeData* realTimeData)
+{
+    auto* ctx = static_cast<JniCallbackContext*>(userData);
+    if (ctx == nullptr || ctx->vm == nullptr || ctx->callbacks == nullptr)
+    {
+        return;
+    }
+
+    JNIEnv* env = attachCurrentThread(ctx->vm);
+    if (env == nullptr)
+    {
+        return;
+    }
+
+    jobject javaData = newJavaObject(env, kRealTimeDataClassName);
+    if (javaData != nullptr && realTimeData != nullptr)
+    {
+        fillRealTimeData(env, javaData, *realTimeData);
+    }
+
+    if (ctx->onRealTimeDataMethod != nullptr)
+    {
+        env->CallVoidMethod(ctx->callbacks,
+                            ctx->onRealTimeDataMethod,
+                            errorCode,
+                            javaData);
+    }
+
+    if (javaData != nullptr)
+    {
+        env->DeleteLocalRef(javaData);
+    }
+    detachCurrentThread(ctx->vm);
+}
+
+static void jniOnPressData(void* userData,
+                           int errorCode,
+                           const PressData* pressData)
+{
+    auto* ctx = static_cast<JniCallbackContext*>(userData);
+    if (ctx == nullptr || ctx->vm == nullptr || ctx->callbacks == nullptr)
+    {
+        return;
+    }
+
+    JNIEnv* env = attachCurrentThread(ctx->vm);
+    if (env == nullptr)
+    {
+        return;
+    }
+
+    jobject javaData = newJavaObject(env, kPressDataClassName);
+    if (javaData != nullptr && pressData != nullptr)
+    {
+        fillPressData(env, javaData, *pressData);
+    }
+
+    if (ctx->onPressDataMethod != nullptr)
+    {
+        env->CallVoidMethod(ctx->callbacks,
+                            ctx->onPressDataMethod,
+                            errorCode,
+                            javaData);
+    }
+
+    if (javaData != nullptr)
+    {
+        env->DeleteLocalRef(javaData);
+    }
+    detachCurrentThread(ctx->vm);
+}
+
+static void jniOnError(void* userData,
+                       uint16_t cmdCode,
+                       const uint8_t* response,
+                       size_t responseLen)
+{
+    auto* ctx = static_cast<JniCallbackContext*>(userData);
+    if (ctx == nullptr || ctx->vm == nullptr || ctx->callbacks == nullptr)
+    {
+        return;
+    }
+
+    JNIEnv* env = attachCurrentThread(ctx->vm);
+    if (env == nullptr)
+    {
+        return;
+    }
+
+    jbyteArray responseArray = env->NewByteArray(static_cast<jsize>(responseLen));
+    if (responseArray != nullptr && response != nullptr && responseLen > 0)
+    {
+        env->SetByteArrayRegion(responseArray,
+                                0,
+                                static_cast<jsize>(responseLen),
+                                reinterpret_cast<const jbyte*>(response));
+    }
+
+    if (ctx->onErrorMethod != nullptr)
+    {
+        env->CallVoidMethod(ctx->callbacks,
+                            ctx->onErrorMethod,
+                            static_cast<jint>(cmdCode),
+                            responseArray);
+    }
+
+    if (responseArray != nullptr)
+    {
+        env->DeleteLocalRef(responseArray);
+    }
+    detachCurrentThread(ctx->vm);
+}
+
+static void cleanupCallbackContext(JNIEnv* env, JniCallbackContext* ctx)
+{
+    if (ctx == nullptr)
+    {
+        return;
+    }
+
+    if (ctx->callbacks != nullptr)
+    {
+        env->DeleteGlobalRef(ctx->callbacks);
+        ctx->callbacks = nullptr;
+    }
+
+    if (ctx->callbacksClass != nullptr)
+    {
+        env->DeleteGlobalRef(ctx->callbacksClass);
+        ctx->callbacksClass = nullptr;
+    }
+
+    delete ctx;
+}
+
 } // namespace
 
 extern "C" JNIEXPORT jlong JNICALL Java_PressSdk_press_create(JNIEnv* env, jclass)
 {
     (void)env;
-    PressCContext* handle = cpress_create();
+    CPressContext* handle = cpress_create();
     return reinterpret_cast<jlong>(handle);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_destroy(JNIEnv* env, jclass, jlong handle)
 {
-    (void)env;
-    cpress_destroy(reinterpret_cast<PressCContext*>(handle));
+    CPressContext* ctx = reinterpret_cast<CPressContext*>(handle);
+    if (ctx == nullptr)
+    {
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(g_callbackMapMutex);
+        auto it = g_callbackMap.find(ctx);
+        if (it != g_callbackMap.end())
+        {
+            cleanupCallbackContext(env, it->second);
+            g_callbackMap.erase(it);
+        }
+    }
+
+    cpress_unregister_data_interface(ctx);
+    cpress_destroy(ctx);
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_connect(JNIEnv* env, jclass, jlong handle, jstring portName, jint portType)
@@ -286,7 +527,7 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_connect(JNIEnv* env, jclas
         return 0;
     }
 
-    int result = cpress_connect(reinterpret_cast<PressCContext*>(handle), value, portType);
+    int result = cpress_connect(reinterpret_cast<CPressContext*>(handle), value, portType);
     env->ReleaseStringUTFChars(portName, value);
     return result;
 }
@@ -294,49 +535,49 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_connect(JNIEnv* env, jclas
 extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_disconnect(JNIEnv* env, jclass, jlong handle)
 {
     (void)env;
-    cpress_disconnect(reinterpret_cast<PressCContext*>(handle));
+    cpress_disconnect(reinterpret_cast<CPressContext*>(handle));
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_is_connected(JNIEnv* env, jclass, jlong handle)
 {
     (void)env;
-    return cpress_is_connected(reinterpret_cast<PressCContext*>(handle));
+    return cpress_is_connected(reinterpret_cast<CPressContext*>(handle));
 }
 
 extern "C" JNIEXPORT jlong JNICALL Java_PressSdk_press_get_machine_register_no(JNIEnv* env, jclass, jlong handle)
 {
     (void)env;
-    return static_cast<jlong>(cpress_get_machine_register_no(reinterpret_cast<PressCContext*>(handle)));
+    return static_cast<jlong>(cpress_get_machine_register_no(reinterpret_cast<CPressContext*>(handle)));
 }
 
 extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_get_last_error_info(JNIEnv* env, jclass, jlong handle)
 {
-    const char* value = cpress_get_last_error_info(reinterpret_cast<PressCContext*>(handle));
+    const char* value = cpress_get_last_error_info(reinterpret_cast<CPressContext*>(handle));
     return toJavaString(env, value);
 }
 
 extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_run(JNIEnv* env, jclass, jlong handle)
 {
     (void)env;
-    cpress_run(reinterpret_cast<PressCContext*>(handle));
+    cpress_run(reinterpret_cast<CPressContext*>(handle));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_stop(JNIEnv* env, jclass, jlong handle)
 {
     (void)env;
-    cpress_stop(reinterpret_cast<PressCContext*>(handle));
+    cpress_stop(reinterpret_cast<CPressContext*>(handle));
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_is_running(JNIEnv* env, jclass, jlong handle)
 {
     (void)env;
-    return cpress_is_running(reinterpret_cast<PressCContext*>(handle));
+    return cpress_is_running(reinterpret_cast<CPressContext*>(handle));
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_read_only_data(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
 {
     ReadOnlyData nativeData = {};
-    int result = cpress_get_read_only_data(reinterpret_cast<PressCContext*>(handle), &nativeData, isCompressed);
+    int result = cpress_get_read_only_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
     if (result != 0)
     {
         fillReadOnlyData(env, data, nativeData);
@@ -347,7 +588,7 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_read_only_data(JNIEnv*
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_press_data(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
 {
     PressData nativeData = {};
-    int result = cpress_get_press_data(reinterpret_cast<PressCContext*>(handle), &nativeData, isCompressed);
+    int result = cpress_get_press_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
     if (result != 0)
     {
         fillPressData(env, data, nativeData);
@@ -359,13 +600,13 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_press_data(JNIEnv* env
 {
     PressData nativeData = {};
     readPressData(env, data, &nativeData);
-    return cpress_set_press_data(reinterpret_cast<PressCContext*>(handle), &nativeData, isCompressed);
+    return cpress_set_press_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_real_time_data(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
 {
     RealTimeData nativeData = {};
-    int result = cpress_get_real_time_data(reinterpret_cast<PressCContext*>(handle), &nativeData, isCompressed);
+    int result = cpress_get_real_time_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
     if (result != 0)
     {
         fillRealTimeData(env, data, nativeData);
@@ -376,16 +617,103 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_real_time_data(JNIEnv*
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_pressing(JNIEnv* env, jclass, jlong handle, jint isPressing)
 {
     (void)env;
-    return cpress_set_pressing(reinterpret_cast<PressCContext*>(handle), isPressing);
+    return cpress_set_pressing(reinterpret_cast<CPressContext*>(handle), isPressing);
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_demolding(JNIEnv* env, jclass, jlong handle, jint isDemolding)
 {
     (void)env;
-    return cpress_set_demolding(reinterpret_cast<PressCContext*>(handle), isDemolding);
+    return cpress_set_demolding(reinterpret_cast<CPressContext*>(handle), isDemolding);
 }
 
 extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_version(JNIEnv* env, jclass)
 {
     return toJavaString(env, cpress_version());
+}
+
+extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JNIEnv* env,
+                                                                               jclass,
+                                                                               jlong handle,
+                                                                               jobject /*self*/,
+                                                                               jobject callbacks)
+{
+    CPressContext* ctx = reinterpret_cast<CPressContext*>(handle);
+    if (ctx == nullptr)
+    {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
+
+    auto it = g_callbackMap.find(ctx);
+    if (it != g_callbackMap.end())
+    {
+        cleanupCallbackContext(env, it->second);
+        g_callbackMap.erase(it);
+        cpress_unregister_data_interface(ctx);
+    }
+
+    if (callbacks == nullptr)
+    {
+        return;
+    }
+
+    auto* jniCtx = new JniCallbackContext();
+    env->GetJavaVM(&jniCtx->vm);
+
+    jniCtx->callbacks = env->NewGlobalRef(callbacks);
+    if (jniCtx->callbacks == nullptr)
+    {
+        delete jniCtx;
+        return;
+    }
+
+    jclass callbackClass = env->GetObjectClass(callbacks);
+    jniCtx->callbacksClass = static_cast<jclass>(env->NewGlobalRef(callbackClass));
+    env->DeleteLocalRef(callbackClass);
+
+    jniCtx->onReadOnlyDataMethod = env->GetMethodID(jniCtx->callbacksClass,
+                                                     "onReadOnlyData",
+                                                     "(IJLPressSdk$ReadOnlyData;)V");
+    jniCtx->onRealTimeDataMethod = env->GetMethodID(jniCtx->callbacksClass,
+                                                     "onRealTimeData",
+                                                     "(ILPressSdk$RealTimeData;)V");
+    jniCtx->onPressDataMethod = env->GetMethodID(jniCtx->callbacksClass,
+                                                  "onPressData",
+                                                  "(ILPressSdk$PressData;)V");
+    jniCtx->onErrorMethod = env->GetMethodID(jniCtx->callbacksClass,
+                                             "onError",
+                                             "(I[B)V");
+
+    CPressDataCallbacks cCallbacks = {};
+    cCallbacks.userData = jniCtx;
+    cCallbacks.onReadOnlyData = jniOnReadOnlyData;
+    cCallbacks.onRealTimeData = jniOnRealTimeData;
+    cCallbacks.onPressData = jniOnPressData;
+    cCallbacks.onError = jniOnError;
+
+    cpress_register_data_interface(ctx, &cCallbacks);
+    g_callbackMap[ctx] = jniCtx;
+}
+
+extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_unregister_data_interface(JNIEnv* env,
+                                                                                 jclass,
+                                                                                 jlong handle)
+{
+    CPressContext* ctx = reinterpret_cast<CPressContext*>(handle);
+    if (ctx == nullptr)
+    {
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
+
+    auto it = g_callbackMap.find(ctx);
+    if (it != g_callbackMap.end())
+    {
+        cleanupCallbackContext(env, it->second);
+        g_callbackMap.erase(it);
+    }
+
+    cpress_unregister_data_interface(ctx);
 }

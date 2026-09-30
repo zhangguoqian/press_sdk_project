@@ -104,6 +104,58 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
+     * Callback interface for receiving asynchronous data push from the native SDK.
+     * 用于接收底层 SDK 异步数据推送的回调接口。
+     *
+     * <p>All four methods are default implementations that do nothing, so callers only
+     * need to override the callbacks they care about.</p>
+     * <p>四个方法都提供了空的 default 实现，调用方只需覆写自己关心的回调即可。</p>
+     *
+     * <p><b>Threading note / 线程说明</b>: All callbacks are invoked on a native SDK worker
+     * thread. If you need to update the UI, you must dispatch the call to your application's
+     * UI thread yourself.</p>
+     * <p>所有回调都在 SDK 工作线程中触发，如需更新 UI，请自行切换线程。</p>
+     */
+    public interface DataCallbacks {
+        /**
+         * Called when read-only device information is decoded asynchronously.
+         * 只读设备信息异步解码完成时触发。
+         *
+         * @param errorCode   0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
+         * @param registerNo  Device hardware register number. / 设备硬件注册号
+         * @param readOnlyData Decoded read-only data snapshot. / 解码后的只读数据快照
+         */
+        default void onReadOnlyData(int errorCode, long registerNo, ReadOnlyData readOnlyData) {}
+
+        /**
+         * Called when the native SDK pushes a new real-time machine state.
+         * 底层 SDK 推送新的实时机器状态时触发。
+         *
+         * @param errorCode    0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
+         * @param realTimeData Decoded real-time state snapshot. / 解码后的实时状态快照
+         */
+        default void onRealTimeData(int errorCode, RealTimeData realTimeData) {}
+
+        /**
+         * Called when pressure configuration data is decoded asynchronously.
+         * 压力配置数据异步解码完成时触发。
+         *
+         * @param errorCode 0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
+         * @param pressData Decoded pressure configuration snapshot. / 解码后的压力配置快照
+         */
+        default void onPressData(int errorCode, PressData pressData) {}
+
+        /**
+         * Called when the native SDK receives an error response from the device.
+         * 底层 SDK 收到设备返回的错误响应时触发。
+         *
+         * @param cmdCode  Command code that produced the error. / 触发错误的命令码
+         * @param response Raw response bytes from the device. / 设备返回的原始响应字节
+         */
+        default void onError(int cmdCode, byte[] response) {}
+    }
+
+    /**
      * 1) 问题：旧实现只在当前工作目录尝试加载动态库，很多情况下库并不在这里。
      *    解决：优先扫描 java.library.path、常见 install/bin、build 产物目录，
      *    同时保留 System.loadLibrary("press") 的回退。
@@ -332,6 +384,33 @@ public final class PressSdk implements AutoCloseable {
         return press_set_demolding(this.handle, isDemolding ? 1 : 0) != 0;
     }
 
+    /**
+     * Register a callback handler to receive asynchronous data push from the native SDK.
+     * 注册回调处理器，用于接收底层 SDK 的异步数据推送。
+     *
+     * <p>Passing the same callbacks instance again will replace the previous registration.
+     * Pass {@code null} to effectively unregister (same as calling {@link #unregisterDataCallbacks()}).</p>
+     * <p>再次传入同一个 callbacks 实例会替换之前的注册；传入 {@code null} 等效于
+     * 调用 {@link #unregisterDataCallbacks()} 注销回调。</p>
+     *
+     * <p><b>Threading note / 线程说明</b>: Callbacks are invoked on a native SDK worker thread.</p>
+     */
+    public void registerDataCallbacks(DataCallbacks callbacks) {
+        ensureOpen();
+        press_register_data_interface(this.handle, this, callbacks);
+    }
+
+    /**
+     * Unregister any previously registered callback handler.
+     * 注销之前注册的回调处理器。
+     */
+    public void unregisterDataCallbacks() {
+        if (closed || this.handle == 0L) {
+            return;
+        }
+        press_unregister_data_interface(this.handle);
+    }
+
     public static String version() {
         return press_version();
     }
@@ -356,6 +435,8 @@ public final class PressSdk implements AutoCloseable {
     public static native int press_get_real_time_data(long handle, RealTimeData data, int isCompressed);
     public static native int press_set_pressing(long handle, int isPressing);
     public static native int press_set_demolding(long handle, int isDemolding);
+    public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks);
+    public static native void press_unregister_data_interface(long handle);
     public static native String press_version();
 
     public static void main(String[] args) {
