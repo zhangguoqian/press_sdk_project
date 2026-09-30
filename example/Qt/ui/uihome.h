@@ -9,7 +9,7 @@
 #include <QTableWidgetItem>
 #include "press.hpp"
 
-class DataInterface: public MachineDataInterface
+class DataInterface: public PressDataInterface
 {
 public:
     ~DataInterface() override;

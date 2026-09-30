@@ -11,9 +11,9 @@
  *  Core contents / 主要内容:
  *    - Press class / Press 类: manages the communication port, background worker,
  *      and synchronous device I/O; it also supports asynchronous callbacks via
- *      MachineDataInterface.
+ *      PressDataInterface.
  *      管理通信端口、后台工作线程和同步设备 I/O；同时支持通过
- *      MachineDataInterface 进行异步回调。
+ *      PressDataInterface 进行异步回调。
  *    - Free functions / 自由函数: convert between structured data and wire-format
  *      payloads used by the device protocol.
  *      实现结构体与设备协议帧/JSON 之间的相互转换。
@@ -28,8 +28,6 @@
  *  Dependencies / 依赖:
  *    - presstype.h / presstype.h: public data structures and command constants
  *      公共数据结构和命令常量
- *    - pressinterface.hpp / pressinterface.hpp: asynchronous callback interface
- *      异步回调接口
  *    - <memory>, <string>, <vector> / C++11 标准库头文件
  *****************************************************************************/
 
@@ -54,7 +52,6 @@
 
 
 #include "presstype.h"
-#include "pressinterface.hpp"
 
 #include <memory>
 #include <string>
@@ -64,14 +61,46 @@ class PressPrivate;
 
 
 /******************************************************************************
+ * PressDataInterface — Asynchronous data callback interface / 异步数据回调接口
+ *
+ *  This interface is part of the public Press SDK header so C++ applications can
+ *  derive from it without depending on a separate auxiliary header file.
+ *  该接口位于公共 Press SDK 头文件中，因此 C++ 应用无需依赖单独的辅助头文件即可派生实现。
+ *
+ *  Application code can derive from PressDataInterface and register the object
+ *  with Press::registerDataInterface().
+ *  应用代码可以从 PressDataInterface 派生，并通过 Press::registerDataInterface()
+ *  注册回调对象。
+ *****************************************************************************/
+class PressDataInterface
+{
+public:
+    virtual ~PressDataInterface() = default;
+
+    //! Read-only data callback / 只读数据回调
+    virtual void onReadOnlyData(int errorCode, uint64_t registerNo,
+                                const ReadOnlyData& readOnlyData) = 0;
+
+    //! Real-time data callback / 实时数据回调
+    virtual void onRealTimeData(int errorCode, const RealTimeData& realTimeData) = 0;
+
+    //! Pressure parameter callback / 压力参数回调
+    virtual void onPressData(int errorCode, const PressData& pressData) = 0;
+
+    //! Error or unhandled response callback / 错误或未处理响应回调
+    virtual void onError(uint16_t cmdCode, std::vector<uint8_t> response) = 0;
+};
+
+
+/******************************************************************************
  * Press — High-level controller for a press machine / 压片机高级控制器
  *
  *  本库的主要入口类。Press 管理通信端口（串口或 TCP）、运行内部调度线程，
- *  提供同步 API 读写机器状态，并通过 MachineDataInterface 支持异步回调。
+ *  提供同步 API 读写机器状态，并通过 PressDataInterface 支持异步回调。
  *
  *  Thread safety / 线程安全:
  *    - 所有公共方法都是线程安全的，可从任意线程调用。
- *    - 通过 MachineDataInterface 注册的回调在内部调度线程中执行，
+ *    - 通过 PressDataInterface 注册的回调在内部调度线程中执行，
  *      耗时操作应移交给其他线程处理。
  *****************************************************************************/
 
@@ -199,7 +228,7 @@ public:
     //! the previous one (unregistering is not required first).
     //! @param dataInterface Non-owning pointer to the implementation.
     //! 注册异步数据回调接口。同一时间只能注册一个，重复注册将覆盖旧的。
-    void registerDataInterface(MachineDataInterface* dataInterface);
+    void registerDataInterface(PressDataInterface* dataInterface);
 
     //! Unregister the previously registered callback interface.
     //! 注销之前注册的回调接口。

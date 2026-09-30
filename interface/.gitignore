@@ -1,0 +1,91 @@
+# Press SDK interface generated files and build artifacts
+# Press SDK 接口生成文件和构建产物
+
+# Common editor and OS files / 通用编辑器和操作系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# JetBrains / VS Code / IDE metadata / IDE 元数据
+.idea/
+.vscode/
+*.code-workspace
+
+# Dart / Flutter generated files / Dart / Flutter 生成文件
+.dart_tool/
+.packages
+.metadata
+pubspec.lock
+.packages
+.dart-define
+
+# Java / Gradle / Maven / Kotlin / Java 生成文件
+*.class
+*.jar
+*.war
+*.ear
+.gradle/
+build/
+out/
+classes/
+
+# .NET / C# generated files / .NET / C# 生成文件
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.pdb
+*.dll
+*.exe
+*.appx
+*.nupkg
+
+# Python generated files / Python 生成文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Node / JavaScript generated files / Node / JavaScript 生成文件
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage/
+
+# Native / C / C++ build outputs / 原生 C / C++ 构建产物
+*.o
+*.obj
+*.so
+*.so.*
+*.dylib
+*.dll
+*.a
+*.lib
+*.exp
+*.ilk
+*.pdb
+*.log
+
+# Local runtime and debug outputs / 本地运行时和调试输出
+*.tmp
+*.log
+*.pid
+*.lock
+
+# Project-specific interface artifacts / 项目特定接口产物
+/interface/**/build/
+/interface/**/out/
+/interface/**/bin/
+/interface/**/obj/
+/interface/**/__pycache__/

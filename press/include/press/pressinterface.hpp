@@ -2,10 +2,10 @@
  * pressinterface.hpp — asynchronous callback interface for data push notifications
  * pressinterface.hpp — 数据推送异步回调接口
  *
- *  Application code can derive from MachineDataInterface and register the object
+ *  Application code can derive from PressDataInterface and register the object
  *  with Press::registerDataInterface(). Once registered, device responses,
  *  parameter updates, and error events are delivered through these callbacks.
- *  应用代码可以从 MachineDataInterface 派生，并通过 Press::registerDataInterface()
+ *  应用代码可以从 PressDataInterface 派生，并通过 Press::registerDataInterface()
  *  注册回调对象。注册后，设备响应、参数更新和错误事件都会通过这些回调
  *  发送给上层。
  *
@@ -31,16 +31,16 @@
 
 
 /******************************************************************************
- * MachineDataInterface — Asynchronous data callback interface / 异步数据回调接口
+ * PressDataInterface — Asynchronous data callback interface / 异步数据回调接口
  *
  *  实现此接口并通过 Machine::registerDataInterface() 注册，即可在只读数据、
  *  压力参数、实时状态到达时接收推送式通知。
  *****************************************************************************/
 
-class MachineDataInterface
+class PressDataInterface
 {
 public:
-    virtual ~MachineDataInterface() = default;
+    virtual ~PressDataInterface() = default;
 
     //! Read-only data callback / 只读数据回调
     //! @param errorCode   0 on success, non-zero on failure

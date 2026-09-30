@@ -517,7 +517,7 @@ const char* PressPrivate::getLastErrorInfo()
     return errorToString(m_LastError.load());
 }
 
-void PressPrivate::registerDataInterface(MachineDataInterface* dataInterface)
+void PressPrivate::registerDataInterface(PressDataInterface* dataInterface)
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     if (dataInterface == nullptr)
@@ -534,7 +534,7 @@ void PressPrivate::unregisterDataInterface()
     mpMachineDataInterface = nullptr;
 }
 
-MachineDataInterface* PressPrivate::_safeGetInterface()
+PressDataInterface* PressPrivate::_safeGetInterface()
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     return mpMachineDataInterface;

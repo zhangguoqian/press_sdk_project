@@ -8,6 +8,8 @@ project(press
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+find_package(JNI REQUIRED)
+
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/press/version.h"
@@ -16,6 +18,8 @@ configure_file(
 
 set(LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/press.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/c/cpress.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/jni/press_jni.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/pressprivate.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/unity.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/port/serialport.cpp"
@@ -43,11 +47,13 @@ endif ()
 
 target_include_directories(press
     PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/press>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/press>
-        $<INSTALL_INTERFACE:include/press>
+        $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${JNI_INCLUDE_DIRS}
 )
 
 target_compile_definitions(press PRIVATE PRESS_BUILDING_LIBRARY)
@@ -80,12 +86,16 @@ else ()
 endif ()
 
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+set(press_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/press")
 
 install(TARGETS press
     EXPORT pressTargets
-    LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/press/
@@ -97,8 +107,37 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/press/version.h"
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/press
 )
 
+# Install language binding sources so SDK consumers can access the same
+# APIs from Java, C#, Python, JavaScript, and Dart without needing the repo tree.
+# 安装各语言绑定源代码，方便 Java / C# / Python / JavaScript / Dart
+# 使用方直接获取同一套跨语言 API，而不必依赖源码仓库目录结构。
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/interface/
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/press_sdk/interface
+    FILES_MATCHING
+        PATTERN "*.cs" PATTERN "*.java" PATTERN "*.py" PATTERN "*.js" PATTERN "*.dart" PATTERN "*.yaml" PATTERN "*.yml"
+        PATTERN ".gitignore" EXCLUDE
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/pressConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/pressConfig.cmake"
+    INSTALL_DESTINATION ${press_INSTALL_CMAKEDIR}
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/pressConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
 install(EXPORT pressTargets
     FILE pressTargets.cmake
     NAMESPACE press::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/press
+    DESTINATION ${press_INSTALL_CMAKEDIR}
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/pressConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/pressConfigVersion.cmake"
+    DESTINATION ${press_INSTALL_CMAKEDIR}
 )

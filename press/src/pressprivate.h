@@ -6,7 +6,7 @@
 
 #include "port/portbase.h"
 #include "tool/jsondata.h"
-#include "pressinterface.hpp"
+#include "press.hpp"
 #include <memory>
 #include <vector>
 #include <cstdint>
@@ -76,7 +76,7 @@ public:
     static std::vector<std::string> getPortList();
     const char* getLastErrorInfo();
 
-    void registerDataInterface(MachineDataInterface* dataInterface);
+    void registerDataInterface(PressDataInterface* dataInterface);
     void unregisterDataInterface();
 
     const JsonData& getMachineData() const;
@@ -86,7 +86,7 @@ private:
     MachineError _parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out);
     bool _requestCommand(uint16_t command, const std::vector<uint8_t>& listData, std::vector<uint8_t>& responseListData);
     void _setError(MachineError err);
-    MachineDataInterface* _safeGetInterface();
+    PressDataInterface* _safeGetInterface();
     bool _handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData);
 
     std::mutex m_RequestSerialMutex{};
@@ -108,7 +108,7 @@ private:
     std::atomic<MachineError> m_LastError{MachineError::None};
 
     JsonData m_JsonData{};
-    MachineDataInterface* mpMachineDataInterface = nullptr;
+    PressDataInterface* mpMachineDataInterface = nullptr;
     std::mutex m_MachineDataMutex{};
 };
 

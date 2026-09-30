@@ -1,8 +1,8 @@
-# Press Sdk
+# Press SDK
 
-> Press machine host control library and Qt example application
+> Press machine host control library and Qt reference application
 
-[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
+[![C++11](https://img.shields.io/badge/C%2B%2B-11-blue.svg)](https://isocpp.org/std/the-standard)
 [![CMake](https://img.shields.io/badge/CMake-3.27+-brightgreen.svg)](https://cmake.org/)
 [![Qt](https://img.shields.io/badge/Qt-5%20|%206-green.svg)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -26,10 +26,11 @@
 
 Press SDK is a cross-platform C++11 host-control library for press machines and a Qt example application. It provides the communication layer, parameter access, real-time status monitoring, and control commands needed by upper-layer software.
 
-The project is organized into two main parts:
+The project is organized into three main parts:
 
-- Press library: protocol handling, data models, JSON and frame conversion, communication abstraction, and a thread-safe API.
-- Qt example application: a reference UI showing how to connect to a device, read and write pressure settings, and monitor the running state.
+- Press library: protocol handling, data models, JSON and frame conversion, communication abstraction, and a thread-safe C++ API.
+- C interop layer: a public C ABI exposed through `cpress_*` functions for C, scripting, and cross-language integrations.
+- Qt example application: a reference UI showing how to connect to a device, read and write pressure settings, and monitor current state.
 
 The current SDK focuses on serial and TCP communication for press-machine protocols and keeps the abstraction extensible for other device families.
 
@@ -56,39 +57,57 @@ press_sdk_project/
 │   ├── CMakeLists.txt
 │   ├── include/
 │   │   └── press/
+│   │       ├── cpress.h
 │   │       ├── press.hpp
-│   │       ├── pressinterface.hpp
 │   │       ├── presstype.h
 │   │       └── typeprivate.h
 │   └── src/
-│       ├── press.cpp
-│       ├── pressprivate.cpp
-│       ├── pressprivate.h
+│       ├── c/
+│       │   └── cpress.cpp
+│       ├── jni/
+│       │   └── press_jni.cpp
 │       ├── common/
 │       │   ├── unity.cpp
 │       │   └── unity.h
+│       ├── json/
+│       │   ├── json_reader.cpp
+│       │   ├── json_value.cpp
+│       │   ├── json_writer.cpp
+│       │   └── ...
+│       ├── machine.cpp
+│       ├── machineprivate.cpp
+│       ├── machineprivate.h
+│       ├── machinedata.cpp
+│       ├── machinedata.h
 │       ├── port/
 │       │   ├── portbase.h
 │       │   ├── serialport.cpp
 │       │   ├── serialport.h
 │       │   ├── tcpsocket.cpp
 │       │   └── tcpsocket.h
-│       ├── tool/
-│       │   ├── jsontovalue.cpp
-│       │   ├── jsontovalue.h
-│       │   ├── machinedata.cpp
-│       │   └── machinedata.h
-│       └── json/
-│           ├── json_reader.cpp
-│           ├── json_value.cpp
-│           ├── json_writer.cpp
+│       └── tool/
+│           ├── jsontovalue.cpp
+│           ├── jsontovalue.h
 │           └── ...
 ├── example/
 │   └── Qt/
 │       ├── CMakeLists.txt
 │       ├── main.cpp
 │       └── ui/
-└── build/
+├── interface/
+│   ├── java/
+│   │   └── PressSdk.java
+│   ├── csharp/
+│   │   └── PressSdk.cs
+│   ├── python/
+│   │   └── press_sdk.py
+│   ├── javascript/
+│   │   └── pressSdk.js
+│   └── dart/
+│       └── press_sdk.dart
+├── build/
+└── setup/
+    └── table_press_bot.iss
 ```
 
 Notes:
@@ -107,32 +126,164 @@ Notes:
 - A C++11-compatible compiler such as MSVC, GCC, or Clang
 - Qt 5 or Qt 6 when building the GUI example
 
-### Build Steps
+### C API overview
 
-```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --config Debug
+The project also provides a C-compatible interface for integration scenarios where the C++ class cannot be used directly, such as C applications, DLL consumers, or language interop layers.
+
+- Public header: `press/include/press/cpress.h`
+- The exported C symbols all use the `cpress_` prefix.
+- The C API wraps the underlying C++ `Press` implementation behind an opaque `PressCContext` handle.
+- Common operations include create/destroy, connect/disconnect, read/write data, and optional callback registration through `PressCDataCallbacks`.
+- The Java JNI bridge uses native names such as `press_create` and `press_connect` to match the Java-side naming style, but it still calls the same underlying `cpress_*` implementation.
+
+Example:
+
+```c
+#include "press/cpress.h"
+
+PressCContext* ctx = cpress_create();
+if (!ctx) {
+    return 1;
+}
+
+if (!cpress_connect(ctx, "COM3", 0)) {
+    cpress_destroy(ctx);
+    return 1;
+}
+
+PressData data = {0};
+if (cpress_get_press_data(ctx, &data, 0)) {
+    // use data here
+}
+
+cpress_disconnect(ctx);
+cpress_destroy(ctx);
 ```
 
-Build only the library without the Qt example:
+This interface is useful for C toolchains, scripting integrations, and cross-language bindings while keeping the main implementation in C++.
 
-```bash
-cmake -B build -DBUILD_QT_EXAMPLE=OFF -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
+### Language bindings
+
+The project also includes native binding examples for common runtime environments. These wrappers target the same platform ABI and are organized under `interface/`.
+
+- Java: `interface/java/PressSdk.java` (JNI bridge over the shared library)
+- C#: `interface/csharp/PressSdk.cs`
+- Python: `interface/python/press_sdk.py`
+- JavaScript: `interface/javascript/pressSdk.js`
+- Dart: `interface/dart/press_sdk.dart`
+
+The Java binding uses JNI symbol names such as `Java_PressSdk_press_create` and `Java_PressSdk_press_connect`, while the underlying native implementation is still backed by `cpress_*` functions.
+
+#### Native library files and usage
+
+The native SDK is built as a shared library. Its name and location vary by OS:
+
+- Windows: `press.dll` or `pressd.dll`
+- Linux: `libpress.so`
+- macOS: `libpress.dylib`
+
+Typical ways to use the library are:
+
+- copy it beside the executable or application output folder
+- set the OS library search path such as `PATH`, `LD_LIBRARY_PATH`, or `DYLD_LIBRARY_PATH`
+- set a custom environment variable such as `PRESS_SDK_LIB` or `PRESS_SDK_LIB_PATH`
+- pass the explicit library path from the runtime loader
+
+#### Java
+
+```java
+PressSdk sdk = new PressSdk();
+System.setProperty("java.library.path", "C:/path/to/native/lib");
+if (!sdk.connect("COM3", PressSdk.PortType.SerialPortType)) {
+    return;
+}
+System.out.println(sdk.getLastErrorInfo());
+sdk.close();
 ```
 
-Run the Qt example on Windows:
+Important:
 
-```powershell
-./build/example/Qt/Debug/press_bot_qtgui.exe
+- Place the native library in a folder visible to the JVM.
+- Use `-Djava.library.path=...` when launching the Java process.
+- The architecture must match the JVM bitness.
+
+#### C#
+
+```csharp
+using PressSdk.Interop;
+
+using var sdk = new PressSdk();
+if (!sdk.Connect("COM3", PortType.SerialPortType)) {
+    return;
+}
+
+PressData data;
+if (sdk.GetPressData(out data)) {
+    Console.WriteLine(data.m_PStep);
+}
 ```
 
-### Project generator example
+Important:
 
-```bash
-# MSVC x64
-cmake -B build -G "Visual Studio 17 2022" -A x64
+- Copy `press.dll`/`libpress.so` into the app output folder, or set `PRESS_SDK_LIB_PATH`.
+- On Windows, ensure the DLL directory is discoverable by the process.
+- Keep the C# struct layout aligned with the native ABI.
+
+#### Python
+
+```python
+from press_sdk import PressSdk, PortType
+
+sdk = PressSdk()
+if sdk.connect("COM3", PortType.SerialPortType):
+    data = sdk.get_press_data()
+    print(data.m_PStep)
+sdk.close()
 ```
+
+Important:
+
+- Set `PRESS_SDK_LIB` to the full path of the native library if it is not auto-detected.
+- On Linux/macOS, make the library visible to `ctypes` by path or `LD_LIBRARY_PATH`/`DYLD_LIBRARY_PATH`.
+- The Python runtime and library must match the same architecture.
+
+#### JavaScript
+
+```javascript
+const { PressSdk, PortType } = require('./interface/javascript/pressSdk');
+
+const sdk = new PressSdk();
+if (sdk.connect('COM3', PortType.SerialPortType)) {
+  const data = sdk.getPressData();
+  console.log(data && data.m_PStep);
+}
+sdk.close();
+```
+
+Important:
+
+- Install native dependencies such as `ffi-napi` and `ref-*`.
+- Ensure the library path is set before first use.
+- The loader may search common build folders such as `build/press/Debug`.
+
+#### Dart
+
+```dart
+final sdk = PressSdk();
+if (sdk.connect('COM3', portType: PortType.serialPortType)) {
+  final data = sdk.getPressData();
+  if (data != null) {
+    print(data.mPStep);
+  }
+  sdk.close();
+}
+```
+
+Important:
+
+- Add `ffi` to `pubspec.yaml`.
+- Place the native library in a loader-visible directory or use `DynamicLibrary.open` with an explicit path.
+- Always close the SDK after use to release the native handle.
 
 ---
 
@@ -208,7 +359,7 @@ press.registerDataInterface(&handler);
 - ReadOnlyData: static device identity and parameter limits
 - PressData: multi-step pressure control configuration
 - RealTimeData: live machine operating state
-- MachineDataInterface: asynchronous callback interface
+- MachineDataInterface: asynchronous callback interface defined in the main public header
 
 ### Main functions
 
@@ -230,7 +381,6 @@ Typical includes:
 ```cpp
 #include "press/press.hpp"
 #include "press/presstype.h"
-#include "press/pressinterface.hpp"
 ```
 
 ---

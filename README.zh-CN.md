@@ -55,8 +55,8 @@ press_sdk_project/
 │   ├── CMakeLists.txt
 │   ├── include/
 │   │   └── press/
+│   │       ├── cpress.h
 │   │       ├── press.hpp
-│   │       ├── pressinterface.hpp
 │   │       ├── presstype.h
 │   │       └── typeprivate.h
 │   └── src/
@@ -87,6 +87,12 @@ press_sdk_project/
 │       ├── CMakeLists.txt
 │       ├── main.cpp
 │       └── ui/
+├── interface/
+│   ├── java/
+│   ├── csharp/
+│   ├── python/
+│   ├── javascript/
+│   └── dart/
 └── build/
 ```
 
@@ -107,33 +113,161 @@ press_sdk_project/
 
 ---
 
-## 构建
+### C 语言接口概览
 
-### 构建完整项目
+项目还提供了一个 C 语言兼容接口，用于不直接使用 C++ 类的集成场景，例如 C 应用程序、DLL 调用方或跨语言互操作层。
 
-```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --config Debug
+- 公共头文件：`press/include/press/cpress.h`
+- 导出的 C 符号统一使用 `cpress_` 前缀。
+- C 接口通过不透明句柄 `PressCContext` 包装底层的 C++ `Press` 实现。
+- 常见能力包括创建/销毁对象、连接/断开设备、读取/写入参数，以及通过 `PressCDataCallbacks` 注册回调。
+
+示例：
+
+```c
+#include "press/cpress.h"
+
+PressCContext* ctx = cpress_create();
+if (!ctx) {
+    return 1;
+}
+
+if (!cpress_connect(ctx, "COM3", 0)) {
+    cpress_destroy(ctx);
+    return 1;
+}
+
+PressData data = {0};
+if (cpress_get_press_data(ctx, &data, 0)) {
+    // 使用 data
+}
+
+cpress_disconnect(ctx);
+cpress_destroy(ctx);
 ```
 
-### 仅构建 SDK 库
+这种接口适合 C 工具链、脚本语言集成和跨语言绑定场景，同时保持核心实现位于 C++ 层。
 
-```bash
-cmake -B build -DBUILD_QT_EXAMPLE=OFF -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
+### 语言绑定示例
+
+项目还提供了常见运行时环境下的绑定示例，这些封装都基于同一套 `cpress_*` API，代码位于 `interface/` 目录中。
+
+- Java：`interface/java/PressSdk.java`
+- C#：`interface/csharp/PressSdk.cs`
+- Python：`interface/python/press_sdk.py`
+- JavaScript：`interface/javascript/pressSdk.js`
+- Dart：`interface/dart/press_sdk.dart`
+
+#### 本地库文件及使用方式
+
+SDK 的原生动态库名称和位置会根据平台不同而变化：
+
+- Windows：`press.dll` 或 `pressd.dll`
+- Linux：`libpress.so`
+- macOS：`libpress.dylib`
+
+常见使用方式包括：
+
+- 直接复制到程序输出目录或当前工作目录
+- 将目录加入 `PATH`、`LD_LIBRARY_PATH` 或 `DYLD_LIBRARY_PATH`
+- 设置 `PRESS_SDK_LIB` / `PRESS_SDK_LIB_PATH` 等自定义环境变量
+- 在运行时显式指定动态库路径
+
+#### Java
+
+```java
+PressSdk sdk = new PressSdk();
+System.setProperty("java.library.path", "C:/path/to/native/lib");
+if (!sdk.connect("COM3", PressSdk.PortType.SerialPortType)) {
+    return;
+}
+System.out.println(sdk.getLastErrorInfo());
+sdk.close();
 ```
 
-### 在 Windows 上运行示例程序
+注意：
 
-```powershell
-./build/example/Qt/Debug/press_bot_qtgui.exe
+- 需要把原生库放到 JVM 可发现的位置。
+- 可在启动时加 `-Djava.library.path=...`。
+- 库与 JVM 的位数必须一致。
+
+#### C#
+
+```csharp
+using PressSdk.Interop;
+
+using var sdk = new PressSdk();
+if (!sdk.Connect("COM3", PortType.SerialPortType)) {
+    return;
+}
+
+PressData data;
+if (sdk.GetPressData(out data)) {
+    Console.WriteLine(data.m_PStep);
+}
 ```
 
-> 若使用 Visual Studio 生成器，可按如下方式配置：
->
-> ```bash
-> cmake -B build -G "Visual Studio 17 2022" -A x64
-> ```
+注意：
+
+- 把 `press.dll`/`libpress.so` 放到应用输出目录或设置 `PRESS_SDK_LIB_PATH`。
+- Windows 下确保 DLL 所在目录对当前进程可见。
+- 托管结构体布局必须与原生 ABI 保持一致。
+
+#### Python
+
+```python
+from press_sdk import PressSdk, PortType
+
+sdk = PressSdk()
+if sdk.connect("COM3", PortType.SerialPortType):
+    data = sdk.get_press_data()
+    print(data.m_PStep)
+sdk.close()
+```
+
+注意：
+
+- 若库未自动查找到，可设置 `PRESS_SDK_LIB` 指向完整路径。
+- Linux/macOS 可通过 `LD_LIBRARY_PATH` 或 `DYLD_LIBRARY_PATH` 暴露库路径。
+- Python 与库的架构必须匹配。
+
+#### JavaScript
+
+```javascript
+const { PressSdk, PortType } = require('./interface/javascript/pressSdk');
+
+const sdk = new PressSdk();
+if (sdk.connect('COM3', PortType.SerialPortType)) {
+  const data = sdk.getPressData();
+  console.log(data && data.m_PStep);
+}
+sdk.close();
+```
+
+注意：
+
+- 需要安装 `ffi-napi`、`ref-*` 等原生依赖。
+- 首次调用前确认库路径已经可访问。
+- 加载器通常会搜索 `build/press/Debug` 等常见输出目录。
+
+#### Dart
+
+```dart
+final sdk = PressSdk();
+if (sdk.connect('COM3', portType: PortType.serialPortType)) {
+  final data = sdk.getPressData();
+  if (data != null) {
+    print(data.mPStep);
+  }
+  sdk.close();
+}
+```
+
+注意：
+
+- `pubspec.yaml` 中需要声明 `ffi` 依赖。
+- 将本地库放到可被加载器识别的位置，或使用显式路径打开。
+- 调用完成后应及时关闭 SDK，释放原生句柄。
 
 ---
 
@@ -209,7 +343,7 @@ press.registerDataInterface(&handler);
 - ReadOnlyData：设备静态身份和参数限制
 - PressData：多步压力控制配置
 - RealTimeData：设备实时状态
-- MachineDataInterface：异步回调接口
+- MachineDataInterface：在主公开头文件中定义的异步回调接口
 
 ### 主要函数
 
@@ -231,7 +365,6 @@ press.registerDataInterface(&handler);
 ```cpp
 #include "press/press.hpp"
 #include "press/presstype.h"
-#include "press/pressinterface.hpp"
 ```
 
 ---
@@ -247,29 +380,33 @@ press.registerDataInterface(&handler);
 
 ## 跨平台编译说明
 
+本项目默认不编译示例程序，仅构建 SDK 共享库和安装产物；如需启用 Qt 示例，可额外设置 `-DBUILD_QT_EXAMPLE=ON`。
+
 ### Windows (MSVC / MinGW)
 
 ```bash
 # MSVC x64
 cmake -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build
 
 # MinGW
 cmake -B build -G "MinGW Makefiles"
+cmake --build build
 ```
 
 ### Linux
 
 ```bash
-sudo apt install build-essential cmake qt5-default
-cmake -B build -DCMAKE_PREFIX_PATH=/opt/Qt/6.8.0/gcc_64
+sudo apt install build-essential cmake
+cmake -B build
 cmake --build build
 ```
 
 ### macOS
 
 ```bash
-brew install cmake qt
-cmake -B build -DCMAKE_PREFIX_PATH=$(brew --prefix qt)
+brew install cmake
+cmake -B build
 cmake --build build
 ```
 
@@ -277,8 +414,14 @@ cmake --build build
 
 ```bash
 cmake -B build -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-      -DANDROID_ABI=arm64-v8a \
-      -DCMAKE_PREFIX_PATH=/opt/Qt/6.8.0/android_arm64_v8a
+      -DANDROID_ABI=arm64-v8a
+cmake --build build
+```
+
+### 可选：启用示例程序
+
+```bash
+cmake -B build -DBUILD_QT_EXAMPLE=ON
 cmake --build build
 ```
 
