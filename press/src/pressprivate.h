@@ -48,6 +48,7 @@ enum class MachineError
 struct FrameData
 {
     uint16_t m_Command = 0;
+    uint64_t m_Seq = 0;                     //!< 请求序号，用于匹配响应
     std::vector<uint8_t> m_FrameDataList = {};
 };
 
@@ -74,7 +75,7 @@ public:
     bool isRunning() const;
 
     static std::vector<std::string> getPortList();
-    const char* getLastErrorInfo();
+    const char* getLastErrorInfo() const;
 
     void registerDataInterface(PressDataInterface* dataInterface);
     void unregisterDataInterface();
@@ -82,11 +83,16 @@ public:
     const JsonData& getMachineData() const;
 
 private:
+    //! 启动调度线程，幂等：若已启动则直接返回
+    void _startScheduler();
+    //! 停止调度线程并 join，幂等：若未启动则直接返回
+    void _stopScheduler();
+
     std::vector<uint8_t> _buildSendFrame(const FrameData& frameData);
     MachineError _parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out);
     bool _requestCommand(uint16_t command, const std::vector<uint8_t>& listData, std::vector<uint8_t>& responseListData);
     void _setError(MachineError err);
-    PressDataInterface* _safeGetInterface();
+    std::shared_ptr<PressDataInterface> _safeGetInterface();
     bool _handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData);
 
     std::mutex m_RequestSerialMutex{};
@@ -100,15 +106,16 @@ private:
     std::condition_variable m_ResponseCond{};
 
     std::unique_ptr<std::thread> mpRunThread = nullptr;
-    std::atomic<bool> m_IsRunning = false;
+    std::atomic<bool> m_IsRunning{false};
 
     std::atomic<uint64_t> m_RegisterNo{0};
+    std::atomic<uint64_t> m_RequestSeq{0};     //!< 请求序号，超时后丢弃迟到响应
     std::unique_ptr<PortBase> mpPort = nullptr;
 
     std::atomic<MachineError> m_LastError{MachineError::None};
 
     JsonData m_JsonData{};
-    PressDataInterface* mpMachineDataInterface = nullptr;
+    std::shared_ptr<PressDataInterface> mpMachineDataInterface;
     std::mutex m_MachineDataMutex{};
 };
 

@@ -8,6 +8,8 @@
 #include "common/unity.h"
 #include <cstring>
 #include <thread>
+#include <iostream>
+#include <cassert>
 
 #ifdef _WIN32
 #   include <winsock2.h>
@@ -60,8 +62,10 @@ bool PressPrivate::connect(const char* portName, PortType portType)
 
     if (mpPort != nullptr)
     {
+        _stopScheduler();
         mpPort->close();
         mpPort.reset();
+        m_RegisterNo.store(0);
     }
 
     if (portType == SerialPortType)
@@ -84,12 +88,15 @@ bool PressPrivate::connect(const char* portName, PortType portType)
     {
         _setError(MachineError::ConnectFailed);
         mpPort.reset();
+        return false;
     }
-    return ret;
+    _startScheduler();
+    return true;
 }
 
 void PressPrivate::disconnect()
 {
+    _stopScheduler();
     if (mpPort != nullptr)
     {
         mpPort->close();
@@ -116,23 +123,25 @@ bool PressPrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_ROD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
-        if (auto* iface = _safeGetInterface())
+        if (auto iface = _safeGetInterface())
         {
             iface->onReadOnlyData(static_cast<int>(m_LastError.load()), m_RegisterNo.load(), ReadOnlyData{});
         }
         return false;
     }
-    if (0 != m_JsonData.jsonToReadOnlyData(responseListData))
+    int jsonErr = m_JsonData.jsonToReadOnlyData(responseListData);
+    if (0 != jsonErr)
     {
+        std::cerr << "jsonToReadOnlyData failed at field code: " << jsonErr << std::endl;
         _setError(MachineError::JsonParseFailed);
-        if (auto* iface = _safeGetInterface())
+        if (auto iface = _safeGetInterface())
         {
             iface->onReadOnlyData(static_cast<int>(MachineError::JsonParseFailed), m_RegisterNo.load(), ReadOnlyData{});
         }
         return false;
     }
     data = m_JsonData.getReadOnlyData();
-    if (auto* iface = _safeGetInterface())
+    if (auto iface = _safeGetInterface())
     {
         iface->onReadOnlyData(0, m_RegisterNo.load(), data);
     }
@@ -144,23 +153,25 @@ bool PressPrivate::getPressData(PressData& data, bool isCompressed)
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_PD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
-        if (auto* iface = _safeGetInterface())
+        if (auto iface = _safeGetInterface())
         {
             iface->onPressData(static_cast<int>(m_LastError.load()), PressData{});
         }
         return false;
     }
-    if (0 != m_JsonData.jsonToPressData(responseListData))
+    int jsonErr = m_JsonData.jsonToPressData(responseListData);
+    if (0 != jsonErr)
     {
+        std::cerr << "jsonToPressData failed at field code: " << jsonErr << std::endl;
         _setError(MachineError::JsonParseFailed);
-        if (auto* iface = _safeGetInterface())
+        if (auto iface = _safeGetInterface())
         {
             iface->onPressData(static_cast<int>(MachineError::JsonParseFailed), PressData{});
         }
         return false;
     }
     data = m_JsonData.getPressData();
-    if (auto* iface = _safeGetInterface())
+    if (auto iface = _safeGetInterface())
     {
         iface->onPressData(0, data);
     }
@@ -176,7 +187,7 @@ bool PressPrivate::setPressData(const PressData& data, bool isCompressed)
     commandListData.insert(commandListData.end(), tempDataList.begin(), tempDataList.end());
     if (!_requestCommand(SET_PD_JSON_V, commandListData, responseListData))
     {
-        if (auto* iface = _safeGetInterface()) iface->onError(SET_PD_JSON_V, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_PD_JSON_V, responseListData);
         return false;
     }
     return _handleSetResponse(SET_PD_JSON_V, responseListData);
@@ -187,23 +198,25 @@ bool PressPrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_RT_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
-        if (auto* iface = _safeGetInterface())
+        if (auto iface = _safeGetInterface())
         {
             iface->onRealTimeData(static_cast<int>(m_LastError.load()), RealTimeData{});
         }
         return false;
     }
-    if (0 != m_JsonData.jsonToRealTimeData(responseListData))
+    int jsonErr = m_JsonData.jsonToRealTimeData(responseListData);
+    if (0 != jsonErr)
     {
+        std::cerr << "jsonToRealTimeData failed at field code: " << jsonErr << std::endl;
         _setError(MachineError::JsonParseFailed);
-        if (auto* iface = _safeGetInterface())
+        if (auto iface = _safeGetInterface())
         {
             iface->onRealTimeData(static_cast<int>(MachineError::JsonParseFailed), RealTimeData{});
         }
         return false;
     }
     data = m_JsonData.getRealTimeData();
-    if (auto* iface = _safeGetInterface())
+    if (auto iface = _safeGetInterface())
     {
         iface->onRealTimeData(0, data);
     }
@@ -215,7 +228,7 @@ bool PressPrivate::setPressing(bool isPressing)
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(SET_PRESS_V, {static_cast<uint8_t>(isPressing)}, responseListData))
     {
-        if (auto* iface = _safeGetInterface()) iface->onError(SET_PRESS_V, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_PRESS_V, responseListData);
         return false;
     }
     return _handleSetResponse(SET_PRESS_V, responseListData);
@@ -226,7 +239,7 @@ bool PressPrivate::setDemolding(bool isDemolding)
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(SET_DEMOLD_V, {static_cast<uint8_t>(isDemolding)}, responseListData))
     {
-        if (auto* iface = _safeGetInterface()) iface->onError(SET_DEMOLD_V, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_DEMOLD_V, responseListData);
         return false;
     }
     return _handleSetResponse(SET_DEMOLD_V, responseListData);
@@ -241,33 +254,46 @@ bool PressPrivate::_handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& 
         case 0x00: return true;
         case 0x01:
             _setError(MachineError::OutSignalBlocked);
-            if (auto* iface = _safeGetInterface()) iface->onError(cmd, responseListData);
+            if (auto iface = _safeGetInterface()) iface->onError(cmd, responseListData);
             return false;
         case 0x02:
             _setError(MachineError::ImmediateSignalBlocked);
-            return true;
+            if (auto iface = _safeGetInterface()) iface->onError(cmd, responseListData);
+            return false;
         case 0x03:
             _setError(MachineError::StateUnchanged);
-            if (auto* iface = _safeGetInterface()) iface->onError(cmd, responseListData);
+            if (auto iface = _safeGetInterface()) iface->onError(cmd, responseListData);
             return false;
         default:
             _setError(MachineError::UnknownError);
-            if (auto* iface = _safeGetInterface()) iface->onError(cmd, responseListData);
+            if (auto iface = _safeGetInterface()) iface->onError(cmd, responseListData);
             return false;
         }
     }
-    if (auto* iface = _safeGetInterface()) iface->onError(cmd, responseListData);
+    if (auto iface = _safeGetInterface()) iface->onError(cmd, responseListData);
     return false;
 }
 
 std::vector<uint8_t> PressPrivate::_buildSendFrame(const FrameData& frameData)
 {
+    assert(frameData.m_FrameDataList.size() <= 0xFFFF && "Frame data length exceeds uint16_t range");
+
     std::vector<uint8_t> data;
     data.reserve(CMD_LEN + frameData.m_FrameDataList.size());
 
+    // 注册号按大端（网络字节序）写入帧
     uint64_t registerNo = m_RegisterNo.load();
-    data.insert(data.end(), reinterpret_cast<const uint8_t*>(&registerNo),
-                reinterpret_cast<const uint8_t*>(&registerNo) + sizeof(registerNo));
+    uint8_t regBytes[8] = {
+        static_cast<uint8_t>(registerNo >> 56),
+        static_cast<uint8_t>(registerNo >> 48),
+        static_cast<uint8_t>(registerNo >> 40),
+        static_cast<uint8_t>(registerNo >> 32),
+        static_cast<uint8_t>(registerNo >> 24),
+        static_cast<uint8_t>(registerNo >> 16),
+        static_cast<uint8_t>(registerNo >> 8),
+        static_cast<uint8_t>(registerNo)
+    };
+    data.insert(data.end(), regBytes, regBytes + 8);
 
     uint16_t cmd = frameData.m_Command;
     data.insert(data.end(), reinterpret_cast<const uint8_t*>(&cmd),
@@ -292,13 +318,22 @@ MachineError PressPrivate::_parseResponseFrame(const std::vector<uint8_t>& respo
     {
         return MachineError::ResponseTooShort;
     }
-    if (response.back() != Unity::getChecksum({response.begin(), response.end() - 1}))
+    if (response.back() != Unity::getChecksum(response.begin(), response.end() - 1))
     {
         return MachineError::ChecksumMismatch;
     }
 
-    uint64_t readRegisterNo = 0;
-    std::memcpy(&readRegisterNo, response.data(), sizeof(readRegisterNo));
+    // 注册号按大端（网络字节序）存储，手动组装为主机字节序
+    const uint8_t* p = response.data();
+    uint64_t readRegisterNo =
+        (static_cast<uint64_t>(p[0]) << 56) |
+        (static_cast<uint64_t>(p[1]) << 48) |
+        (static_cast<uint64_t>(p[2]) << 40) |
+        (static_cast<uint64_t>(p[3]) << 32) |
+        (static_cast<uint64_t>(p[4]) << 24) |
+        (static_cast<uint64_t>(p[5]) << 16) |
+        (static_cast<uint64_t>(p[6]) << 8)  |
+        (static_cast<uint64_t>(p[7]));
     uint64_t expectedNo = m_RegisterNo.load();
     if (expectedNo == 0)
     {
@@ -318,9 +353,16 @@ MachineError PressPrivate::_parseResponseFrame(const std::vector<uint8_t>& respo
 
     uint16_t readDataLen = 0;
     std::memcpy(&readDataLen, response.data() + 10, sizeof(readDataLen));
-    readDataLen = htons(readDataLen);
+    readDataLen = ntohs(readDataLen);
 
-    if (readCommand & 0x0010)
+    // 边界检查：12 字节头 + readDataLen 数据 + 1 字节校验和不能超过响应长度
+    if (static_cast<size_t>(12) + readDataLen + 1 > response.size())
+    {
+        return MachineError::ResponseTooShort;
+    }
+
+    // SET 位检测：readCommand 是网络字节序，需先转主机序再判断
+    if (IS_SET_CMD(ntohs(readCommand)))
     {
         out.m_FrameDataList.push_back(response[12]);
     }
@@ -352,8 +394,10 @@ bool PressPrivate::_requestCommand(uint16_t command, const std::vector<uint8_t>&
         }
     }
 
+    uint64_t mySeq = ++m_RequestSeq;
     FrameData request;
     request.m_Command = htons(command);
+    request.m_Seq = mySeq;
     request.m_FrameDataList = listData;
 
     {
@@ -362,10 +406,17 @@ bool PressPrivate::_requestCommand(uint16_t command, const std::vector<uint8_t>&
     }
     m_CommandCond.notify_one();
 
-    FrameData response;
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(WAIT_MILLI_SECONDS);
+    while (true)
     {
         std::unique_lock<std::mutex> lock(m_ResponseMutex);
-        if (!m_ResponseCond.wait_for(lock, std::chrono::milliseconds(WAIT_MILLI_SECONDS), [this] {
+        auto remaining = deadline - std::chrono::steady_clock::now();
+        if (remaining <= std::chrono::milliseconds(0))
+        {
+            _setError(MachineError::Timeout);
+            return false;
+        }
+        if (!m_ResponseCond.wait_for(lock, remaining, [this] {
             return !m_ResponseQueue.empty() || !m_IsRunning.load();
         }))
         {
@@ -377,21 +428,33 @@ bool PressPrivate::_requestCommand(uint16_t command, const std::vector<uint8_t>&
             _setError(MachineError::Stopped);
             return false;
         }
-        response = std::move(m_ResponseQueue.front());
-        m_ResponseQueue.pop();
-    }
 
-    if (m_LastError.load() != MachineError::None)
-    {
-        return false;
+        // 取出队列中所有响应，找匹配序号的；丢弃迟到的旧响应
+        while (!m_ResponseQueue.empty())
+        {
+            FrameData resp = std::move(m_ResponseQueue.front());
+            m_ResponseQueue.pop();
+            if (resp.m_Seq == mySeq)
+            {
+                if (m_LastError.load() != MachineError::None)
+                {
+                    return false;
+                }
+                responseListData = std::move(resp.m_FrameDataList);
+                return true;
+            }
+            // 序号不匹配，是迟到的旧响应，丢弃继续
+        }
+        // 队列中没有匹配的响应，继续循环等待
     }
-
-    responseListData = std::move(response.m_FrameDataList);
-    return true;
 }
 
-void PressPrivate::run()
+void PressPrivate::_startScheduler()
 {
+    if (mpRunThread != nullptr)
+    {
+        return;
+    }
     m_IsRunning.store(true);
     mpRunThread = std::make_unique<std::thread>([this]
     {
@@ -415,6 +478,7 @@ void PressPrivate::run()
             {
                 _setError(MachineError::PortNotOpen);
                 FrameData flag;
+                flag.m_Seq = request.m_Seq;
                 std::lock_guard<std::mutex> rlock(m_ResponseMutex);
                 m_ResponseQueue.push(std::move(flag));
                 m_ResponseCond.notify_one();
@@ -427,49 +491,49 @@ void PressPrivate::run()
             {
                 _setError(MachineError::WriteFailed);
                 FrameData flag;
+                flag.m_Seq = request.m_Seq;
                 std::lock_guard<std::mutex> rlock(m_ResponseMutex);
                 m_ResponseQueue.push(std::move(flag));
                 m_ResponseCond.notify_one();
                 continue;
             }
 
-            uint8_t pData[1024];
-            int cycle = 10;
-            int retLen = 0;
-            
-            while (cycle > 0)
+            std::vector<uint8_t> rawResponse;
+            rawResponse.reserve(CMD_LEN);
+            auto readDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(WAIT_MILLI_SECONDS);
+            while (std::chrono::steady_clock::now() < readDeadline)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                auto readRet = mpPort->read(pData + retLen, sizeof(pData) - retLen);
+                uint8_t tmp[256];
+                auto readRet = mpPort->read(tmp, sizeof(tmp));
                 if (readRet > 0)
                 {
-                    retLen += static_cast<int>(readRet);
+                    rawResponse.insert(rawResponse.end(), tmp, tmp + readRet);
                 }
-                if (retLen >= CMD_LEN)
+                if (rawResponse.size() >= CMD_LEN)
                 {
-                    uint16_t len = (pData[10] << 8) | pData[11];
-                    if (retLen >= CMD_LEN + len)
+                    uint16_t len = (static_cast<uint16_t>(rawResponse[10]) << 8) | rawResponse[11];
+                    if (rawResponse.size() >= CMD_LEN + len)
                     {
-                        std::cout << "retLen: " << retLen << ", len: " << len << std::endl;
                         break;
                     }
                 }
-                cycle--;
             }
-
-            std::vector<uint8_t> rawResponse(pData, pData + retLen);
             FrameData parsed;
+            parsed.m_Seq = request.m_Seq;
             MachineError parseErr = _parseResponseFrame(rawResponse, request.m_Command, parsed);
             if (parseErr != MachineError::None)
             {
                 _setError(parseErr);
                 FrameData flag;
+                flag.m_Seq = request.m_Seq;
                 std::lock_guard<std::mutex> rlock(m_ResponseMutex);
                 m_ResponseQueue.push(std::move(flag));
                 m_ResponseCond.notify_one();
                 continue;
             }
 
+            _setError(MachineError::None);
             {
                 std::lock_guard<std::mutex> rlock(m_ResponseMutex);
                 m_ResponseQueue.push(std::move(parsed));
@@ -479,7 +543,7 @@ void PressPrivate::run()
     });
 }
 
-void PressPrivate::stop()
+void PressPrivate::_stopScheduler()
 {
     m_IsRunning.store(false);
     m_CommandCond.notify_all();
@@ -489,6 +553,16 @@ void PressPrivate::stop()
         mpRunThread->join();
     }
     mpRunThread.reset();
+}
+
+void PressPrivate::run()
+{
+    _startScheduler();
+}
+
+void PressPrivate::stop()
+{
+    _stopScheduler();
     disconnect();
 }
 
@@ -512,29 +586,30 @@ void PressPrivate::_setError(MachineError err)
     m_LastError.store(err);
 }
 
-const char* PressPrivate::getLastErrorInfo()
+const char* PressPrivate::getLastErrorInfo() const
 {
     return errorToString(m_LastError.load());
 }
 
 void PressPrivate::registerDataInterface(PressDataInterface* dataInterface)
 {
-    std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     if (dataInterface == nullptr)
     {
-        mpMachineDataInterface = nullptr;
+        unregisterDataInterface();
         return;
     }
-    mpMachineDataInterface = dataInterface;
+    std::lock_guard<std::mutex> lock(m_MachineDataMutex);
+    // 使用空删除器：shared_ptr 仅用于线程安全的引用计数，不管理对象生命周期
+    mpMachineDataInterface = std::shared_ptr<PressDataInterface>(dataInterface, [](PressDataInterface*){});
 }
 
 void PressPrivate::unregisterDataInterface()
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
-    mpMachineDataInterface = nullptr;
+    mpMachineDataInterface.reset();
 }
 
-PressDataInterface* PressPrivate::_safeGetInterface()
+std::shared_ptr<PressDataInterface> PressPrivate::_safeGetInterface()
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     return mpMachineDataInterface;

@@ -2,7 +2,7 @@
 
 > 压片机控制库与 Qt 示例应用
 
-[![C++11](https://img.shields.io/badge/C%2B%2B-11-blue.svg)](https://isocpp.org/std/the-standard)
+[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![CMake](https://img.shields.io/badge/CMake-3.27+-brightgreen.svg)](https://cmake.org/)
 [![Qt](https://img.shields.io/badge/Qt-5%20|%206-green.svg)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -23,7 +23,7 @@
 
 ## 简介
 
-Press SDK 是一个面向压片机设备的跨平台 C++11 控制库，并附带一个 Qt 示例应用。它主要用于封装设备通信、参数读取/写入、实时状态监控以及控制命令执行，并为上位机软件提供稳定的 API 接口。
+Press SDK 是一个面向压片机设备的跨平台 C++17 控制库，并附带一个 Qt 示例应用。它主要用于封装设备通信、参数读取/写入、实时状态监控以及控制命令执行，并为上位机软件提供稳定的 API 接口。
 
 项目整体分为四部分：
 
@@ -37,7 +37,7 @@ Press SDK 是一个面向压片机设备的跨平台 C++11 控制库，并附带
 ### 主要特性
 
 - 支持串口和 TCP 套接字通信
-- 使用 C++11 标准接口，兼容主流编译器和跨平台构建
+- 使用 C++17 标准接口，兼容主流编译器和跨平台构建
 - 提供同步访问与异步数据回调机制
 - 支持多步压力曲线配置，包括保压值和保压时间
 - 提供 JSON 与原始协议帧的相互转换辅助函数
@@ -59,7 +59,6 @@ press_sdk_project/
 │   │   └── press/
 │   │       ├── cpress.h
 │   │       ├── press.hpp
-│   │       ├── pressinterface.hpp
 │   │       ├── presstype.h
 │   │       └── typeprivate.h
 │   └── src/
@@ -114,7 +113,7 @@ press_sdk_project/
 ## 环境要求
 
 - CMake 3.27+
-- 支持 C++11 的编译器（MSVC、GCC、Clang 等）
+- 支持 C++17 的编译器（MSVC、GCC、Clang 等）
 - 若构建 Qt 示例，需要 Qt 5 或 Qt 6
 - Windows 下可使用 MSVC 或 MinGW；Linux/macOS 可使用系统自带工具链
 

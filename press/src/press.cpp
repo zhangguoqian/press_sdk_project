@@ -33,7 +33,7 @@ uint64_t Press::getMachineRegisterNo() const
     return mpPrivate->getMachineRegisterNo();
 }
 
-const char* Press::getLastErrorInfo() const
+const char* Press::getLastErrorInfo()
 {
     return mpPrivate->getLastErrorInfo();
 }

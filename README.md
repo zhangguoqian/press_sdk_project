@@ -2,7 +2,7 @@
 
 > Press machine host control library and Qt reference application
 
-[![C++11](https://img.shields.io/badge/C%2B%2B-11-blue.svg)](https://isocpp.org/std/the-standard)
+[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![CMake](https://img.shields.io/badge/CMake-3.27+-brightgreen.svg)](https://cmake.org/)
 [![Qt](https://img.shields.io/badge/Qt-5%20|%206-green.svg)](https://www.qt.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -24,7 +24,7 @@
 
 ## Overview
 
-Press SDK is a cross-platform C++11 host-control library for press machines and a Qt example application. It provides the communication layer, parameter access, real-time status monitoring, and control commands needed by upper-layer software.
+Press SDK is a cross-platform C++17 host-control library for press machines and a Qt example application. It provides the communication layer, parameter access, real-time status monitoring, and control commands needed by upper-layer software.
 
 The project is organized into four main parts:
 
@@ -38,7 +38,7 @@ The current SDK focuses on serial and TCP communication for press-machine protoc
 ### Features
 
 - Serial port and TCP socket communication
-- C++11 public API with cross-platform CMake support
+- C++17 public API with cross-platform CMake support
 - Synchronous access plus asynchronous callback notifications
 - Multi-step pressure curve support with hold-pressure and timing values
 - JSON and raw protocol frame conversion helpers
@@ -124,7 +124,7 @@ Notes:
 ### Prerequisites
 
 - CMake 3.27+
-- A C++11-compatible compiler such as MSVC, GCC, or Clang
+- A C++17-compatible compiler such as MSVC, GCC, or Clang
 - Qt 5 or Qt 6 when building the GUI example
 
 ### C API overview

@@ -137,10 +137,17 @@ PRESS_C_EXPORT uint64_t cpress_get_machine_register_no(const PressCContext* hand
 //!         下一次错误状态更新前，或在句柄销毁前保持有效。
 PRESS_C_EXPORT const char* cpress_get_last_error_info(const PressCContext* handle);
 
-//! Start the machine's pressing cycle / 启动设备运行
+//! Start the SDK scheduler thread that drives all protocol I/O.
+//! The scheduler is started automatically after cpress_connect() succeeds,
+//! so calling this is optional; kept for backward compatibility.
+//! To start the device pressing action, use cpress_set_pressing(handle, 1) instead.
+//! 启动 SDK 调度线程，所有协议 I/O 都由该线程驱动。
+//! cpress_connect() 成功后会自动启动调度线程，因此本函数可省略，保留是为了向后兼容。
+//! 若要启动设备加压动作，请使用 cpress_set_pressing(handle, 1)。
 PRESS_C_EXPORT void cpress_run(PressCContext* handle);
 
-//! Stop the machine's pressing cycle / 停止设备运行
+//! Stop the SDK scheduler thread and disconnect from the machine.
+//! 停止 SDK 调度线程并断开与设备的连接。
 PRESS_C_EXPORT void cpress_stop(PressCContext* handle);
 
 //! Query whether the machine is currently running / 查询设备是否正在运行

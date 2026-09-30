@@ -21,6 +21,18 @@ public:
     //! @return uint8_t the checksum
     static uint8_t getChecksum(const std::vector<uint8_t>& data);
 
+    //! @brief 计算校验和（迭代器范围版本，避免创建临时 vector）
+    template <typename InputIt>
+    static uint8_t getChecksum(InputIt first, InputIt last)
+    {
+        uint8_t checksum = 0;
+        for (auto it = first; it != last; ++it)
+        {
+            checksum += static_cast<uint8_t>(*it);
+        }
+        return checksum;
+    }
+
     static std::string getCurrentTime();
 };
 

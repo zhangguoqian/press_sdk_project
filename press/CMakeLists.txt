@@ -34,7 +34,7 @@ set(LIB_SOURCES
 add_library(press SHARED ${LIB_SOURCES})
 
 set_target_properties(press PROPERTIES
-    CXX_STANDARD 11
+    CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
 )

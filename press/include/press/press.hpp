@@ -150,19 +150,24 @@ public:
     //! Get the last human-readable error message.
     //! @return Read-only C string (valid until next call that may set an error).
     //! 获取最后一条可读错误信息。
-    const char* getLastErrorInfo() const;
+    const char* getLastErrorInfo();
 
 
     /**************************************************************************
      * Run control / 运行控制
      *************************************************************************/
 
-    //! Start the machine's pressing cycle. Sends the SET_START_PRESS command.
-    //! 启动机器运行 (加压 + 加热)。发送 SET_START_PRESS 命令。
+    //! Start the SDK scheduler thread that drives all protocol I/O.
+    //! After connect() succeeds the scheduler is started automatically,
+    //! so calling run() is optional. Kept for backward compatibility.
+    //! To start the device pressing action, use setPressing(true) instead.
+    //! 启动 SDK 调度线程，所有协议 I/O 都由该线程驱动。
+    //! connect() 成功后会自动启动调度线程，因此 run() 可省略，保留是为了向后兼容。
+    //! 若要启动设备加压动作，请使用 setPressing(true)。
     void run();
 
-    //! Stop the machine's pressing cycle (pressing + heating).
-    //! 停止机器运行。停止加压和加热动作。
+    //! Stop the SDK scheduler thread and disconnect from the machine.
+    //! 停止 SDK 调度线程并断开与机器的连接。
     void stop();
 
     //! Query whether the machine is currently in run state.
@@ -239,11 +244,11 @@ public:
      * Static utilities / 静态工具
      *************************************************************************/
 
-    //! Enumerate available communication ports on the current system.
-    //! Works with both serial ports and TCP; returns COM-style list on Windows,
-    //! /dev/tty* style on Linux/macOS.
+    //! Enumerate available serial ports on the current system.
+    //! Returns COM-style list on Windows, /dev/tty* style on Linux/macOS.
+    //! TCP endpoints cannot be enumerated; use connect() with "host:port" directly.
     //! @return Vector of port name strings.
-    //! 枚举当前系统可用的通信端口。
+    //! 枚举当前系统可用的串口。
     static std::vector<std::string> getPortList();
 
     //! Get current SDK version string.
