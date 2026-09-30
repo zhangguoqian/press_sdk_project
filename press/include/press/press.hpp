@@ -1,17 +1,36 @@
 /******************************************************************************
- * press.hpp — Machine 主控制器与序列化工具
+ * press.hpp — public SDK API for the press controller and serialization helpers
+ * press.hpp — 压片机控制器与序列化辅助函数的公开 SDK 接口
  *
- *  本文件是 SDK 对用户暴露的主要入口，包含：
- *    - Machine 类: 高级控制器，管理通信端口 (串口 / TCP)、内部调度线程，
- *      提供同步 API 读写设备状态，同时支持通过 MachineDataInterface 异步回调。
- *    - 自由函数 (toJsonString / toFrameData): 结构体 ↔ JSON / 帧数据 转换。
+ *  This header is the main public entry point for application code that uses the
+ *  SDK. It exposes the high-level Press controller and the JSON/frame conversion
+ *  helpers required for reading and writing machine parameters.
+ *  该头文件是应用代码使用 SDK 的主入口，公开了高层 Press 控制器，以及
+ *  读取和写入机器参数所需的 JSON / 帧数据转换辅助函数。
  *
- *  构建选项:
- *    - PRESS_BUILDING_LIBRARY: 构建动态库时定义 (自动导出符号)
- *    - PRESS_EXPORT: 外部自动定义，Windows 上等价 __declspec(dllimport)
+ *  Core contents / 主要内容:
+ *    - Press class / Press 类: manages the communication port, background worker,
+ *      and synchronous device I/O; it also supports asynchronous callbacks via
+ *      MachineDataInterface.
+ *      管理通信端口、后台工作线程和同步设备 I/O；同时支持通过
+ *      MachineDataInterface 进行异步回调。
+ *    - Free functions / 自由函数: convert between structured data and wire-format
+ *      payloads used by the device protocol.
+ *      实现结构体与设备协议帧/JSON 之间的相互转换。
  *
- *  依赖: presstype.h (类型定义), pressinterface.hpp (回调接口),
- *        <memory>, <string>, <vector> (C++11 标准库)
+ *  Build configuration / 构建配置:
+ *    - PRESS_BUILDING_LIBRARY: defined when compiling the shared library itself
+ *      构建动态库时定义
+ *    - PRESS_EXPORT: exported/imported symbol macro; on Windows it resolves to
+ *      __declspec(dllexport/dllimport)
+ *      导出/导入符号宏；在 Windows 上解析为 __declspec(dllexport/dllimport)
+ *
+ *  Dependencies / 依赖:
+ *    - presstype.h / presstype.h: public data structures and command constants
+ *      公共数据结构和命令常量
+ *    - pressinterface.hpp / pressinterface.hpp: asynchronous callback interface
+ *      异步回调接口
+ *    - <memory>, <string>, <vector> / C++11 标准库头文件
  *****************************************************************************/
 
 #ifndef PRESS_SDK_PROJECT_PRESS_HPP
@@ -41,13 +60,13 @@
 #include <string>
 #include <vector>
 
-class MachinePrivate;
+class PressPrivate;
 
 
 /******************************************************************************
- * Machine — High-level controller for a press machine / 压片机高级控制器
+ * Press — High-level controller for a press machine / 压片机高级控制器
  *
- *  本库的主要入口类。Machine 管理通信端口（串口或 TCP）、运行内部调度线程，
+ *  本库的主要入口类。Press 管理通信端口（串口或 TCP）、运行内部调度线程，
  *  提供同步 API 读写机器状态，并通过 MachineDataInterface 支持异步回调。
  *
  *  Thread safety / 线程安全:
@@ -56,19 +75,19 @@ class MachinePrivate;
  *      耗时操作应移交给其他线程处理。
  *****************************************************************************/
 
-class PRESS_EXPORT Machine
+class PRESS_EXPORT Press
 {
 public:
     //! Constructor / 构造函数
-    Machine();
+    Press();
 
-    Machine(const Machine& other) = delete;
-    Machine& operator=(const Machine& other) = delete;
-    Machine(Machine&& other) = delete;
-    Machine& operator=(Machine&& other) = delete;
+    Press(const Press& other) = delete;
+    Press& operator=(const Press& other) = delete;
+    Press(Press&& other) = delete;
+    Press& operator=(Press&& other) = delete;
 
     //! Destructor — disconnects and joins all threads / 析构函数 — 断开连接并回收所有线程
-    ~Machine();
+    ~Press();
 
 
     /**************************************************************************
@@ -208,7 +227,7 @@ private:
 #   pragma warning(push)
 #   pragma warning(disable: 4251)
 #endif
-    std::unique_ptr<MachinePrivate> mpPrivate;
+    std::unique_ptr<PressPrivate> mpPrivate;
 #ifdef _MSC_VER
 #   pragma warning(pop)
 #endif

@@ -1,20 +1,30 @@
 /******************************************************************************
- * presstype.h — 压片机数据结构与公开命令常量
+ * presstype.h — public data model and command constants for the press SDK
+ * presstype.h — 压片机 SDK 的公开数据模型与命令常量
  *
- *  本文件定义 SDK 对外暴露的核心数据结构：
- *      PortType       — 通信端口类型枚举
- *      ReadOnlyData   — 设备静态身份信息（不可变）
- *      PressData      — 压力控制参数（多步压制曲线）
- *      RealTimeData   — 设备实时运行状态
+ *  This file exposes the public data structures that describe the machine state,
+ *  configured pressure curve, and communication endpoint type. It also defines
+ *  the high-level command constants used by the protocol layer.
+ *  该文件对外暴露了描述机器状态、压力曲线和通信端口类型的数据结构，同时
+ *  定义了协议层所使用的便捷命令常量。
  *
- *  以及预定义的便捷命令常量宏 (GET_MACHINE_TYPE / SET_PRESS 等)。
+ *  Public entities / 对外实体:
+ *      PortType       — communication port type / 通信端口类型
+ *      ReadOnlyData   — immutable device identity and limits / 设备静态身份及限制信息
+ *      PressData      — multi-step pressure control profile / 多步压力控制参数
+ *      RealTimeData   — live machine state / 实时运行状态
  *
- *  兼容性:
- *    - C 编译器: 仅 struct + enum + #define，纯 C 兼容
- *    - C++11+:   额外提供 static constexpr 常量和 operator<< 流输出
- *    - Qt 环境:  额外提供 QDebug operator<< (QT_CORE_LIB)
+ *  Compatibility / 兼容性:
+ *    - C compiler / C 编译器: uses plain struct/enum/define only; safe for C code
+ *      仅使用 struct / enum / #define，兼容纯 C
+ *    - C++ compiler / C++ 编译器: adds stream insertion operators and constexpr helper values
+ *      提供 stream 输出重载和 constexpr 辅助值
+ *    - Qt environment / Qt 环境: adds QDebug overloads when QT_CORE_LIB is defined
+ *      在定义 QT_CORE_LIB 时提供 QDebug 重载
  *
- *  外部依赖: typeprivate.h (命令 ID 定义), <stdint.h>, <cstddef>
+ *  External dependencies / 外部依赖:
+ *    - typeprivate.h / 命令 ID 定义
+ *    - <stdint.h>, <cstddef>
  *****************************************************************************/
 
 #ifndef PRESS_SDK_PROJECT_PRESSTYPE_H
@@ -24,10 +34,6 @@
 
 #define MAX_PStep 30
 
-#if defined(__cplusplus) && __cplusplus >= 201103L
-
-static constexpr uint8_t MAX_PStep_V = MAX_PStep;
-#endif
 
 /******************************************************************************
  * Public Command Constants / 公开命令常量
@@ -53,16 +59,6 @@ static constexpr uint8_t MAX_PStep_V = MAX_PStep;
 
 //! Start or stop demolding / 启动或停止脱模
 #define SET_DEMOLD CMDID_SET_START_DEMOLD
-
-#if defined(__cplusplus) && __cplusplus >= 201103L
-static constexpr uint16_t GET_MACHINE_TYPE_V = GET_MACHINE_TYPE;
-static constexpr uint16_t GET_ROD_JSON_V     = GET_ROD_JSON;
-static constexpr uint16_t GET_PD_JSON_V      = GET_PD_JSON;
-static constexpr uint16_t SET_PD_JSON_V      = SET_PD_JSON;
-static constexpr uint16_t GET_RT_JSON_V      = GET_RT_JSON;
-static constexpr uint16_t SET_PRESS_V        = SET_PRESS;
-static constexpr uint16_t SET_DEMOLD_V       = SET_DEMOLD;
-#endif
 
 
 /******************************************************************************

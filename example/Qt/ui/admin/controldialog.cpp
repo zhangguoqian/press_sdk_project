@@ -52,7 +52,7 @@ void ControlDialog::slotGetRodData()
         if (epMachine->getReadOnlyData(readOnlyData))
         {
             qDebug() << readOnlyData;
-            _show_text_log(QString::fromStdString(readOnlyData.toJsonString()));
+            _show_text_log(QString::fromStdString(toJsonString(readOnlyData)));
         }else
         {
             _show_error_log(epMachine->getLastErrorInfo(), 0);
@@ -66,7 +66,7 @@ void ControlDialog::slotGetPdData()
     if (epMachine->getPressData(pressData))
     {
         qDebug() << pressData;
-        _show_text_log(QString::fromStdString(pressData.toJsonString()));
+        _show_text_log(QString::fromStdString(toJsonString(pressData)));
     }else
     {
         _show_error_log(epMachine->getLastErrorInfo(), 0);
@@ -80,7 +80,7 @@ void ControlDialog::slotGetRtData()
     if (epMachine->getRealTimeData(realTimeData))
     {
         qDebug() << realTimeData;
-        _show_text_log(QString::fromStdString(realTimeData.toJsonString()));
+        _show_text_log(QString::fromStdString(toJsonString(realTimeData)));
     }else
     {
         _show_error_log(epMachine->getLastErrorInfo(), 0);
@@ -166,7 +166,7 @@ void ControlDialog::slotSetPressData()
     if (epMachine->getPressData(pressData))
     {
         qDebug() << pressData;
-        _show_text_log(QString::fromStdString(pressData.toJsonString()));
+        _show_text_log(QString::fromStdString(toJsonString(pressData)));
     }else
     {
         _show_error_log(epMachine->getLastErrorInfo(), 0);
@@ -180,4 +180,3 @@ void ControlDialog::slotSetPressData()
         _show_error_log(epMachine->getLastErrorInfo(), 0);
     }
 }
-

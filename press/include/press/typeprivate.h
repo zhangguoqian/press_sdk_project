@@ -1,21 +1,28 @@
 /******************************************************************************
- * typeprivate.h — 命令 ID 与协议工具宏
+ * typeprivate.h — low-level command IDs and protocol helper macros
+ * typeprivate.h — 协议层命令 ID 与辅助宏定义
  *
- *  纯 C 兼容头文件，不依赖任何 C++ 特性。
- *  定义压片机通信协议中的全部命令 ID（CmdID），按功能类别分为：
- *      ROD_CMDID    (0x00xx) — 只读设备身份信息
- *      PRESS_CMDID  (0x01xx) — 压力控制参数
- *      TEMP_CMDID   (0x02xx) — 温度控制参数
- *      MIX_CMDID    (0x03xx) — 混合模式参数
- *      SYSTEM_CMDID (0x04xx) — 系统设置
- *      STATE_CMDID  (0x05xx / 0x15xx) — 实时状态查询 / 写控制命令
+ *  This header is intentionally C-compatible. It defines the machine protocol's
+ *  command identifiers and helper macros used during frame packing, validation,
+ *  and response parsing.
+ *  该头文件刻意保持 C 兼容，定义了机器协议中的命令标识符和辅助宏，这些
+ *  常量用于帧打包、校验和响应解析。
  *
- *  命令 ID 位域编码:
- *      bit12 = SET 位   (1 = 写命令, 0 = 读命令)
- *      bit11..8  = 类别字段 (0..5, 对应上述 6 组枚举)
- *      bit7..0   = 命令索引
+ *  Command groups / 命令分组:
+ *      ROD_CMDID    (0x00xx) — read-only device identity and metadata / 只读设备身份与基本信息
+ *      PRESS_CMDID  (0x01xx) — pressure control parameters / 压力控制参数
+ *      TEMP_CMDID   (0x02xx) — temperature control parameters / 温度控制参数
+ *      MIX_CMDID    (0x03xx) — mixed-mode parameters / 混合模式参数
+ *      SYSTEM_CMDID (0x04xx) — system settings / 系统设置
+ *      STATE_CMDID  (0x05xx / 0x15xx) — state queries and write control commands / 状态查询与写控制命令
  *
- *  外部依赖: <stdint.h> 提供 uint8_t/uint16_t 等固定宽度类型
+ *  Bit layout / 位布局:
+ *      bit12 = SET flag / SET 标志  (1 = write command, 0 = read command)
+ *      bit11..8 = category field / 类别字段 (0..5)
+ *      bit7..0 = command index / 命令索引
+ *
+ *  External dependencies / 外部依赖:
+ *    - <stdint.h> provides fixed-width integer types / 提供 uint8_t / uint16_t 等类型
  *****************************************************************************/
 
 #ifndef PRESS_SDK_PROJECT_MTYPE_H

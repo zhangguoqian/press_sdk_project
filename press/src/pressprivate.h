@@ -5,7 +5,7 @@
 #define PRESS_BOT_PROJECT_MACHINEPRIVATE_H
 
 #include "port/portbase.h"
-#include "machinedata.h"
+#include "tool/jsondata.h"
 #include "pressinterface.hpp"
 #include <memory>
 #include <vector>
@@ -16,6 +16,13 @@
 #include <condition_variable>
 #include <atomic>
 
+static constexpr uint16_t GET_MACHINE_TYPE_V = GET_MACHINE_TYPE;
+static constexpr uint16_t GET_ROD_JSON_V     = GET_ROD_JSON;
+static constexpr uint16_t GET_PD_JSON_V      = GET_PD_JSON;
+static constexpr uint16_t SET_PD_JSON_V      = SET_PD_JSON;
+static constexpr uint16_t GET_RT_JSON_V      = GET_RT_JSON;
+static constexpr uint16_t SET_PRESS_V        = SET_PRESS;
+static constexpr uint16_t SET_DEMOLD_V       = SET_DEMOLD;
 
 enum class MachineError
 {
@@ -44,11 +51,11 @@ struct FrameData
     std::vector<uint8_t> m_FrameDataList = {};
 };
 
-class MachinePrivate
+class PressPrivate
 {
 public:
-    MachinePrivate();
-    ~MachinePrivate();
+    PressPrivate();
+    ~PressPrivate();
 
     bool connect(const char* portName, PortType portType);
     void disconnect();
@@ -72,7 +79,7 @@ public:
     void registerDataInterface(MachineDataInterface* dataInterface);
     void unregisterDataInterface();
 
-    const MachineData& getMachineData() const;
+    const JsonData& getMachineData() const;
 
 private:
     std::vector<uint8_t> _buildSendFrame(const FrameData& frameData);
@@ -100,7 +107,7 @@ private:
 
     std::atomic<MachineError> m_LastError{MachineError::None};
 
-    MachineData m_MachineData{};
+    JsonData m_JsonData{};
     MachineDataInterface* mpMachineDataInterface = nullptr;
     std::mutex m_MachineDataMutex{};
 };

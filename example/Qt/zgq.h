@@ -5,8 +5,8 @@
 #ifndef PRESS_SDK_PROJECT_ZGQ_H
 #define PRESS_SDK_PROJECT_ZGQ_H
 
-#include "machine.h"
+#include "press.hpp"
 
-extern Machine *epMachine;
+extern Press *epMachine;
 
 #endif //PRESS_SDK_PROJECT_ZGQ_H

@@ -5,13 +5,15 @@
 #ifndef PRESS_SDK_PROJECT_MACHINEDATA_H
 #define PRESS_SDK_PROJECT_MACHINEDATA_H
 
-#include "machinetype.h"
+#include "presstype.h"
+#include <string>
+#include <vector>
 
-class MachineData
+class JsonData
 {
 public:
-    MachineData() = default;
-    ~MachineData() = default;
+    JsonData() = default;
+    ~JsonData() = default;
     ReadOnlyData getReadOnlyData() const;
     PressData getPressData() const;
     RealTimeData getRealTimeData() const;

@@ -24,62 +24,78 @@
 
 ## Overview
 
-**Press Sdk** is a cross-platform host-control project for press machines (powder-forming hydraulic presses). The project consists of two parts:
+Press SDK is a cross-platform C++11 host-control library for press machines and a Qt example application. It provides the communication layer, parameter access, real-time status monitoring, and control commands needed by upper-layer software.
 
-- **press library** — A core C++ shared library that encapsulates the machine communication protocol and provides a thread-safe synchronous / asynchronous API
-- **Qt example application** — A Qt5/Qt6-based graphical host-control software demonstrating pressure parameter configuration, real-time state monitoring, and press cycle control using the press library
+The project is organized into two main parts:
 
-For more product information, visit **[zk-yq.com](https://zk-yq.com/)**.
+- Press library: protocol handling, data models, JSON and frame conversion, communication abstraction, and a thread-safe API.
+- Qt example application: a reference UI showing how to connect to a device, read and write pressure settings, and monitor the running state.
+
+The current SDK focuses on serial and TCP communication for press-machine protocols and keeps the abstraction extensible for other device families.
 
 ### Features
 
-| Feature | Description |
-|---------|-------------|
-| 🔌 Dual-channel communication | Supports both **serial port** (COM / /dev/tty*) and **TCP socket** connections |
-| 🧵 Thread-safe | All public methods are thread-safe; an internal dispatch thread runs independently |
-| 📡 Async callbacks | Implement `MachineDataInterface` to receive push-style real-time data updates |
-| 📊 Multi-step press curve | Configurable multi-step pressure, hold-pressure, and hold-pressure time |
-| 🔄 Optional JSON compression | JSON-compressed payload supported to reduce communication overhead |
-| 💻 Cross-platform | Windows / Linux / macOS / Android |
-| 🛠 CMake build | Modern CMake project with automatic install target export |
+- Serial port and TCP socket communication
+- C++11 public API with cross-platform CMake support
+- Synchronous access plus asynchronous callback notifications
+- Multi-step pressure curve support with hold-pressure and timing values
+- JSON and raw protocol frame conversion helpers
+- Qt reference UI example for rapid integration
 
 ---
 
 ## Project Structure
 
-```
-ztable_press_bot_project/
-├── CMakeLists.txt              # Root CMake build file
-├── press/                      # Core control library
+```text
+press_sdk_project/
+├── CMakeLists.txt
+├── LICENSE
+├── README.md
+├── README.zh-CN.md
+├── press/
 │   ├── CMakeLists.txt
-│   ├── include/press/          # Public headers
-│   │   ├── machine.h           # Machine main controller
-│   │   ├── machinetype.h       # Data structures & enums
-│   │   └── typeprivate.h       # Internal constants
-│   └── src/                    # Library sources
-│       ├── machine.cpp          # Machine implementation
-│       ├── machinedata.cpp/h   # Data encoding / decoding
-│       ├── machineprivate.cpp/h # Pimpl private implementation
-│       ├── port/               # Communication port abstraction
+│   ├── include/
+│   │   └── press/
+│   │       ├── press.hpp
+│   │       ├── pressinterface.hpp
+│   │       ├── presstype.h
+│   │       └── typeprivate.h
+│   └── src/
+│       ├── press.cpp
+│       ├── pressprivate.cpp
+│       ├── pressprivate.h
+│       ├── common/
+│       │   ├── unity.cpp
+│       │   └── unity.h
+│       ├── port/
 │       │   ├── portbase.h
-│       │   ├── serialport.cpp/h
-│       │   └── tcpsocket.cpp/h
-│       ├── json/               # JSON parser
-│       ├── common/             # Common utilities
-│       └── tool/               # Helper tools
-├── example/Qt/                 # Qt GUI example application
-│   ├── CMakeLists.txt
-│   ├── main.cpp
-│   ├── ui/                     # UI modules
-│   │   ├── login.*             # Login dialog
-│   │   ├── uihome.*            # Main window
-│   │   ├── admin/              # Admin control panel
-│   │   ├── chartview/          # Real-time pressure chart
-│   │   ├── steplist/           # Press step table
-│   │   └── widget/             # Custom widgets
-│   └── ztable_press_bot.ico    # Application icon & resources
-└── LICENSE                     # MIT License
+│       │   ├── serialport.cpp
+│       │   ├── serialport.h
+│       │   ├── tcpsocket.cpp
+│       │   └── tcpsocket.h
+│       ├── tool/
+│       │   ├── jsontovalue.cpp
+│       │   ├── jsontovalue.h
+│       │   ├── machinedata.cpp
+│       │   └── machinedata.h
+│       └── json/
+│           ├── json_reader.cpp
+│           ├── json_value.cpp
+│           ├── json_writer.cpp
+│           └── ...
+├── example/
+│   └── Qt/
+│       ├── CMakeLists.txt
+│       ├── main.cpp
+│       └── ui/
+└── build/
 ```
+
+Notes:
+
+- The headers under `press/include/press` are the public SDK API.
+- The implementation details and protocol logic live under `press/src`.
+- The `example/Qt` directory demonstrates how to integrate the library into an application.
 
 ---
 
@@ -87,176 +103,195 @@ ztable_press_bot_project/
 
 ### Prerequisites
 
-- **CMake 3.27+**
-- **C++17** compatible compiler (MSVC 2019+, GCC 8+, Clang 8+)
-- **Qt 5.15+ or Qt 6.x** (only required when building the GUI example)
+- CMake 3.27+
+- A C++11-compatible compiler such as MSVC, GCC, or Clang
+- Qt 5 or Qt 6 when building the GUI example
 
 ### Build Steps
 
 ```bash
-# 1. Clone the repository
-git clone <repository-url>
-cd ztable_press_bot_project
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --config Debug
+```
 
-# 2. Create build directory
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+Build only the library without the Qt example:
 
-# 3. Build
+```bash
+cmake -B build -DBUILD_QT_EXAMPLE=OFF -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
-
-# 4. Run the Qt example (Windows)
-./build/example/Qt/press_bot_qtgui.exe
 ```
 
-Build only the press library (without the GUI):
+Run the Qt example on Windows:
+
+```powershell
+./build/example/Qt/Debug/press_bot_qtgui.exe
+```
+
+### Project generator example
 
 ```bash
-cmake -B build -DBUILD_QT_EXAMPLE=OFF
-cmake --build build
-```
-
-### Using the press Library in Your Own Project
-
-#### Option 1: via find_package (recommended)
-
-```cmake
-find_package(press REQUIRED)
-target_link_libraries(your_target PRIVATE press::press)
-```
-
-#### Option 2: as a subdirectory
-
-```cmake
-add_subdirectory(press)
-target_link_libraries(your_target PRIVATE press::press)
-```
-
-#### Option 3: install first, then use
-
-```bash
-cmake -B build
-cmake --build build
-cmake --install build
+# MSVC x64
+cmake -B build -G "Visual Studio 17 2022" -A x64
 ```
 
 ---
 
-## API Overview
-
-### Connection Management
+## Quick API Example
 
 ```cpp
-#include "press/machine.h"
+#include "press/press.hpp"
 
-Machine machine;
+Press press;
 
-// Serial port connection
-machine.connect("COM3", SerialPortType);
+if (!press.connect("COM3", SerialPortType)) {
+    return 1;
+}
 
-// TCP connection
-machine.connect("192.168.0.100:8010", TcpSocketPortType);
+ReadOnlyData rod;
+if (press.getReadOnlyData(rod)) {
+    // use rod fields here
+}
 
-machine.disconnect();
-```
-
-### Run Control
-
-```cpp
-machine.run();       // Start the press cycle
-machine.stop();      // Stop running
-machine.isRunning(); // Query running state
-```
-
-### Read / Write Pressure Parameters
-
-```cpp
 PressData pd;
-if (machine.getPressData(pd)) {
-    pd.m_PStep = 3;                    // Number of steps
-    pd.m_SetPValue[0] = 10.0f;         // Step 1 pressure
-    pd.m_SetPValue[1] = 20.0f;         // Step 2 pressure
-    pd.m_SetPValue[2] = 30.0f;         // Step 3 pressure
-    pd.m_AfterValue[0] = 5.0f;         // Step 1 hold-pressure
-    pd.m_AfterValue[1] = 10.0f;        // Step 2 hold-pressure
-    pd.m_AfterValue[2] = 15.0f;        // Step 3 hold-pressure
-    pd.m_KPTime[0] = 5000;             // Step 1 hold-pressure time (ms)
-    pd.m_KPTime[1] = 5000;             // Step 2 hold-pressure time (ms)
-    pd.m_KPTime[2] = 5000;             // Step 3 hold-pressure time (ms)
-    machine.setPressData(pd);
+if (press.getPressData(pd)) {
+    pd.m_PStep = 3;
+    pd.m_SetPValue[0] = 10.0f;
+    pd.m_SetPValue[1] = 20.0f;
+    pd.m_SetPValue[2] = 30.0f;
+    pd.m_AfterValue[0] = 5.0f;
+    pd.m_AfterValue[1] = 10.0f;
+    pd.m_AfterValue[2] = 15.0f;
+    pd.m_KPTime[0] = 5000;
+    pd.m_KPTime[1] = 5000;
+    pd.m_KPTime[2] = 5000;
+    press.setPressData(pd);
 }
-```
 
-### Read Real-Time State
-
-```cpp
 RealTimeData rt;
-if (machine.getRealTimeData(rt)) {
-    // rt.m_PressState : 0 idle, 1 pressing, 2 demolding
-    // rt.m_PressValue  : live pressure reading
-    // rt.m_CPStep      : current active step index
-    // rt.m_PTime       : countdown remaining (ms)
+if (press.getRealTimeData(rt)) {
+    // rt.m_PressValue, rt.m_PressState, rt.m_CPStep, rt.m_PTime
 }
+
+press.disconnect();
 ```
 
-### Asynchronous Callbacks
+### Register a callback handler
 
 ```cpp
 class MyHandler : public MachineDataInterface {
 public:
-    void onRealTimeData(int errorCode, const RealTimeData& rt) override {
-        // Real-time data update callback
-    }
-    void onPressData(int errorCode, const PressData& pd) override {
-        // Pressure parameter update callback
-    }
     void onReadOnlyData(int errorCode, uint64_t registerNo,
-                        const ReadOnlyData& rod) override {
-        // Read-only data update callback
+                        const ReadOnlyData& readOnlyData) override {
     }
+
+    void onRealTimeData(int errorCode, const RealTimeData& realTimeData) override {
+    }
+
+    void onPressData(int errorCode, const PressData& pressData) override {
+    }
+
     void onError(uint16_t cmdCode, std::vector<uint8_t> response) override {
-        // Error callback
     }
 };
 
 MyHandler handler;
-machine.registerDataInterface(&handler);
-```
-
-### Enumerate Available Ports
-
-```cpp
-auto ports = Machine::getPortList();
-for (auto& p : ports) {
-    // Windows: "COM1", "COM3", ...
-    // Linux:   "/dev/ttyUSB0", ...
-}
+press.registerDataInterface(&handler);
 ```
 
 ---
 
-## Data Structures
+## Public API Summary
 
-| Struct | Description |
-|--------|-------------|
-| `ReadOnlyData` | Static device information: model, serial number, pressure/temperature limits, cylinder parameters, etc. |
-| `PressData` | Pressure control parameters: press type, mold parameters, multi-step pressure / hold / time sequences |
-| `RealTimeData` | Live state: work mode, press state, current step, live pressure, countdown |
+### Main types
 
-### PressData Multi-Step Press Curve
+- Press: high-level controller
+- ReadOnlyData: static device identity and parameter limits
+- PressData: multi-step pressure control configuration
+- RealTimeData: live machine operating state
+- MachineDataInterface: asynchronous callback interface
 
+### Main functions
+
+- Press::connect
+- Press::disconnect
+- Press::getReadOnlyData
+- Press::getPressData
+- Press::setPressData
+- Press::getRealTimeData
+- Press::setPressing
+- Press::setDemolding
+- Press::run
+- Press::stop
+- toJsonString
+- toFrameData
+
+Typical includes:
+
+```cpp
+#include "press/press.hpp"
+#include "press/presstype.h"
+#include "press/pressinterface.hpp"
 ```
-Pressure
-  ^
-  |     ┌─ Step 3 ─────┐
-  |    /  KP=5s          \
-  |   /                   \
-  |  / Step 2 ────┐       \
-  | /  KP=5s        \       \
-  |/                  \──┐   \
-  | Step 1 ─┐             \   \
-  | KP=5s    \ After=5     \---
-  +----------------------------------> Time
+
+---
+
+## Notes
+
+- This project is a device-control SDK focused on protocol encapsulation and data exchange rather than complete end-to-end factory automation.
+- The example GUI is intended as a reference and validation sample, not a complete production UI.
+- Before production deployment, validate the protocol implementation against the actual firmware and communication requirements of the target machine.
+- For new device variants, confirm the command frame format, command IDs, and state fields before extending the SDK.
+
+---
+
+## Cross-platform build notes
+
+### Windows (MSVC / MinGW)
+
+```bash
+# MSVC x64
+cmake -B build -G "Visual Studio 17 2022" -A x64
+
+# MinGW
+cmake -B build -G "MinGW Makefiles"
 ```
+
+### Linux
+
+```bash
+sudo apt install build-essential cmake qt5-default
+cmake -B build -DCMAKE_PREFIX_PATH=/opt/Qt/6.8.0/gcc_64
+cmake --build build
+```
+
+### macOS
+
+```bash
+brew install cmake qt
+cmake -B build -DCMAKE_PREFIX_PATH=$(brew --prefix qt)
+cmake --build build
+```
+
+### Android
+
+```bash
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+      -DANDROID_ABI=arm64-v8a \
+      -DCMAKE_PREFIX_PATH=/opt/Qt/6.8.0/android_arm64_v8a
+cmake --build build
+```
+
+---
+
+## License
+
+This project is open source under the [MIT License](LICENSE).
+
+---
+
+## Author
+
+Created by 11518 on 2024/7/29.
 
 ---
 

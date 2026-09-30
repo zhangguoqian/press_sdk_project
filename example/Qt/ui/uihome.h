@@ -7,7 +7,7 @@
 
 #include <QMainWindow>
 #include <QTableWidgetItem>
-#include "machinetype.h"
+#include "press.hpp"
 
 class DataInterface: public MachineDataInterface
 {

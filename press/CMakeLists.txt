@@ -14,13 +14,26 @@ configure_file(
     @ONLY
 )
 
-file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+set(LIB_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/press.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/pressprivate.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/common/unity.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/port/serialport.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/port/tcpsocket.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/tool/jsondata.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/tool/jsontovalue.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/json/json_reader.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/json/json_value.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/json/json_writer.cpp"
 )
 
 add_library(press SHARED ${LIB_SOURCES})
+
+set_target_properties(press PROPERTIES
+    CXX_STANDARD 11
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
 
 add_library(press::press ALIAS press)
 

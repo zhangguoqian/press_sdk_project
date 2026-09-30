@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QMenu>
 #include <algorithm>
+#include <iterator>
 #include "uihome.h"
 #include "ui_UiHome.h"
 #include "uitranslate.h"
@@ -152,13 +153,13 @@ void UiHome::setPressData(const PressData& pressData)
     ui->dBoxInDValue->setValue(pressData.m_InnerD);
     ui->dBoxPushValue->setValue(pressData.m_DemoldValue);
 
-    std::vector<float> upVec(pressData.m_SetPValue.begin(), pressData.m_SetPValue.end());
+    std::vector<float> upVec(std::begin(pressData.m_SetPValue), std::end(pressData.m_SetPValue));
     ui->tableWidgetStepList->setUpPressValue(upVec);
 
-    std::vector<float> downVec(pressData.m_AfterValue.begin(), pressData.m_AfterValue.end());
+    std::vector<float> downVec(std::begin(pressData.m_AfterValue), std::end(pressData.m_AfterValue));
     ui->tableWidgetStepList->setDownPressValue(downVec);
 
-    std::vector<uint32_t> timeVec(pressData.m_KPTime.begin(), pressData.m_KPTime.end());
+    std::vector<uint32_t> timeVec(std::begin(pressData.m_KPTime), std::end(pressData.m_KPTime));
     ui->tableWidgetStepList->setTimePressValue(timeVec);
 
     m_PressData = pressData;
@@ -182,13 +183,13 @@ void UiHome::setMaxStepValue(int maxStepValue)
 void UiHome::uiToJsonString()
 {
     auto afterVec = ui->tableWidgetStepList->getDownPressValue();
-    std::copy(afterVec.begin(), afterVec.end(), m_PressData.m_AfterValue.begin());
+    std::copy(afterVec.begin(), afterVec.end(), std::begin(m_PressData.m_AfterValue));
 
     auto setVec = ui->tableWidgetStepList->getUpPressValue();
-    std::copy(setVec.begin(), setVec.end(), m_PressData.m_SetPValue.begin());
+    std::copy(setVec.begin(), setVec.end(), std::begin(m_PressData.m_SetPValue));
 
     auto timeVec = ui->tableWidgetStepList->getTimePressValue();
-    std::copy(timeVec.begin(), timeVec.end(), m_PressData.m_KPTime.begin());
+    std::copy(timeVec.begin(), timeVec.end(), std::begin(m_PressData.m_KPTime));
 
     m_PressData.m_PStep = ui->spinBoxStepValue->value();
     m_PressData.m_Type = ui->cBoxTypeValue->currentIndex();

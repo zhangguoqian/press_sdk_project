@@ -1,11 +1,25 @@
 /******************************************************************************
- * pressinterface.hpp — MachineDataInterface 异步回调接口
+ * pressinterface.hpp — asynchronous callback interface for data push notifications
+ * pressinterface.hpp — 数据推送异步回调接口
  *
- *  使用者继承此纯虚类、实现各回调方法，然后通过 Machine::registerDataInterface()
- *  注册。设备返回数据、运行状态变化、或错误/未处理响应时，对应的回调将在
- *  Machine 内部调度线程中被触发（非 UI 线程，Qt 用户需自行跨线程派发）。
+ *  Application code can derive from MachineDataInterface and register the object
+ *  with Press::registerDataInterface(). Once registered, device responses,
+ *  parameter updates, and error events are delivered through these callbacks.
+ *  应用代码可以从 MachineDataInterface 派生，并通过 Press::registerDataInterface()
+ *  注册回调对象。注册后，设备响应、参数更新和错误事件都会通过这些回调
+ *  发送给上层。
  *
- *  线程说明: 所有回调默认在后台线程调用；UI 更新必须跨线程处理。
+ *  Threading model / 线程模型:
+ *    Callbacks are dispatched from the SDK's internal worker thread. UI code should
+ *    not update widgets directly from this thread unless cross-thread dispatch is
+ *    already handled.
+ *    回调由 SDK 内部工作线程发出。UI 代码不应直接在该线程中更新控件，除非
+ *    已自行处理跨线程分发。
+ *
+ *  Typical usage / 典型用法:
+ *    - receive real-time state updates / 接收实时状态更新
+ *    - receive pressure configuration updates / 接收压力参数更新
+ *    - receive error notifications / 接收错误通知
  *****************************************************************************/
 
 #ifndef PRESS_SDK_PROJECT_PRESSINTERFACE_HPP

@@ -28,7 +28,7 @@ Login::~Login()
 
 void Login::initPortList()
 {
-    auto portList = Machine::getPortList();
+    auto portList = Press::getPortList();
     ui->cboBoxTty->clear();
     for (auto port : portList)
     {

@@ -2,44 +2,44 @@
 // Created by 11518 on 2026/9/14.
 //
 
-#include "machinedata.h"
+#include "jsondata.h"
 #include "press.hpp"
 #include "tool/jsontovalue.h"
 #include <algorithm>
 #include <cstring>
 
 
-ReadOnlyData MachineData::getReadOnlyData() const
+ReadOnlyData JsonData::getReadOnlyData() const
 {
     return m_ReadOnlyData;
 }
 
-PressData MachineData::getPressData() const
+PressData JsonData::getPressData() const
 {
     return m_PressData;
 }
 
-RealTimeData MachineData::getRealTimeData() const
+RealTimeData JsonData::getRealTimeData() const
 {
     return m_RealTimeData;
 }
 
-void MachineData::setReadOnlyData(const ReadOnlyData& data)
+void JsonData::setReadOnlyData(const ReadOnlyData& data)
 {
     m_ReadOnlyData = data;
 }
 
-void MachineData::setPressData(const PressData& data)
+void JsonData::setPressData(const PressData& data)
 {
     m_PressData = data;
 }
 
-void MachineData::setRealTimeData(const RealTimeData& data)
+void JsonData::setRealTimeData(const RealTimeData& data)
 {
     m_RealTimeData = data;
 }
 
-int MachineData::jsonToReadOnlyData(const std::string& json) // NOLINT(*-convert-member-functions-to-static)
+int JsonData::jsonToReadOnlyData(const std::string& json) // NOLINT(*-convert-member-functions-to-static)
 {
     Json::Value root;
     Json::Reader reader;
@@ -195,7 +195,7 @@ int MachineData::jsonToReadOnlyData(const std::string& json) // NOLINT(*-convert
     return 0;
 }
 
-int MachineData::jsonToRealTimeData(const std::string& json)
+int JsonData::jsonToRealTimeData(const std::string& json)
 {
     Json::Value root;
     Json::Reader reader;
@@ -237,7 +237,7 @@ int MachineData::jsonToRealTimeData(const std::string& json)
     return 0;
 }
 
-int MachineData::jsonToPressData(const std::string& json) // NOLINT(*-convert-member-functions-to-static)
+int JsonData::jsonToPressData(const std::string& json) // NOLINT(*-convert-member-functions-to-static)
 {
     Json::Value root;
     Json::Reader reader;
@@ -324,19 +324,19 @@ int MachineData::jsonToPressData(const std::string& json) // NOLINT(*-convert-me
     return 0;
 }
 
-int MachineData::jsonToReadOnlyData(const std::vector<uint8_t>& data)
+int JsonData::jsonToReadOnlyData(const std::vector<uint8_t>& data)
 {
     std::string str(data.begin(), data.end());
     return jsonToReadOnlyData(str);
 }
 
-int MachineData::jsonToRealTimeData(const std::vector<uint8_t>& data)
+int JsonData::jsonToRealTimeData(const std::vector<uint8_t>& data)
 {
     std::string str(data.begin(), data.end());
     return jsonToRealTimeData(str);
 }
 
-int MachineData::jsonToPressData(const std::vector<uint8_t>& data)
+int JsonData::jsonToPressData(const std::vector<uint8_t>& data)
 {
     std::string str(data.begin(), data.end());
     return jsonToPressData(str);

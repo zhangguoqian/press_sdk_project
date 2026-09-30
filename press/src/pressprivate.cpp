@@ -1,7 +1,7 @@
 //
 // Created by 11518 on 2026/9/13.
 //
-#include "machineprivate.h"
+#include "pressprivate.h"
 #include "press.hpp"
 #include "port/serialport.h"
 #include "port/tcpsocket.h"
@@ -43,44 +43,61 @@ const char* errorToString(MachineError err)
 }
 } // namespace
 
-MachinePrivate::MachinePrivate() = default;
+PressPrivate::PressPrivate() = default;
 
-MachinePrivate::~MachinePrivate()
+PressPrivate::~PressPrivate()
 {
     stop();
 }
 
-bool MachinePrivate::connect(const char* portName, PortType portType)
+bool PressPrivate::connect(const char* portName, PortType portType)
 {
-    if (mpPort == nullptr)
+    if (portName == nullptr || std::strlen(portName) == 0)
     {
-        if (portType == SerialPortType)
-        {
-            mpPort = std::make_unique<SerialPort>();
-        }
-        else if (portType == TcpSocketPortType)
-        {
-            mpPort = std::make_unique<TcpSocket>();
-        }
+        _setError(MachineError::ConnectFailed);
+        return false;
     }
+
+    if (mpPort != nullptr)
+    {
+        mpPort->close();
+        mpPort.reset();
+    }
+
+    if (portType == SerialPortType)
+    {
+        mpPort = std::make_unique<SerialPort>();
+    }
+    else if (portType == TcpSocketPortType)
+    {
+        mpPort = std::make_unique<TcpSocket>();
+    }
+    else
+    {
+        _setError(MachineError::ConnectFailed);
+        return false;
+    }
+
     mpPort->setPortName(portName);
     bool ret = mpPort->open();
     if (!ret)
     {
         _setError(MachineError::ConnectFailed);
+        mpPort.reset();
     }
     return ret;
 }
 
-void MachinePrivate::disconnect()
+void PressPrivate::disconnect()
 {
     if (mpPort != nullptr)
     {
         mpPort->close();
+        mpPort.reset();
     }
 }
 
-bool MachinePrivate::isConnected() const
+bool PressPrivate::isConnected() const
 {
     if (mpPort == nullptr)
     {
@@ -89,15 +106,15 @@ bool MachinePrivate::isConnected() const
     return mpPort->isOpen();
 }
 
-uint64_t MachinePrivate::getMachineRegisterNo() const
+uint64_t PressPrivate::getMachineRegisterNo() const
 {
     return m_RegisterNo;
 }
 
-bool MachinePrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
+bool PressPrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(GET_ROD_JSON, {static_cast<uint8_t>(isCompressed)}, responseListData))
+    if (!_requestCommand(GET_ROD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto* iface = _safeGetInterface())
         {
@@ -105,7 +122,7 @@ bool MachinePrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
         }
         return false;
     }
-    if (0 != m_MachineData.jsonToReadOnlyData(responseListData))
+    if (0 != m_JsonData.jsonToReadOnlyData(responseListData))
     {
         _setError(MachineError::JsonParseFailed);
         if (auto* iface = _safeGetInterface())
@@ -114,7 +131,7 @@ bool MachinePrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
         }
         return false;
     }
-    data = m_MachineData.getReadOnlyData();
+    data = m_JsonData.getReadOnlyData();
     if (auto* iface = _safeGetInterface())
     {
         iface->onReadOnlyData(0, m_RegisterNo.load(), data);
@@ -122,10 +139,10 @@ bool MachinePrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
     return true;
 }
 
-bool MachinePrivate::getPressData(PressData& data, bool isCompressed)
+bool PressPrivate::getPressData(PressData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(GET_PD_JSON, {static_cast<uint8_t>(isCompressed)}, responseListData))
+    if (!_requestCommand(GET_PD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto* iface = _safeGetInterface())
         {
@@ -133,7 +150,7 @@ bool MachinePrivate::getPressData(PressData& data, bool isCompressed)
         }
         return false;
     }
-    if (0 != m_MachineData.jsonToPressData(responseListData))
+    if (0 != m_JsonData.jsonToPressData(responseListData))
     {
         _setError(MachineError::JsonParseFailed);
         if (auto* iface = _safeGetInterface())
@@ -142,7 +159,7 @@ bool MachinePrivate::getPressData(PressData& data, bool isCompressed)
         }
         return false;
     }
-    data = m_MachineData.getPressData();
+    data = m_JsonData.getPressData();
     if (auto* iface = _safeGetInterface())
     {
         iface->onPressData(0, data);
@@ -150,25 +167,25 @@ bool MachinePrivate::getPressData(PressData& data, bool isCompressed)
     return true;
 }
 
-bool MachinePrivate::setPressData(const PressData& data, bool isCompressed)
+bool PressPrivate::setPressData(const PressData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
     std::vector<uint8_t> commandListData;
     commandListData.emplace_back(static_cast<uint8_t>(isCompressed));
     std::vector<uint8_t> tempDataList = toFrameData(data);
     commandListData.insert(commandListData.end(), tempDataList.begin(), tempDataList.end());
-    if (!_requestCommand(SET_PD_JSON, commandListData, responseListData))
+    if (!_requestCommand(SET_PD_JSON_V, commandListData, responseListData))
     {
-        if (auto* iface = _safeGetInterface()) iface->onError(SET_PD_JSON, responseListData);
+        if (auto* iface = _safeGetInterface()) iface->onError(SET_PD_JSON_V, responseListData);
         return false;
     }
-    return _handleSetResponse(SET_PD_JSON, responseListData);
+    return _handleSetResponse(SET_PD_JSON_V, responseListData);
 }
 
-bool MachinePrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
+bool PressPrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(GET_RT_JSON, {static_cast<uint8_t>(isCompressed)}, responseListData))
+    if (!_requestCommand(GET_RT_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto* iface = _safeGetInterface())
         {
@@ -176,7 +193,7 @@ bool MachinePrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
         }
         return false;
     }
-    if (0 != m_MachineData.jsonToRealTimeData(responseListData))
+    if (0 != m_JsonData.jsonToRealTimeData(responseListData))
     {
         _setError(MachineError::JsonParseFailed);
         if (auto* iface = _safeGetInterface())
@@ -185,7 +202,7 @@ bool MachinePrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
         }
         return false;
     }
-    data = m_MachineData.getRealTimeData();
+    data = m_JsonData.getRealTimeData();
     if (auto* iface = _safeGetInterface())
     {
         iface->onRealTimeData(0, data);
@@ -193,29 +210,29 @@ bool MachinePrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
     return true;
 }
 
-bool MachinePrivate::setPressing(bool isPressing)
+bool PressPrivate::setPressing(bool isPressing)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_PRESS, {static_cast<uint8_t>(isPressing)}, responseListData))
+    if (!_requestCommand(SET_PRESS_V, {static_cast<uint8_t>(isPressing)}, responseListData))
     {
-        if (auto* iface = _safeGetInterface()) iface->onError(SET_PRESS, responseListData);
+        if (auto* iface = _safeGetInterface()) iface->onError(SET_PRESS_V, responseListData);
         return false;
     }
-    return _handleSetResponse(SET_PRESS, responseListData);
+    return _handleSetResponse(SET_PRESS_V, responseListData);
 }
 
-bool MachinePrivate::setDemolding(bool isDemolding)
+bool PressPrivate::setDemolding(bool isDemolding)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_DEMOLD, {static_cast<uint8_t>(isDemolding)}, responseListData))
+    if (!_requestCommand(SET_DEMOLD_V, {static_cast<uint8_t>(isDemolding)}, responseListData))
     {
-        if (auto* iface = _safeGetInterface()) iface->onError(SET_DEMOLD, responseListData);
+        if (auto* iface = _safeGetInterface()) iface->onError(SET_DEMOLD_V, responseListData);
         return false;
     }
-    return _handleSetResponse(SET_DEMOLD, responseListData);
+    return _handleSetResponse(SET_DEMOLD_V, responseListData);
 }
 
-bool MachinePrivate::_handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData)
+bool PressPrivate::_handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData)
 {
     if (responseListData.size() == 1)
     {
@@ -243,7 +260,7 @@ bool MachinePrivate::_handleSetResponse(uint16_t cmd, const std::vector<uint8_t>
     return false;
 }
 
-std::vector<uint8_t> MachinePrivate::_buildSendFrame(const FrameData& frameData)
+std::vector<uint8_t> PressPrivate::_buildSendFrame(const FrameData& frameData)
 {
     std::vector<uint8_t> data;
     data.reserve(CMD_LEN + frameData.m_FrameDataList.size());
@@ -267,7 +284,7 @@ std::vector<uint8_t> MachinePrivate::_buildSendFrame(const FrameData& frameData)
     return data;
 }
 
-MachineError MachinePrivate::_parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out)
+MachineError PressPrivate::_parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out)
 {
     out.m_Command = command;
 
@@ -315,7 +332,7 @@ MachineError MachinePrivate::_parseResponseFrame(const std::vector<uint8_t>& res
     return MachineError::None;
 }
 
-bool MachinePrivate::_requestCommand(uint16_t command, const std::vector<uint8_t>& listData, std::vector<uint8_t>& responseListData)
+bool PressPrivate::_requestCommand(uint16_t command, const std::vector<uint8_t>& listData, std::vector<uint8_t>& responseListData)
 {
     std::lock_guard<std::mutex> serialLock(m_RequestSerialMutex);
 
@@ -373,7 +390,7 @@ bool MachinePrivate::_requestCommand(uint16_t command, const std::vector<uint8_t
     return true;
 }
 
-void MachinePrivate::run()
+void PressPrivate::run()
 {
     m_IsRunning.store(true);
     mpRunThread = std::make_unique<std::thread>([this]
@@ -462,7 +479,7 @@ void MachinePrivate::run()
     });
 }
 
-void MachinePrivate::stop()
+void PressPrivate::stop()
 {
     m_IsRunning.store(false);
     m_CommandCond.notify_all();
@@ -472,14 +489,15 @@ void MachinePrivate::stop()
         mpRunThread->join();
     }
     mpRunThread.reset();
+    disconnect();
 }
 
-bool MachinePrivate::isRunning() const
+bool PressPrivate::isRunning() const
 {
     return m_IsRunning.load();
 }
 
-std::vector<std::string> MachinePrivate::getPortList()
+std::vector<std::string> PressPrivate::getPortList()
 {
     auto list = SerialPort::listAvailablePorts();
     std::vector<std::string> portList;
@@ -489,35 +507,40 @@ std::vector<std::string> MachinePrivate::getPortList()
     return portList;
 }
 
-void MachinePrivate::_setError(MachineError err)
+void PressPrivate::_setError(MachineError err)
 {
     m_LastError.store(err);
 }
 
-const char* MachinePrivate::getLastErrorInfo()
+const char* PressPrivate::getLastErrorInfo()
 {
     return errorToString(m_LastError.load());
 }
 
-void MachinePrivate::registerDataInterface(MachineDataInterface* dataInterface)
+void PressPrivate::registerDataInterface(MachineDataInterface* dataInterface)
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
+    if (dataInterface == nullptr)
+    {
+        mpMachineDataInterface = nullptr;
+        return;
+    }
     mpMachineDataInterface = dataInterface;
 }
 
-void MachinePrivate::unregisterDataInterface()
+void PressPrivate::unregisterDataInterface()
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     mpMachineDataInterface = nullptr;
 }
 
-MachineDataInterface* MachinePrivate::_safeGetInterface()
+MachineDataInterface* PressPrivate::_safeGetInterface()
 {
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     return mpMachineDataInterface;
 }
 
-const MachineData& MachinePrivate::getMachineData() const
+const JsonData& PressPrivate::getMachineData() const
 {
-    return m_MachineData;
+    return m_JsonData;
 }
