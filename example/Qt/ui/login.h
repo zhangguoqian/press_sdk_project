@@ -2,8 +2,8 @@
 // Created by 11518 on 2026/9/12.
 //
 
-#ifndef ZTABLE_PRESS_BOT_LOGIN_H
-#define ZTABLE_PRESS_BOT_LOGIN_H
+#ifndef PRESS_SDK_LOGIN_H
+#define PRESS_SDK_LOGIN_H
 
 #include <QDialog>
 
@@ -34,4 +34,4 @@ private Q_SLOTS:
 };
 
 
-#endif //ZTABLE_PRESS_BOT_LOGIN_H
+#endif //PRESS_SDK_LOGIN_H

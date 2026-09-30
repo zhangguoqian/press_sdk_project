@@ -1,9 +1,21 @@
-//
-// Created by 11518 on 2026/9/13.
-//
+/******************************************************************************
+ * press.hpp — Machine 主控制器与序列化工具
+ *
+ *  本文件是 SDK 对用户暴露的主要入口，包含：
+ *    - Machine 类: 高级控制器，管理通信端口 (串口 / TCP)、内部调度线程，
+ *      提供同步 API 读写设备状态，同时支持通过 MachineDataInterface 异步回调。
+ *    - 自由函数 (toJsonString / toFrameData): 结构体 ↔ JSON / 帧数据 转换。
+ *
+ *  构建选项:
+ *    - PRESS_BUILDING_LIBRARY: 构建动态库时定义 (自动导出符号)
+ *    - PRESS_EXPORT: 外部自动定义，Windows 上等价 __declspec(dllimport)
+ *
+ *  依赖: presstype.h (类型定义), pressinterface.hpp (回调接口),
+ *        <memory>, <string>, <vector> (C++11 标准库)
+ *****************************************************************************/
 
-#ifndef PRESS_BOT_PROJECT_MACHINE_H
-#define PRESS_BOT_PROJECT_MACHINE_H
+#ifndef PRESS_SDK_PROJECT_PRESS_HPP
+#define PRESS_SDK_PROJECT_PRESS_HPP
 
 #ifndef PRESS_EXPORT
     #if defined(_WIN32) || defined(__CYGWIN__)
@@ -21,9 +33,13 @@
     #endif
 #endif
 
-#include <vector>
+
+#include "presstype.h"
+#include "pressinterface.hpp"
+
 #include <memory>
-#include "machinetype.h"
+#include <string>
+#include <vector>
 
 class MachinePrivate;
 
@@ -31,20 +47,13 @@ class MachinePrivate;
 /******************************************************************************
  * Machine — High-level controller for a press machine / 压片机高级控制器
  *
- * This is the primary entry point of the library. Machine manages the
- * communication port (serial or TCP), runs an internal dispatch thread,
- * and provides a synchronous API for reading/writing machine state, as
- * well as an asynchronous callback interface via MachineDataInterface.
- * 本库的主要入口。Machine管理通信端口(串口或TCP)、运行内部调度线程、
- * 提供同步读写机器状态的API，并通过MachineDataInterface支持异步回调。
+ *  本库的主要入口类。Machine 管理通信端口（串口或 TCP）、运行内部调度线程，
+ *  提供同步 API 读写机器状态，并通过 MachineDataInterface 支持异步回调。
  *
- * Thread safety / 线程安全:
- *   - All public methods are thread-safe and may be called from any thread.
- *   - Callbacks registered via MachineDataInterface are invoked from the
- *     internal dispatch thread; heavy work should be offloaded.
- *   - 所有公共方法都是线程安全的，可从任意线程调用。
- *   - 通过MachineDataInterface注册的回调在内部调度线程中执行，
- *     耗时操作应移交给其他线程处理。
+ *  Thread safety / 线程安全:
+ *    - 所有公共方法都是线程安全的，可从任意线程调用。
+ *    - 通过 MachineDataInterface 注册的回调在内部调度线程中执行，
+ *      耗时操作应移交给其他线程处理。
  *****************************************************************************/
 
 class PRESS_EXPORT Machine
@@ -58,7 +67,7 @@ public:
     Machine(Machine&& other) = delete;
     Machine& operator=(Machine&& other) = delete;
 
-    //! Destructor — disconnects and joins all threads / 析构函数 - 断开连接并回收所有线程
+    //! Destructor — disconnects and joins all threads / 析构函数 — 断开连接并回收所有线程
     ~Machine();
 
 
@@ -87,7 +96,7 @@ public:
      *************************************************************************/
 
     //! Get the machine's unique register number (assigned on connect).
-    //! @return 64-bit register ID / 获取机器唯一注册号(连接时分配)。
+    //! @return 64-bit register ID / 获取机器唯一注册号 (连接时分配)。
     uint64_t getMachineRegisterNo() const;
 
     //! Get the last human-readable error message.
@@ -101,7 +110,7 @@ public:
      *************************************************************************/
 
     //! Start the machine's pressing cycle. Sends the SET_START_PRESS command.
-    //! 启动机器运行。发送SET_START_PRESS命令。
+    //! 启动机器运行 (加压 + 加热)。发送 SET_START_PRESS 命令。
     void run();
 
     //! Stop the machine's pressing cycle (pressing + heating).
@@ -115,12 +124,15 @@ public:
 
     /**************************************************************************
      * Synchronous data exchange / 同步数据交换
+     *
+     *  以下 get/set 方法均为同步调用，内部通过通信协议与设备交互。
+     *  isCompressed = true 时使用 JSON 批量读写命令 (CMDID_*_JSON)。
      *************************************************************************/
 
     //! Read static (read-only) device information.
     //! @param data         [out] Decoded ReadOnlyData on success.
     //! @param isCompressed [in]  Request JSON-compressed response from device.
-    //! @return true on success / 读取静态(只读)设备信息。
+    //! @return true on success / 读取静态 (只读) 设备信息。
     bool getReadOnlyData(ReadOnlyData& data, bool isCompressed = false);
 
     //! Read the current pressure control parameters.
@@ -144,11 +156,13 @@ public:
 
     /**************************************************************************
      * Direct state commands / 直接状态命令
+     *
+     *  与 run()/stop() 不同，以下命令只影响单一模块 (加压或脱模)。
      *************************************************************************/
 
     //! Start or stop pressing only (does not affect heating).
     //! @param isPressing true to start pressing, false to stop.
-    //! @return true on success / 单独启动或停止加压(不影响加热)。
+    //! @return true on success / 单独启动或停止加压 (不影响加热)。
     bool setPressing(bool isPressing);
 
     //! Start or stop demolding only.
@@ -184,9 +198,11 @@ public:
     //! 枚举当前系统可用的通信端口。
     static std::vector<std::string> getPortList();
 
-    //! 获取当前库的版本号。
+    //! Get current SDK version string.
+    //! 获取当前 SDK 的版本号。
     //! @return Version string.
     static std::string version();
+
 private:
 #ifdef _MSC_VER
 #   pragma warning(push)
@@ -198,4 +214,22 @@ private:
 #endif
 };
 
-#endif
+
+/******************************************************************************
+ * Free-function serialization utilities / 自由函数序列化工具体
+ *****************************************************************************/
+
+//! Serialize ReadOnlyData to JSON string / 将 ReadOnlyData 序列化为 JSON 字符串
+PRESS_EXPORT std::string toJsonString(const ReadOnlyData& data);
+
+//! Serialize PressData to JSON string / 将 PressData 序列化为 JSON 字符串
+PRESS_EXPORT std::string toJsonString(const PressData& data);
+
+//! Serialize RealTimeData to JSON string / 将 RealTimeData 序列化为 JSON 字符串
+PRESS_EXPORT std::string toJsonString(const RealTimeData& data);
+
+//! Serialize PressData to frame data (wire format) / 将 PressData 序列化为帧数据 (传输格式)
+PRESS_EXPORT std::vector<uint8_t> toFrameData(const PressData& data);
+
+
+#endif /* PRESS_SDK_PROJECT_PRESS_HPP */

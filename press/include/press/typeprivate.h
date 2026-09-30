@@ -1,28 +1,52 @@
-//
-// Created by 11518 on 2026/9/13.
-//
+/******************************************************************************
+ * typeprivate.h — 命令 ID 与协议工具宏
+ *
+ *  纯 C 兼容头文件，不依赖任何 C++ 特性。
+ *  定义压片机通信协议中的全部命令 ID（CmdID），按功能类别分为：
+ *      ROD_CMDID    (0x00xx) — 只读设备身份信息
+ *      PRESS_CMDID  (0x01xx) — 压力控制参数
+ *      TEMP_CMDID   (0x02xx) — 温度控制参数
+ *      MIX_CMDID    (0x03xx) — 混合模式参数
+ *      SYSTEM_CMDID (0x04xx) — 系统设置
+ *      STATE_CMDID  (0x05xx / 0x15xx) — 实时状态查询 / 写控制命令
+ *
+ *  命令 ID 位域编码:
+ *      bit12 = SET 位   (1 = 写命令, 0 = 读命令)
+ *      bit11..8  = 类别字段 (0..5, 对应上述 6 组枚举)
+ *      bit7..0   = 命令索引
+ *
+ *  外部依赖: <stdint.h> 提供 uint8_t/uint16_t 等固定宽度类型
+ *****************************************************************************/
 
-#ifndef ZTABLE_PRESS_BOT_PROJECT_MTYPE_H
-#define ZTABLE_PRESS_BOT_PROJECT_MTYPE_H
+#ifndef PRESS_SDK_PROJECT_MTYPE_H
+#define PRESS_SDK_PROJECT_MTYPE_H
+
+#include <stdint.h>
 
 
 /******************************************************************************
- * CmdID Utilities / 命令ID工具宏
+ * CmdID Utilities / 命令 ID 工具宏
  *****************************************************************************/
 
 //! Add the SET bit (0x1000) to a command ID to mark it as a write command
-//! 将命令ID加上SET位(0x1000)以标记为写命令
+//! 将命令 ID 加上 SET 位 (0x1000) 以标记为写命令
 #define SET_CMD(CMDID)    (CMDID | 0x1000)
 
 //! Check whether a command ID has the SET bit (write command flag)
-//! 判断命令ID是否带有SET位(写命令标志)
+//! 判断命令 ID 是否带有 SET 位 (写命令标志)
 #define IS_SET_CMD(CMDID) ((CMDID & 0x1000) >> 12)
 
+//! Generic 1-byte response validator (convenience alias for size == 1)
+//! 通用 1 字节响应校验 (size == 1 的便捷别名)
 #define GET_BOOL(size)    (size == 1)
 
 
 /******************************************************************************
- * ROD_CMDID — Read-Only Device Commands / 只读设备命令 (0x00xx range)
+ * ROD_CMDID — Read-Only Device Commands / 只读设备命令 (类别 0x0)
+ *
+ *  全部为读命令（无 SET 位），用于获取设备的静态身份标识：
+ *  版本号、设备名、型号、序列号、压力/温度参数块等。
+ *  CMDID_ROD_JSON (0x00FF) 一次性返回全部只读数据（JSON 格式）。
  *****************************************************************************/
 
 enum ROD_CMDID {
@@ -40,6 +64,9 @@ enum ROD_CMDID {
 
 /******************************************************************************
  * ROD size validators / 只读数据长度校验宏
+ *
+ *  以下宏用于通信层预校验设备响应字节数是否符合协议预期。
+ *  返回 true 表示 size 匹配，false 表示异常。
  *****************************************************************************/
 
 #define VERSION_BOOL(size)                  (size == 4)
@@ -52,7 +79,10 @@ enum ROD_CMDID {
 
 
 /******************************************************************************
- * PRESS_CMDID — Pressure Control Commands / 压力控制命令 (0x01xx range)
+ * PRESS_CMDID — Pressure Control Commands / 压力控制命令 (类别 0x1)
+ *
+ *  读命令 (0x01xx) 查询压力参数，加 SET 位 (0x11xx) 即可写回。
+ *  CMDID_PD_JSON (0x01FF / 0x11FF) 批量 JSON 读写。
  *****************************************************************************/
 
 enum PRESS_CMDID {
@@ -94,7 +124,7 @@ enum PRESS_CMDID {
 
 
 /******************************************************************************
- * TEMP_CMDID — Temperature Control Commands / 温度控制命令 (0x02xx range)
+ * TEMP_CMDID — Temperature Control Commands / 温度控制命令 (类别 0x2)
  *****************************************************************************/
 
 enum TEMP_CMDID {
@@ -121,7 +151,7 @@ enum TEMP_CMDID {
 
 
 /******************************************************************************
- * MIX_CMDID — Mixed Mode Commands / 混合模式命令 (0x03xx range)
+ * MIX_CMDID — Mixed Mode Commands / 混合模式命令 (类别 0x3)
  *****************************************************************************/
 
 enum MIX_CMDID {
@@ -160,7 +190,7 @@ enum MIX_CMDID {
 
 
 /******************************************************************************
- * SYSTEM_CMDID — System Control Commands / 系统控制命令 (0x04xx range)
+ * SYSTEM_CMDID — System Control Commands / 系统控制命令 (类别 0x4)
  *****************************************************************************/
 
 enum SYSTEM_CMDID {
@@ -177,7 +207,9 @@ enum SYSTEM_CMDID {
 
 
 /******************************************************************************
- * STATE_CMDID — State & Control Commands / 状态与控制命令 (0x05xx / 0x15xx)
+ * STATE_CMDID — State & Control Commands / 状态与控制命令 (类别 0x5)
+ *
+ *  0x05xx 为只读状态查询；0x15xx 为写控制命令（启动/停止/切换模式）。
  *****************************************************************************/
 
 enum STATE_CMDID {
@@ -202,8 +234,8 @@ enum STATE_CMDID {
 #define SET_START_BOOL(size)                    (size == 1)
 #define SET_JSON_BOOL(size)                     (size > 3)
 
-//! Extract the high nibble (category) from a command ID
-//! 从命令ID中提取高半字节(命令类别)
+//! Extract category field (bit11..8) from a command ID
+//! 从命令 ID 中提取类别字段 (bit11..8)
 #define CMID_TYPE(CMDID)  ((CMDID & 0x0F00) >> 8)
 
-#endif //ZTABLE_PRESS_BOT_PROJECT_MTYPE_H
+#endif /* PRESS_SDK_PROJECT_MTYPE_H */

@@ -6,6 +6,7 @@
 
 #include "port/portbase.h"
 #include "machinedata.h"
+#include "pressinterface.hpp"
 #include <memory>
 #include <vector>
 #include <cstdint>
