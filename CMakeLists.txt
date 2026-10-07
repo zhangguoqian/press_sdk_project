@@ -14,7 +14,7 @@ set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install" CACHE PATH "Installation 
 
 add_subdirectory(press)
 
-option(BUILD_QT_EXAMPLE "Build the Qt GUI example application" OFF)
+option(BUILD_QT_EXAMPLE "Build the Qt GUI example application" ON)
 if (BUILD_QT_EXAMPLE)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)

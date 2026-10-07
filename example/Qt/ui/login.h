@@ -25,7 +25,7 @@ public:
     explicit Login(QWidget* parent = nullptr);
     ~Login() override;
 
-    void initPortList();
+    void initUIData();
 
 private:
     Ui::Login* ui;

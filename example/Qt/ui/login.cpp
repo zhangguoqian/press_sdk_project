@@ -17,7 +17,7 @@ Login::Login(QWidget* parent) :
     QDialog(parent), ui(new Ui::Login)
 {
     ui->setupUi(this);
-    initPortList();
+    initUIData();
     connect(ui->pbnConnect,SIGNAL(clicked()),this,SLOT(slotConnect()));
 }
 
@@ -26,7 +26,7 @@ Login::~Login()
     delete ui;
 }
 
-void Login::initPortList()
+void Login::initUIData()
 {
     auto portList = Press::getPortList();
     ui->cboBoxTty->clear();
@@ -38,9 +38,19 @@ void Login::initPortList()
 
 void Login::slotConnect()
 {
-    std::string portName = ui->cboBoxTty->currentText().toStdString();
-
-    if (epMachine->connect(portName.c_str(),SerialPortType))
+    QString portName = ui->cboBoxTty->currentText();
+    PressPortType portType = SerialPortType;
+    if (ui->rBnTty->isChecked())
+    {
+        portName = ui->cboBoxTty->currentText();
+        portType = SerialPortType;
+    }
+    else if (ui->rBnNetwork->isChecked())
+    {
+        portType = TcpSocketPortType;
+        portName = QString("%1:%2").arg(ui->lEditIp->text()).arg(ui->sBoxPort->value());
+    }
+    if (epMachine->connect(portName.toStdString().c_str(),portType))
     {
         accept();
     }else
