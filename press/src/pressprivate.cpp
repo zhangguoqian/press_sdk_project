@@ -52,7 +52,7 @@ PressPrivate::~PressPrivate()
     stop();
 }
 
-bool PressPrivate::connect(const char* portName, PortType portType)
+bool PressPrivate::connect(const char* portName, PressPortType portType)
 {
     if (portName == nullptr || std::strlen(portName) == 0)
     {
@@ -91,6 +91,7 @@ bool PressPrivate::connect(const char* portName, PortType portType)
         return false;
     }
     _startScheduler();
+    while (!m_IsRunning.load()){};
     return true;
 }
 
@@ -553,6 +554,14 @@ void PressPrivate::_stopScheduler()
         mpRunThread->join();
     }
     mpRunThread.reset();
+}
+
+void PressPrivate::_heartbeat()
+{
+    if (mpHeartbeatThread != nullptr)
+    {
+
+    }
 }
 
 void PressPrivate::run()

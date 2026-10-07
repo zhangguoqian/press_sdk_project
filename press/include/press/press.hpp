@@ -128,7 +128,7 @@ public:
     //! @param portType  SerialPortType or TcpSocketPortType.
     //! @return true on success, false on failure (call getLastErrorInfo()).
     //! 打开通信端口并连接到机器。
-    bool connect(const char* portName, PortType portType);
+    bool connect(const char* portName, PressPortType portType);
 
     //! Disconnect from the machine and close the port.
     //! 断开与机器的连接并关闭端口。

@@ -105,7 +105,7 @@ PRESS_C_EXPORT int cpress_connect(CPressContext* handle, const char* portName, i
         return 0;
     }
 
-    return handle->impl->connect(portName, static_cast<PortType>(portType)) ? 1 : 0;
+    return handle->impl->connect(portName, static_cast<PressPortType>(portType)) ? 1 : 0;
 }
 
 PRESS_C_EXPORT void cpress_disconnect(CPressContext* handle)

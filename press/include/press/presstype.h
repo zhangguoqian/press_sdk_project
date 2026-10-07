@@ -65,7 +65,7 @@
  * PortType — Communication Port Type / 通信端口类型枚举
  *****************************************************************************/
 
-enum PortType
+enum PressPortType
 {
     SerialPortType,    //!< Serial port (COM / /dev/tty*) / 串口
     TcpSocketPortType, //!< TCP socket / TCP 套接字
@@ -160,6 +160,11 @@ struct RealTimeData
     float    m_PressValue;      //!< Live pressure reading / 实时压力数据
     uint32_t m_PTime;           //!< Countdown remaining (ms) / 剩余倒计时 (毫秒)
     uint8_t  m_PdChanged;       //!< PressData modification flag / 压力数据是否已变更
+};
+
+struct VersionInfo
+{
+    
 };
 
 #if defined(__cplusplus)

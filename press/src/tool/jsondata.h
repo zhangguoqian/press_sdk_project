@@ -31,7 +31,6 @@ public:
     int jsonToPressData(const std::vector<uint8_t> &data);
 
     /**获取只读数据**/
-private:
     ReadOnlyData m_ReadOnlyData{};
     PressData m_PressData{};
     RealTimeData m_RealTimeData{};

@@ -58,7 +58,7 @@ public:
     PressPrivate();
     ~PressPrivate();
 
-    bool connect(const char* portName, PortType portType);
+    bool connect(const char* portName, PressPortType portType);
     void disconnect();
     bool isConnected() const;
     uint64_t getMachineRegisterNo() const;
@@ -67,6 +67,7 @@ public:
     bool getPressData(PressData& data, bool isCompressed = false);
     bool setPressData(const PressData& data, bool isCompressed = false);
     bool getRealTimeData(RealTimeData& data, bool isCompressed = false);
+    bool getVersionInfo(VersionInfo& versionInfo, bool isCompressed = false);
     bool setPressing(bool isPressing);
     bool setDemolding(bool isDemolding);
 
@@ -87,6 +88,9 @@ private:
     void _startScheduler();
     //! 停止调度线程并 join，幂等：若未启动则直接返回
     void _stopScheduler();
+
+    void _heartbeat();
+    std::unique_ptr<std::thread> mpHeartbeatThread = nullptr;
 
     std::vector<uint8_t> _buildSendFrame(const FrameData& frameData);
     MachineError _parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out);

@@ -13,7 +13,7 @@ Press::Press() : mpPrivate(std::make_unique<PressPrivate>())
 
 Press::~Press() = default;
 
-bool Press::connect(const char* portName, PortType portType)
+bool Press::connect(const char* portName, PressPortType portType)
 {
     return mpPrivate->connect(portName, portType);
 }
