@@ -34,6 +34,7 @@ public:
     ReadOnlyData m_ReadOnlyData{};
     PressData m_PressData{};
     RealTimeData m_RealTimeData{};
+    VersionInfo m_VersionInfo{};
 };
 
 

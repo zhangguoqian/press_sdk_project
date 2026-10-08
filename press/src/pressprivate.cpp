@@ -6,6 +6,7 @@
 #include "port/serialport.h"
 #include "port/tcpsocket.h"
 #include "common/unity.h"
+#include "presstype.h"
 #include <cstring>
 #include <thread>
 #include <iostream>
@@ -92,7 +93,8 @@ bool PressPrivate::connect(const char* portName, PressPortType portType)
     }
     _startScheduler();
     while (!m_IsRunning.load()){};
-    return true;
+    VersionInfo versionInfo;
+    return getVersionInfo(versionInfo);
 }
 
 void PressPrivate::disconnect()
@@ -221,6 +223,29 @@ bool PressPrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
     {
         iface->onRealTimeData(0, data);
     }
+    return true;
+}
+
+bool PressPrivate::getVersionInfo(VersionInfo& versionInfo)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_VERSION_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_VERSION_V, responseListData);
+        return false;
+    }
+    // 协议规定版本响应为 4 字节：AppNo / Major / Minor / Patch
+    if (!VERSION_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_VERSION_V, responseListData);
+        return false;
+    }
+    versionInfo.m_AppNo = responseListData[0];
+    versionInfo.m_Major = responseListData[1];
+    versionInfo.m_Minor = responseListData[2];
+    versionInfo.m_Patch = responseListData[3];
+    m_JsonData.m_VersionInfo = versionInfo;
     return true;
 }
 
@@ -542,10 +567,16 @@ void PressPrivate::_startScheduler()
             m_ResponseCond.notify_one();
         }
     });
+    // 调度线程重启（如重连）后，若配置过定时周期则恢复实时数据定时采集
+    if (m_TimerInterval.load() > 0)
+    {
+        _startRealTimeTimer(m_TimerInterval.load());
+    }
 }
 
 void PressPrivate::_stopScheduler()
 {
+    _stopRealTimeTimer();
     m_IsRunning.store(false);
     m_CommandCond.notify_all();
     m_ResponseCond.notify_all();
@@ -556,13 +587,6 @@ void PressPrivate::_stopScheduler()
     mpRunThread.reset();
 }
 
-void PressPrivate::_heartbeat()
-{
-    if (mpHeartbeatThread != nullptr)
-    {
-
-    }
-}
 
 void PressPrivate::run()
 {
@@ -600,20 +624,30 @@ const char* PressPrivate::getLastErrorInfo() const
     return errorToString(m_LastError.load());
 }
 
-void PressPrivate::registerDataInterface(PressDataInterface* dataInterface)
+void PressPrivate::registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds)
 {
     if (dataInterface == nullptr)
     {
         unregisterDataInterface();
         return;
     }
-    std::lock_guard<std::mutex> lock(m_MachineDataMutex);
-    // 使用空删除器：shared_ptr 仅用于线程安全的引用计数，不管理对象生命周期
-    mpMachineDataInterface = std::shared_ptr<PressDataInterface>(dataInterface, [](PressDataInterface*){});
+    {
+        std::lock_guard<std::mutex> lock(m_MachineDataMutex);
+        // 使用空删除器：shared_ptr 仅用于线程安全的引用计数，不管理对象生命周期
+        mpMachineDataInterface = std::shared_ptr<PressDataInterface>(dataInterface, [](PressDataInterface*){});
+    }
+    // intervalSeconds > 0 时启动定时线程，按周期循环获取 RealTimeData
+    if (intervalSeconds > 0)
+    {
+        _startRealTimeTimer(intervalSeconds);
+    }
 }
 
 void PressPrivate::unregisterDataInterface()
 {
+    // 回调已注销，定时采集失去意义：停止定时线程并清除周期配置
+    _stopRealTimeTimer();
+    m_TimerInterval.store(0);
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     mpMachineDataInterface.reset();
 }
@@ -627,4 +661,42 @@ std::shared_ptr<PressDataInterface> PressPrivate::_safeGetInterface()
 const JsonData& PressPrivate::getMachineData() const
 {
     return m_JsonData;
+}
+
+void PressPrivate::_startRealTimeTimer(int intervalSeconds)
+{
+    // 若已有定时线程则先停止，再按新周期重启
+    _stopRealTimeTimer();
+    m_TimerInterval.store(intervalSeconds);
+    m_TimerRunning.store(true);
+    mpRealTimeTimerThread = std::make_unique<std::thread>([this]
+    {
+        while (m_TimerRunning.load() && m_IsRunning.load())
+        {
+            {
+                std::unique_lock<std::mutex> lock(m_TimerMutex);
+                m_TimerCond.wait_for(lock, std::chrono::seconds(m_TimerInterval.load()), [this] {
+                    return !m_TimerRunning.load() || !m_IsRunning.load();
+                });
+            }
+            if (!m_TimerRunning.load() || !m_IsRunning.load())
+            {
+                break;
+            }
+            RealTimeData data;
+            // 成功与失败都会通过 onRealTimeData 回调上报
+            getRealTimeData(data);
+        }
+    });
+}
+
+void PressPrivate::_stopRealTimeTimer()
+{
+    m_TimerRunning.store(false);
+    m_TimerCond.notify_all();
+    if (mpRealTimeTimerThread && mpRealTimeTimerThread->joinable())
+    {
+        mpRealTimeTimerThread->join();
+    }
+    mpRealTimeTimerThread.reset();
 }

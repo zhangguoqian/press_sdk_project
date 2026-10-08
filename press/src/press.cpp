@@ -83,9 +83,9 @@ bool Press::setDemolding(bool isDemolding)
     return mpPrivate->setDemolding(isDemolding);
 }
 
-void Press::registerDataInterface(PressDataInterface* dataInterface)
+void Press::registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds)
 {
-    mpPrivate->registerDataInterface(dataInterface);
+    mpPrivate->registerDataInterface(dataInterface, intervalSeconds);
 }
 
 void Press::unregisterDataInterface()

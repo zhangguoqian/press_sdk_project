@@ -16,6 +16,7 @@
 #include <condition_variable>
 #include <atomic>
 
+static constexpr uint16_t GET_VERSION_V      = GET_VERSION;
 static constexpr uint16_t GET_MACHINE_TYPE_V = GET_MACHINE_TYPE;
 static constexpr uint16_t GET_ROD_JSON_V     = GET_ROD_JSON;
 static constexpr uint16_t GET_PD_JSON_V      = GET_PD_JSON;
@@ -67,7 +68,7 @@ public:
     bool getPressData(PressData& data, bool isCompressed = false);
     bool setPressData(const PressData& data, bool isCompressed = false);
     bool getRealTimeData(RealTimeData& data, bool isCompressed = false);
-    bool getVersionInfo(VersionInfo& versionInfo, bool isCompressed = false);
+    bool getVersionInfo(VersionInfo& versionInfo);
     bool setPressing(bool isPressing);
     bool setDemolding(bool isDemolding);
 
@@ -78,7 +79,7 @@ public:
     static std::vector<std::string> getPortList();
     const char* getLastErrorInfo() const;
 
-    void registerDataInterface(PressDataInterface* dataInterface);
+    void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 0);
     void unregisterDataInterface();
 
     const JsonData& getMachineData() const;
@@ -89,8 +90,11 @@ private:
     //! 停止调度线程并 join，幂等：若未启动则直接返回
     void _stopScheduler();
 
-    void _heartbeat();
-    std::unique_ptr<std::thread> mpHeartbeatThread = nullptr;
+    //! 启动实时数据定时线程，每 intervalSeconds 秒获取一次 RealTimeData；
+    //! 若已启动则以新周期重启
+    void _startRealTimeTimer(int intervalSeconds);
+    //! 停止实时数据定时线程并 join，幂等：若未启动则直接返回
+    void _stopRealTimeTimer();
 
     std::vector<uint8_t> _buildSendFrame(const FrameData& frameData);
     MachineError _parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out);
@@ -121,6 +125,12 @@ private:
     JsonData m_JsonData{};
     std::shared_ptr<PressDataInterface> mpMachineDataInterface;
     std::mutex m_MachineDataMutex{};
+
+    std::unique_ptr<std::thread> mpRealTimeTimerThread = nullptr;
+    std::atomic<bool> m_TimerRunning{false};
+    std::atomic<int> m_TimerInterval{0};      //!< 实时数据定时周期（秒），<=0 表示未启用
+    std::mutex m_TimerMutex{};
+    std::condition_variable m_TimerCond{};
 };
 
 #endif
