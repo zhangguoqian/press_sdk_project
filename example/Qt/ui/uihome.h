@@ -8,19 +8,7 @@
 #include <QMainWindow>
 #include <QTableWidgetItem>
 #include "press.hpp"
-
-class DataInterface: public PressDataInterface
-{
-public:
-    ~DataInterface() override;
-    void setParent(void* parent);
-    void onReadOnlyData(int errorCode,uint64_t registerNo, const ReadOnlyData& readOnlyData) override;
-    void onRealTimeData(int errorCode, const RealTimeData& realTimeData) override;
-    void onPressData(int errorCode, const PressData& pressData) override;
-    void onError(uint16_t cmdCode,std::vector<uint8_t> response) override;
-private:
-    void *mpParent = nullptr;
-};
+#include "datainterface.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class UiHome; }
@@ -34,10 +22,14 @@ signals:
 public:
     explicit UiHome(QWidget *parent = nullptr);
     ~UiHome() override;
-    void setRealTimeData(const RealTimeData& realTimeData);
-    void setPressData(const PressData& pressData);
-    void setReadOnlyData(const ReadOnlyData& readOnlyData);
     void setMaxStepValue(int mMaxStepValue);
+public slots:
+    void slotRealTimeData(int errorCode, const RealTimeData& realTimeData);
+    void slotPressData(int errorCode, const PressData& pressData);
+    void slotReadOnlyData(int errorCode, const ReadOnlyData& readOnlyData);
+    void slotError(uint16_t cmdCode, std::vector<uint8_t> response);
+
+
 
 
 protected:

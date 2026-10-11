@@ -31,6 +31,7 @@
 #define PRESS_SDK_PROJECT_PRESSTYPE_H
 
 #include "typeprivate.h"
+#include <cstdint>
 
 #define MAX_PStep 30
 
@@ -38,6 +39,9 @@
 /******************************************************************************
  * Public Command Constants / 公开命令常量
  *****************************************************************************/
+
+//! Read the device version / 读取版本信息
+#define GET_VERSION CMDID_VERSION
 
 //! Read the machine model / 读取机器型号
 #define GET_MACHINE_TYPE CMDID_MACHINE_TYPE
@@ -164,7 +168,10 @@ struct RealTimeData
 
 struct VersionInfo
 {
-    
+    uint8_t m_AppNo;
+    uint8_t m_Major;
+    uint8_t m_Minor;
+    uint8_t m_Patch;
 };
 
 #if defined(__cplusplus)

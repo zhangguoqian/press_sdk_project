@@ -231,9 +231,17 @@ public:
     //! Register an asynchronous data callback interface.
     //! Only one interface may be registered at a time; a second call replaces
     //! the previous one (unregistering is not required first).
-    //! @param dataInterface Non-owning pointer to the implementation.
+    //! @param dataInterface   Non-owning pointer to the implementation.
+    //! @param intervalSeconds Periodic RealTimeData polling interval in
+    //!                        seconds. When > 0, a timer thread is started
+    //!                        that fetches RealTimeData every intervalSeconds
+    //!                        seconds and reports it via onRealTimeData().
+    //!                        When <= 0, no timer is started.
     //! 注册异步数据回调接口。同一时间只能注册一个，重复注册将覆盖旧的。
-    void registerDataInterface(PressDataInterface* dataInterface);
+    //! @param intervalSeconds 定时获取 RealTimeData 的周期，单位秒。
+    //!                        大于 0 时启动定时线程，循环获取 RealTimeData
+    //!                        并通过 onRealTimeData() 上报；小于等于 0 时不启动。
+    void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 0);
 
     //! Unregister the previously registered callback interface.
     //! 注销之前注册的回调接口。

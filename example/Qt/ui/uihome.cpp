@@ -41,9 +41,12 @@ UiHome::UiHome(QWidget* parent) :
 
     ui->tableWidgetStepList->initDBoxVector(m_MaxStepValue);;
 
-    m_DataInterface.setParent(this);
-    epMachine->registerDataInterface(&m_DataInterface);
-
+    
+    epMachine->registerDataInterface(&m_DataInterface,1);
+    connect(&m_DataInterface, SIGNAL(signalError(uint16_t, std::vector<uint8_t>)), this, SLOT(slotError(uint16_t, std::vector<uint8_t>)));
+    connect(&m_DataInterface, SIGNAL(signalRealTimeData(int, RealTimeData)), this, SLOT(slotRealTimeData(int, RealTimeData)));
+    connect(&m_DataInterface, SIGNAL(signalPressData(int, PressData)), this, SLOT(slotPressData(int, PressData)));
+    connect(&m_DataInterface, SIGNAL(signalReadOnlyData(int, uint64_t, ReadOnlyData)), this, SLOT(slotReadOnlyData(int, uint64_t, ReadOnlyData)));
 }
 
 
@@ -92,7 +95,7 @@ UiHome::~UiHome()
     delete ui;
 }
 
-void UiHome::setRealTimeData(const RealTimeData &realTimeData)
+void UiHome::slotRealTimeData(int errorCode, const RealTimeData &realTimeData)
 {
     if (m_RealTimeData.m_PTime != realTimeData.m_PTime)
     {
@@ -142,7 +145,7 @@ void UiHome::setRealTimeData(const RealTimeData &realTimeData)
 
 }
 
-void UiHome::setPressData(const PressData& pressData)
+void UiHome::slotPressData(int errorCode, const PressData& pressData)
 {
     ui->spinBoxStepValue->setValue(pressData.m_PStep);
     ui->cBoxTypeValue->setCurrentIndex(pressData.m_Type);
@@ -165,12 +168,16 @@ void UiHome::setPressData(const PressData& pressData)
     m_PressData = pressData;
 }
 
-void UiHome::setReadOnlyData(const ReadOnlyData& readOnlyData)
+void UiHome::slotReadOnlyData(int errorCode, const ReadOnlyData& readOnlyData)
 {
     setMaxStepValue(readOnlyData.m_MaxPStep);
     ui->dBoxPushValue->setRange(.0,readOnlyData.m_MaxPLimit/2);
     ui->pressChartView->setRange(0,readOnlyData.m_MaxPLimit);
     m_ReadOnlyData = readOnlyData;
+}
+
+void UiHome::slotError(uint16_t cmdCode, std::vector<uint8_t> response)
+{
 }
 
 void UiHome::setMaxStepValue(int maxStepValue)
@@ -243,44 +250,6 @@ void UiHome::timerEvent(QTimerEvent* event)
 {
     QObject::timerEvent(event);
 }
-
-DataInterface::~DataInterface()
-{
-}
-
-void DataInterface::setParent(void* parent)
-{
-    mpParent = parent;
-}
-
-
-void DataInterface::onReadOnlyData(int errorCode, uint64_t registerNo, const ReadOnlyData& readOnlyData)
-{
-
-    auto uiHome = static_cast<UiHome*>(mpParent);
-    uiHome->setReadOnlyData(readOnlyData);
-}
-
-void DataInterface::onRealTimeData(int errorCode, const RealTimeData& realTimeData)
-{
-    auto uiHome = static_cast<UiHome*>(mpParent);
-    uiHome->setRealTimeData(realTimeData);
-}
-
-void DataInterface::onPressData(int errorCode, const PressData& pressData)
-{
-    auto uiHome = static_cast<UiHome*>(mpParent);
-    uiHome->setPressData(pressData);
-}
-
-void DataInterface::onError(uint16_t cmdCode, std::vector<uint8_t> response)
-{
-    auto uiHome = static_cast<UiHome*>(mpParent);
-}
-
-
-
-
 
 void UiHome::slotOpenPortClicked(bool isChecked)
 {

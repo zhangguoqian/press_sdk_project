@@ -50,6 +50,7 @@ struct FrameData
 {
     uint16_t m_Command = 0;
     uint64_t m_Seq = 0;                     //!< 请求序号，用于匹配响应
+    MachineError m_Error = MachineError::None;  //!< 本请求的处理结果（随序号传递，避免全局错误被其他请求覆盖）
     std::vector<uint8_t> m_FrameDataList = {};
 };
 
@@ -96,6 +97,12 @@ private:
     //! 停止实时数据定时线程并 join，幂等：若未启动则直接返回
     void _stopRealTimeTimer();
 
+    //! 关闭端口并清零注册号（调用方需持有 m_LifecycleMutex）
+    void _closePort();
+
+    //! 注销回调并停止定时线程（调用方需持有 m_LifecycleMutex）
+    void _unregisterInterfaceLocked();
+
     std::vector<uint8_t> _buildSendFrame(const FrameData& frameData);
     MachineError _parseResponseFrame(const std::vector<uint8_t>& response, uint16_t command, FrameData& out);
     bool _requestCommand(uint16_t command, const std::vector<uint8_t>& listData, std::vector<uint8_t>& responseListData);
@@ -131,6 +138,9 @@ private:
     std::atomic<int> m_TimerInterval{0};      //!< 实时数据定时周期（秒），<=0 表示未启用
     std::mutex m_TimerMutex{};
     std::condition_variable m_TimerCond{};
+
+    std::mutex m_JsonDataMutex{};             //!< 保护 m_JsonData 的解析与拷贝
+    std::mutex m_LifecycleMutex{};            //!< 保护 connect/disconnect/run/stop/注册回调等生命周期操作
 };
 
 #endif

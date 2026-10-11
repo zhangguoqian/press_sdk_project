@@ -48,6 +48,11 @@ file(GLOB_RECURSE EXAMPLE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.ui"
 )
 
+# list(APPEND EXAMPLE_SOURCES
+#     "${CMAKE_CURRENT_SOURCE_DIR}/datainterface.h"
+#     "${CMAKE_CURRENT_SOURCE_DIR}/datainterface.cpp"
+# )
+
 add_executable(${PROJECT_NAME} WIN32 ${EXAMPLE_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE

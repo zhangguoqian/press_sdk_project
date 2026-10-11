@@ -55,6 +55,8 @@ PressPrivate::~PressPrivate()
 
 bool PressPrivate::connect(const char* portName, PressPortType portType)
 {
+    std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
+
     if (portName == nullptr || std::strlen(portName) == 0)
     {
         _setError(MachineError::ConnectFailed);
@@ -64,9 +66,7 @@ bool PressPrivate::connect(const char* portName, PressPortType portType)
     if (mpPort != nullptr)
     {
         _stopScheduler();
-        mpPort->close();
-        mpPort.reset();
-        m_RegisterNo.store(0);
+        _closePort();
     }
 
     if (portType == SerialPortType)
@@ -92,19 +92,22 @@ bool PressPrivate::connect(const char* portName, PressPortType portType)
         return false;
     }
     _startScheduler();
-    while (!m_IsRunning.load()){};
-    VersionInfo versionInfo;
-    return getVersionInfo(versionInfo);
+    // 版本查询作为连接握手，失败则回滚到未连接状态
+    VersionInfo versionInfo{};
+    if (!getVersionInfo(versionInfo))
+    {
+        _stopScheduler();
+        _closePort();
+        return false;
+    }
+    return true;
 }
 
 void PressPrivate::disconnect()
 {
+    std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
     _stopScheduler();
-    if (mpPort != nullptr)
-    {
-        mpPort->close();
-        mpPort.reset();
-    }
+    _closePort();
 }
 
 bool PressPrivate::isConnected() const
@@ -132,7 +135,16 @@ bool PressPrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
         }
         return false;
     }
-    int jsonErr = m_JsonData.jsonToReadOnlyData(responseListData);
+    // 解析与拷贝需加锁：定时线程与用户线程可能同时访问 m_JsonData
+    int jsonErr = 0;
+    {
+        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
+        jsonErr = m_JsonData.jsonToReadOnlyData(responseListData);
+        if (0 == jsonErr)
+        {
+            data = m_JsonData.getReadOnlyData();
+        }
+    }
     if (0 != jsonErr)
     {
         std::cerr << "jsonToReadOnlyData failed at field code: " << jsonErr << std::endl;
@@ -143,7 +155,6 @@ bool PressPrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
         }
         return false;
     }
-    data = m_JsonData.getReadOnlyData();
     if (auto iface = _safeGetInterface())
     {
         iface->onReadOnlyData(0, m_RegisterNo.load(), data);
@@ -162,7 +173,16 @@ bool PressPrivate::getPressData(PressData& data, bool isCompressed)
         }
         return false;
     }
-    int jsonErr = m_JsonData.jsonToPressData(responseListData);
+    // 解析与拷贝需加锁：定时线程与用户线程可能同时访问 m_JsonData
+    int jsonErr = 0;
+    {
+        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
+        jsonErr = m_JsonData.jsonToPressData(responseListData);
+        if (0 == jsonErr)
+        {
+            data = m_JsonData.getPressData();
+        }
+    }
     if (0 != jsonErr)
     {
         std::cerr << "jsonToPressData failed at field code: " << jsonErr << std::endl;
@@ -173,7 +193,6 @@ bool PressPrivate::getPressData(PressData& data, bool isCompressed)
         }
         return false;
     }
-    data = m_JsonData.getPressData();
     if (auto iface = _safeGetInterface())
     {
         iface->onPressData(0, data);
@@ -207,7 +226,16 @@ bool PressPrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
         }
         return false;
     }
-    int jsonErr = m_JsonData.jsonToRealTimeData(responseListData);
+    // 解析与拷贝需加锁：定时线程与用户线程可能同时访问 m_JsonData
+    int jsonErr = 0;
+    {
+        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
+        jsonErr = m_JsonData.jsonToRealTimeData(responseListData);
+        if (0 == jsonErr)
+        {
+            data = m_JsonData.getRealTimeData();
+        }
+    }
     if (0 != jsonErr)
     {
         std::cerr << "jsonToRealTimeData failed at field code: " << jsonErr << std::endl;
@@ -218,7 +246,6 @@ bool PressPrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
         }
         return false;
     }
-    data = m_JsonData.getRealTimeData();
     if (auto iface = _safeGetInterface())
     {
         iface->onRealTimeData(0, data);
@@ -231,21 +258,24 @@ bool PressPrivate::getVersionInfo(VersionInfo& versionInfo)
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_VERSION_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(GET_VERSION_V, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_VERSION, responseListData);
         return false;
     }
     // 协议规定版本响应为 4 字节：AppNo / Major / Minor / Patch
     if (!VERSION_BOOL(responseListData.size()))
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(GET_VERSION_V, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_VERSION, responseListData);
         return false;
     }
     versionInfo.m_AppNo = responseListData[0];
     versionInfo.m_Major = responseListData[1];
     versionInfo.m_Minor = responseListData[2];
     versionInfo.m_Patch = responseListData[3];
-    m_JsonData.m_VersionInfo = versionInfo;
+    {
+        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
+        m_JsonData.m_VersionInfo = versionInfo;
+    }
     return true;
 }
 
@@ -344,13 +374,28 @@ MachineError PressPrivate::_parseResponseFrame(const std::vector<uint8_t>& respo
     {
         return MachineError::ResponseTooShort;
     }
-    if (response.back() != Unity::getChecksum(response.begin(), response.end() - 1))
+
+    const uint8_t* p = response.data();
+
+    uint16_t readDataLen = 0;
+    std::memcpy(&readDataLen, p + 10, sizeof(readDataLen));
+    readDataLen = ntohs(readDataLen);
+
+    // 边界检查：12 字节头 + readDataLen 数据 + 1 字节校验和不能超过响应长度
+    if (static_cast<size_t>(12) + readDataLen + 1 > response.size())
+    {
+        return MachineError::ResponseTooShort;
+    }
+
+    // 校验和位于数据区之后（偏移 12 + readDataLen），不能取缓冲区最后一字节：
+    // 端口残留迟到数据时最后一字节可能不属于本帧
+    size_t frameLen = static_cast<size_t>(12) + readDataLen;
+    if (response[frameLen] != Unity::getChecksum(response.begin(), response.begin() + frameLen))
     {
         return MachineError::ChecksumMismatch;
     }
 
     // 注册号按大端（网络字节序）存储，手动组装为主机字节序
-    const uint8_t* p = response.data();
     uint64_t readRegisterNo =
         (static_cast<uint64_t>(p[0]) << 56) |
         (static_cast<uint64_t>(p[1]) << 48) |
@@ -371,20 +416,10 @@ MachineError PressPrivate::_parseResponseFrame(const std::vector<uint8_t>& respo
     }
 
     uint16_t readCommand = 0;
-    std::memcpy(&readCommand, response.data() + 8, sizeof(readCommand));
+    std::memcpy(&readCommand, p + 8, sizeof(readCommand));
     if (readCommand != command)
     {
         return MachineError::CommandMismatch;
-    }
-
-    uint16_t readDataLen = 0;
-    std::memcpy(&readDataLen, response.data() + 10, sizeof(readDataLen));
-    readDataLen = ntohs(readDataLen);
-
-    // 边界检查：12 字节头 + readDataLen 数据 + 1 字节校验和不能超过响应长度
-    if (static_cast<size_t>(12) + readDataLen + 1 > response.size())
-    {
-        return MachineError::ResponseTooShort;
     }
 
     // SET 位检测：readCommand 是网络字节序，需先转主机序再判断
@@ -462,8 +497,10 @@ bool PressPrivate::_requestCommand(uint16_t command, const std::vector<uint8_t>&
             m_ResponseQueue.pop();
             if (resp.m_Seq == mySeq)
             {
-                if (m_LastError.load() != MachineError::None)
+                // 错误码随响应携带，避免读到其他请求（如定时器）设置的全局错误
+                if (resp.m_Error != MachineError::None)
                 {
+                    _setError(resp.m_Error);
                     return false;
                 }
                 responseListData = std::move(resp.m_FrameDataList);
@@ -505,6 +542,7 @@ void PressPrivate::_startScheduler()
                 _setError(MachineError::PortNotOpen);
                 FrameData flag;
                 flag.m_Seq = request.m_Seq;
+                flag.m_Error = MachineError::PortNotOpen;
                 std::lock_guard<std::mutex> rlock(m_ResponseMutex);
                 m_ResponseQueue.push(std::move(flag));
                 m_ResponseCond.notify_one();
@@ -518,6 +556,7 @@ void PressPrivate::_startScheduler()
                 _setError(MachineError::WriteFailed);
                 FrameData flag;
                 flag.m_Seq = request.m_Seq;
+                flag.m_Error = MachineError::WriteFailed;
                 std::lock_guard<std::mutex> rlock(m_ResponseMutex);
                 m_ResponseQueue.push(std::move(flag));
                 m_ResponseCond.notify_one();
@@ -539,7 +578,8 @@ void PressPrivate::_startScheduler()
                 if (rawResponse.size() >= CMD_LEN)
                 {
                     uint16_t len = (static_cast<uint16_t>(rawResponse[10]) << 8) | rawResponse[11];
-                    if (rawResponse.size() >= CMD_LEN + len)
+                    // 帧总长 = 12 字节头 + len 数据 + 1 校验和 = 13 + len
+                    if (rawResponse.size() >= static_cast<size_t>(13) + len)
                     {
                         break;
                     }
@@ -553,6 +593,7 @@ void PressPrivate::_startScheduler()
                 _setError(parseErr);
                 FrameData flag;
                 flag.m_Seq = request.m_Seq;
+                flag.m_Error = parseErr;
                 std::lock_guard<std::mutex> rlock(m_ResponseMutex);
                 m_ResponseQueue.push(std::move(flag));
                 m_ResponseCond.notify_one();
@@ -588,15 +629,28 @@ void PressPrivate::_stopScheduler()
 }
 
 
+void PressPrivate::_closePort()
+{
+    if (mpPort != nullptr)
+    {
+        mpPort->close();
+        mpPort.reset();
+    }
+    // 注册号随连接失效，防止下次连接误用旧机器的注册号
+    m_RegisterNo.store(0);
+}
+
 void PressPrivate::run()
 {
+    std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
     _startScheduler();
 }
 
 void PressPrivate::stop()
 {
+    std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
     _stopScheduler();
-    disconnect();
+    _closePort();
 }
 
 bool PressPrivate::isRunning() const
@@ -626,9 +680,11 @@ const char* PressPrivate::getLastErrorInfo() const
 
 void PressPrivate::registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds)
 {
+    std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
+
     if (dataInterface == nullptr)
     {
-        unregisterDataInterface();
+        _unregisterInterfaceLocked();
         return;
     }
     {
@@ -643,13 +699,19 @@ void PressPrivate::registerDataInterface(PressDataInterface* dataInterface, int 
     }
 }
 
-void PressPrivate::unregisterDataInterface()
+void PressPrivate::_unregisterInterfaceLocked()
 {
     // 回调已注销，定时采集失去意义：停止定时线程并清除周期配置
     _stopRealTimeTimer();
     m_TimerInterval.store(0);
     std::lock_guard<std::mutex> lock(m_MachineDataMutex);
     mpMachineDataInterface.reset();
+}
+
+void PressPrivate::unregisterDataInterface()
+{
+    std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
+    _unregisterInterfaceLocked();
 }
 
 std::shared_ptr<PressDataInterface> PressPrivate::_safeGetInterface()
