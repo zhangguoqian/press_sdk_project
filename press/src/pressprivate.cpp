@@ -745,9 +745,9 @@ void PressPrivate::_startRealTimeTimer(int intervalSeconds)
             {
                 break;
             }
-            RealTimeData data;
-            // 成功与失败都会通过 onRealTimeData 回调上报
-            getRealTimeData(data);
+
+            RealTimeData realTimeData;
+            getRealTimeData(realTimeData);
         }
     });
 }

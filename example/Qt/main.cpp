@@ -17,11 +17,6 @@ int main(int argc, char* argv[])
     epMachine = new Press();
     QApplication a(argc, argv);
     Login login;
-    // if (epMachine->connect("192.168.0.100:8010",TcpSocketPortType))
-    // {
-    //     ControlDialog dialog;
-    //     dialog.exec();
-    // }
     if (login.exec() == QDialog::Accepted)
     {
         UiHome uiHome;

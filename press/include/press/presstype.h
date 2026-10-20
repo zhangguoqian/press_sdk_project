@@ -55,6 +55,12 @@
 //! Write all pressure parameters (JSON) / 写入全部压力参数(Json格式)
 #define SET_PD_JSON SET_CMD(CMDID_PD_JSON)
 
+//! Read all temperature parameters (JSON) / 读取全部温度参数(Json格式)
+#define GET_TD_JSON CMDID_TD_JSON
+
+//! Write all temperature parameters (JSON) / 写入全部温度参数(Json格式)
+#define SET_TD_JSON SET_CMD(CMDID_TD_JSON)
+
 //! Read all real-time state (JSON) / 读取全部实时状态 (Json 格式)
 #define GET_RT_JSON CMDID_GET_CURRENT_STATE_JSON
 

@@ -21,27 +21,25 @@
 
 UiHome::UiHome(QWidget* parent) :
     QMainWindow(parent),
-    ui(new Ui::UiHome),
-    m_MaxStepValue(30)
+    ui(new Ui::UiHome)
 {
     ui->setupUi(this);
-    ui->labelActMpa->setVisible(false);
-    ui->labelActMpaValue->setVisible(false);
-    ui->labelActMpaUnit->setVisible(false);
-    ui->labelMpa->setVisible(false);
-    ui->labelMpaValue->setVisible(false);
-    ui->labelMpaUnit->setVisible(false);
-
-    ui->pBnStartStop->setStartStopStateText(qtTrId("启动"), qtTrId("停止"));
-    ui->pBnStartStop->setState(BUTTON_CAN_START);
-    ui->pBnPush->setStartStopStateText(qtTrId("脱模"), qtTrId("停止"));
-    ui->pBnPush->setState(BUTTON_CAN_START);
 
     initConnect();
 
-    ui->tableWidgetStepList->initDBoxVector(m_MaxStepValue);;
+    bool info = false;
+    info = epMachine->getReadOnlyData(m_ReadOnlyData);
+    if (!info)
+    {
+        QMessageBox::warning(this,qtTrId("提示"),qtTrId("获取设备参数失败!"));
+        return;
+    }
+    info = epMachine->getPressData(m_PressData);
+    if (!info){
+        QMessageBox::warning(this,qtTrId("提示"),qtTrId("获取设备配置失败!"));
+        return;
+    }
 
-    
     epMachine->registerDataInterface(&m_DataInterface,1);
     connect(&m_DataInterface, SIGNAL(signalError(uint16_t, std::vector<uint8_t>)), this, SLOT(slotError(uint16_t, std::vector<uint8_t>)));
     connect(&m_DataInterface, SIGNAL(signalRealTimeData(int, RealTimeData)), this, SLOT(slotRealTimeData(int, RealTimeData)));
@@ -84,10 +82,6 @@ void UiHome::initConnect()
 
 }
 
-void UiHome::initTableWidget()
-{
-
-}
 
 
 UiHome::~UiHome()
@@ -147,6 +141,11 @@ void UiHome::slotRealTimeData(int errorCode, const RealTimeData &realTimeData)
 
 void UiHome::slotPressData(int errorCode, const PressData& pressData)
 {
+    if (errorCode != 0)
+    {
+        qDebug() << Q_FUNC_INFO << errorCode;
+        return;
+    }
     ui->spinBoxStepValue->setValue(pressData.m_PStep);
     ui->cBoxTypeValue->setCurrentIndex(pressData.m_Type);
     ui->dBoxAValue->setValue(pressData.m_A);
@@ -170,7 +169,6 @@ void UiHome::slotPressData(int errorCode, const PressData& pressData)
 
 void UiHome::slotReadOnlyData(int errorCode, const ReadOnlyData& readOnlyData)
 {
-    setMaxStepValue(readOnlyData.m_MaxPStep);
     ui->dBoxPushValue->setRange(.0,readOnlyData.m_MaxPLimit/2);
     ui->pressChartView->setRange(0,readOnlyData.m_MaxPLimit);
     m_ReadOnlyData = readOnlyData;
@@ -180,47 +178,29 @@ void UiHome::slotError(uint16_t cmdCode, std::vector<uint8_t> response)
 {
 }
 
-void UiHome::setMaxStepValue(int maxStepValue)
-{
-    m_MaxStepValue = maxStepValue;
-    ui->spinBoxStepValue->setRange(1, maxStepValue);
-}
 
 
-void UiHome::uiToJsonString()
-{
-    auto afterVec = ui->tableWidgetStepList->getDownPressValue();
-    std::copy(afterVec.begin(), afterVec.end(), std::begin(m_PressData.m_AfterValue));
+// void UiHome::uiToJsonString()
+// {
+//     auto afterVec = ui->tableWidgetStepList->getDownPressValue();
+//     std::copy(afterVec.begin(), afterVec.end(), std::begin(m_PressData.m_AfterValue));
+//
+//     auto setVec = ui->tableWidgetStepList->getUpPressValue();
+//     std::copy(setVec.begin(), setVec.end(), std::begin(m_PressData.m_SetPValue));
+//
+//     auto timeVec = ui->tableWidgetStepList->getTimePressValue();
+//     std::copy(timeVec.begin(), timeVec.end(), std::begin(m_PressData.m_KPTime));
+//
+//     m_PressData.m_PStep = ui->spinBoxStepValue->value();
+//     m_PressData.m_Type = ui->cBoxTypeValue->currentIndex();
+//     m_PressData.m_A = ui->dBoxAValue->value();
+//     m_PressData.m_B = ui->dBoxBValue->value();
+//     m_PressData.m_D = ui->dBoxDiameterValue->value();
+//     m_PressData.m_OuterD = ui->dBoxOutDValue->value();
+//     m_PressData.m_InnerD = ui->dBoxInDValue->value();
+//     m_PressData.m_DemoldValue = ui->dBoxPushValue->value();
+// }
 
-    auto setVec = ui->tableWidgetStepList->getUpPressValue();
-    std::copy(setVec.begin(), setVec.end(), std::begin(m_PressData.m_SetPValue));
-
-    auto timeVec = ui->tableWidgetStepList->getTimePressValue();
-    std::copy(timeVec.begin(), timeVec.end(), std::begin(m_PressData.m_KPTime));
-
-    m_PressData.m_PStep = ui->spinBoxStepValue->value();
-    m_PressData.m_Type = ui->cBoxTypeValue->currentIndex();
-    m_PressData.m_A = ui->dBoxAValue->value();
-    m_PressData.m_B = ui->dBoxBValue->value();
-    m_PressData.m_D = ui->dBoxDiameterValue->value();
-    m_PressData.m_OuterD = ui->dBoxOutDValue->value();
-    m_PressData.m_InnerD = ui->dBoxInDValue->value();
-    m_PressData.m_DemoldValue = ui->dBoxPushValue->value();
-
-}
-
-void UiHome::slotTypeChanged(int value)
-{
-    if (value == 0)
-    {
-        ui->tableWidgetStepList->setMpaVisible(false);
-    }
-    else
-    {
-        ui->tableWidgetStepList->setMpaVisible(true);
-    }
-    ui->stackedWidget->setCurrentIndex(value);
-}
 
 
 void UiHome::closeEvent(QCloseEvent* event)
@@ -233,7 +213,7 @@ void UiHome::closeEvent(QCloseEvent* event)
     }
     else
     {
-        int info = QMessageBox::warning(nullptr, "提示", "是否关闭当前软件？", QMessageBox::Yes, QMessageBox::No);
+        int info = QMessageBox::warning(nullptr, qtTrId("提示"), qtTrId("是否关闭当前软件？"), QMessageBox::Yes, QMessageBox::No);
         if (info == QMessageBox::Yes)
         {
             event->accept();
@@ -243,104 +223,4 @@ void UiHome::closeEvent(QCloseEvent* event)
             event->ignore();
         }
     }
-}
-
-
-void UiHome::timerEvent(QTimerEvent* event)
-{
-    QObject::timerEvent(event);
-}
-
-void UiHome::slotOpenPortClicked(bool isChecked)
-{
-    Q_UNUSED(isChecked);
-}
-
-
-
-void UiHome::slotStartStopClicked(bool isClicked)
-{
-    // if (isClicked)
-    // {
-    //     uiToJsonString();
-    //     epMachine->addCommand(SET_PRESS_STEP(m_PressData));
-    // }
-    //
-    // epMachine->addCommand(isClicked?SET_PRESS_START:SET_PRESS_STOP);
-}
-
-void UiHome::slotControlDialog(bool isClicked)
-{
-    Q_UNUSED(isClicked)
-    ControlDialog controlDialog;
-    controlDialog.exec();
-}
-
-
-void UiHome::slotTimeTimerPress(int step, double setValue, int time, int timer, double press, int liquidPress)
-{
-    //    qDebug() << time << timer << press;
-    if (!ui->widgetInfo->isVisible())
-    {
-        ui->widgetInfo->setVisible(true);
-    }
-    ui->labelStepValue->setText(QString::number(step + 1));
-
-    ui->pressChartView->appendPressData(QPointF{time / 1000.0, press});
-}
-
-void UiHome::slotComplete()
-{
-    ui->pBnStartStop->setText("启动");
-    ui->widgetInfo->setVisible(false);
-}
-
-
-
-void UiHome::slotDataListWidget()
-{
-    //    qDebug() << "slotStackWidget()";
-    ui->stackedWidgetMain->setCurrentIndex(1);
-}
-
-void UiHome::slotControlWidget()
-{
-    ui->stackedWidgetMain->setCurrentIndex(0);
-}
-
-void UiHome::slotTableWidgetCustomContextMenuRequested(QPoint point)
-{
-
-}
-
-void UiHome::updateTableWidget()
-{
-
-}
-
-void UiHome::slotFirstClicked()
-{
-    updateTableWidget();
-}
-
-void UiHome::slotTailClicked()
-{
-    updateTableWidget();
-}
-
-void UiHome::slotPreClicked()
-{
-}
-
-void UiHome::slotNextClicked()
-{
-}
-
-void UiHome::slotPushClicked(bool isChecked)
-{
-    // epMachine->addCommand(isChecked?SET_PRESS_START:SET_PRESS_STOP);
-}
-
-void UiHome::slotPushValueChanged(double value)
-{
 }

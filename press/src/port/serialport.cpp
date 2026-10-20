@@ -134,7 +134,6 @@ std::vector<SerialPortInfo> SerialPort::listAvailablePorts() {
         std::string name = "COM" + std::to_string(i);
         if (contains(name)) continue;
         std::wstring wname = to_wide(name);
-        wname = L"\\\\.\\" + wname;
         WCHAR target[MAX_PATH];
         if (::QueryDosDeviceW(wname.c_str(), target, MAX_PATH) != 0) {
             std::string desc = to_narrow(target);
