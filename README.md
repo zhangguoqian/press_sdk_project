@@ -58,7 +58,7 @@ press_sdk_project/
 │   ├── CMakeLists.txt
 │   ├── include/
 │   │   └── press/
-│   │       ├── cpress.h
+│   │       ├── press.h
 │   │       ├── press.hpp
 │   │       ├── presstype.h
 │   │       └── typeprivate.h
@@ -131,7 +131,7 @@ Notes:
 
 The project also provides a C-compatible interface for integration scenarios where the C++ class cannot be used directly, such as C applications, DLL consumers, or language interop layers.
 
-- Public header: `press/include/press/cpress.h`
+- Public header: `press/include/press/press.h`
 - The exported C symbols all use the `cpress_` prefix.
 - The C API wraps the underlying C++ `Press` implementation behind an opaque `PressCContext` handle.
 - Common operations include create/destroy, connect/disconnect, read/write data, and optional callback registration through `PressCDataCallbacks`.
@@ -140,7 +140,7 @@ The project also provides a C-compatible interface for integration scenarios whe
 Example:
 
 ```c
-#include "press/cpress.h"
+#include "press/press.h"
 
 PressCContext* ctx = cpress_create();
 if (!ctx) {

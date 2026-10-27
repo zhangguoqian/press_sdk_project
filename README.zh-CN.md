@@ -57,7 +57,7 @@ press_sdk_project/
 │   ├── CMakeLists.txt
 │   ├── include/
 │   │   └── press/
-│   │       ├── cpress.h
+│   │       ├── press.h
 │   │       ├── press.hpp
 │   │       ├── presstype.h
 │   │       └── typeprivate.h
@@ -123,7 +123,7 @@ press_sdk_project/
 
 项目还提供了一个 C 语言兼容接口，用于不直接使用 C++ 类的集成场景，例如 C 应用程序、DLL 调用方或跨语言互操作层。
 
-- 公共头文件：`press/include/press/cpress.h`
+- 公共头文件：`press/include/press/press.h`
 - 导出的 C 符号统一使用 `cpress_` 前缀。
 - C 接口通过不透明句柄 `PressCContext` 包装底层的 C++ `Press` 实现。
 - 常见能力包括创建/销毁对象、连接/断开设备、读取/写入参数，以及通过 `PressCDataCallbacks` 注册回调。
@@ -131,7 +131,7 @@ press_sdk_project/
 示例：
 
 ```c
-#include "press/cpress.h"
+#include "press/press.h"
 
 PressCContext* ctx = cpress_create();
 if (!ctx) {

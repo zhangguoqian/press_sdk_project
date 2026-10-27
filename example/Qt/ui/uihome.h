@@ -42,7 +42,9 @@ private:
     PressData m_PressData{};
     ReadOnlyData m_ReadOnlyData{};
 
-  private slots:
+private slots:
+    void slotStartStopClicked(bool isChecked);
+    void slotPushClicked(bool isChecked);
 
 };
 

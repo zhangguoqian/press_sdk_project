@@ -1,6 +1,6 @@
 /******************************************************************************
- * cpress.h — C language wrapper for the Press SDK
- * cpress.h — Press SDK 的 C 语言封装接口
+ * press.h — C language wrapper for the Press SDK
+ * press.h — Press SDK 的 C 语言封装接口
  *
  *  This header exposes the same functionality of the C++ Press class through a
  *  pure C API. It is intended for C projects or interop code that cannot use
@@ -23,8 +23,8 @@
  *    - 如果 UI 代码需要更新界面，应自行进行线程分发。
  *****************************************************************************/
 
-#ifndef PRESS_SDK_PROJECT_CPRESS_H
-#define PRESS_SDK_PROJECT_CPRESS_H
+#ifndef PRESS_SDK_PROJECT_PRESS_H
+#define PRESS_SDK_PROJECT_PRESS_H
 
 #include "presstype.h"
 
@@ -205,4 +205,4 @@ PRESS_C_EXPORT const char* cpress_version(void);
 }
 #endif
 
-#endif /* PRESS_SDK_PROJECT_CPRESS_H */
+#endif /* PRESS_SDK_PROJECT_PRESS_H */

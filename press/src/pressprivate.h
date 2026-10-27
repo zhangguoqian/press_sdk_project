@@ -80,7 +80,7 @@ public:
     static std::vector<std::string> getPortList();
     const char* getLastErrorInfo() const;
 
-    void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 0);
+    void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 1);
     void unregisterDataInterface();
 
     const JsonData& getMachineData() const;

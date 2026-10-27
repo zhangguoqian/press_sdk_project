@@ -241,7 +241,7 @@ public:
     //! @param intervalSeconds 定时获取 RealTimeData 的周期，单位秒。
     //!                        大于 0 时启动定时线程，循环获取 RealTimeData
     //!                        并通过 onRealTimeData() 上报；小于等于 0 时不启动。
-    void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 0);
+    void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 1);
 
     //! Unregister the previously registered callback interface.
     //! 注销之前注册的回调接口。

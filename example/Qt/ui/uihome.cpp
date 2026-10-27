@@ -33,11 +33,17 @@ UiHome::UiHome(QWidget* parent) :
     {
         QMessageBox::warning(this,qtTrId("提示"),qtTrId("获取设备参数失败!"));
         return;
+    }else
+    {
+        ui->pressChartView->setRange(0,m_ReadOnlyData.m_MaxPLimit);
     }
     info = epMachine->getPressData(m_PressData);
     if (!info){
         QMessageBox::warning(this,qtTrId("提示"),qtTrId("获取设备配置失败!"));
         return;
+    }else
+    {
+        ui->cBoxTypeValue->setCurrentIndex(m_PressData.m_Type);
     }
 
     epMachine->registerDataInterface(&m_DataInterface,1);
@@ -82,6 +88,31 @@ void UiHome::initConnect()
 
 }
 
+void UiHome::slotStartStopClicked(bool isChecked)
+{
+    bool info = epMachine->setPressing(isChecked);
+    if (info)
+    {
+
+    }else
+    {
+        ui->pBnStartStop->setChecked(!isChecked);
+        qDebug() << "start press failed.";
+    }
+}
+
+void UiHome::slotPushClicked(bool isChecked)
+{
+    bool info = epMachine->setDemolding(isChecked);
+    if (info)
+    {
+
+    }else
+    {
+        ui->pBnPush->setChecked(!isChecked);
+        qDebug() << "start demold failed.";
+    }
+}
 
 
 UiHome::~UiHome()
@@ -176,6 +207,7 @@ void UiHome::slotReadOnlyData(int errorCode, const ReadOnlyData& readOnlyData)
 
 void UiHome::slotError(uint16_t cmdCode, std::vector<uint8_t> response)
 {
+    qDebug() << Q_FUNC_INFO << cmdCode << response;
 }
 
 

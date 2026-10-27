@@ -680,6 +680,8 @@ const char* PressPrivate::getLastErrorInfo() const
 
 void PressPrivate::registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds)
 {
+    assert(intervalSeconds > 0);
+    
     std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
 
     if (dataInterface == nullptr)
@@ -693,10 +695,9 @@ void PressPrivate::registerDataInterface(PressDataInterface* dataInterface, int 
         mpMachineDataInterface = std::shared_ptr<PressDataInterface>(dataInterface, [](PressDataInterface*){});
     }
     // intervalSeconds > 0 时启动定时线程，按周期循环获取 RealTimeData
-    if (intervalSeconds > 0)
-    {
-        _startRealTimeTimer(intervalSeconds);
-    }
+
+    _startRealTimeTimer(intervalSeconds);
+    
 }
 
 void PressPrivate::_unregisterInterfaceLocked()

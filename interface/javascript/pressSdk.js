@@ -173,7 +173,7 @@ const RealTimeData = StructType({
 });
 
 const PressCDataCallbacks = StructType({
-  // Keep structure layout aligned with PressCDataCallbacks in cpress.h.
+  // Keep structure layout aligned with PressCDataCallbacks in press.h.
   // Keep the same field order and pointer types as the native API.
   userData: 'pointer',
   onReadOnlyData: 'pointer',

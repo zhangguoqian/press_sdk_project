@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1096</width>
+    <width>1082</width>
     <height>672</height>
    </rect>
   </property>
@@ -332,6 +332,15 @@
           <layout class="QHBoxLayout" name="horizontalLayout_13">
            <item>
             <widget class="StartStopButton" name="pBnStartStop">
+             <property name="styleSheet">
+              <string notr="true">QPushButton[checked=&quot;false&quot;]{
+	background-color: rgb(0, 255, 0);
+}
+
+QPushButton[checked=&quot;true&quot;]{
+	background-color: rgb(255, 0, 0);
+}</string>
+             </property>
              <property name="text">
               <string>启动</string>
              </property>
@@ -358,6 +367,15 @@
            </item>
            <item>
             <widget class="StartStopButton" name="pBnPush">
+             <property name="styleSheet">
+              <string notr="true">QPushButton[checked=&quot;false&quot;]{
+	background-color: rgb(0, 255, 0);
+}
+
+QPushButton[checked=&quot;true&quot;]{
+	background-color: rgb(255, 0, 0);
+}</string>
+             </property>
              <property name="text">
               <string>脱模</string>
              </property>
@@ -440,7 +458,7 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>732</width>
+                <width>718</width>
                 <height>245</height>
                </rect>
               </property>
