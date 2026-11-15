@@ -22,3 +22,8 @@ if (BUILD_QT_EXAMPLE)
     set(CMAKE_INCLUDE_CURRENT_DIR ON)
     add_subdirectory(example/Qt)
 endif ()
+
+option(BUILD_CPP_TEST "Build the C++ interface test example" ON)
+if (BUILD_CPP_TEST)
+    add_subdirectory(test/cpp)
+endif ()
