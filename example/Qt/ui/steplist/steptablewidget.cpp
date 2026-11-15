@@ -70,19 +70,25 @@ void StepTableWidget::initDBoxVector(int count) {
         r4->setAlignment(Qt::AlignCenter);
 
 
-        connect(r1, QOverload<double>::of(&ZDoubleSpinBox::valueChanged),this, [=](double value){
-
+        // 设定压力列 → 上报主界面写回设备 / report to main window for write-back
+        connect(r1, QOverload<double>::of(&ZDoubleSpinBox::valueChanged),this, [this, i](double value){
+            emit signalCellValueChanged(1, i, value);
         });
 
-        connect(r2, QOverload<double>::of(&ZDoubleSpinBox::valueChanged),this, [=](double value){
-
-        });
-        connect(r3, QOverload<int>::of(&ZSpinBox::valueChanged),this, [=](int value){
-
+        // 保压值列 / after-pressure column
+        connect(r2, QOverload<double>::of(&ZDoubleSpinBox::valueChanged),this, [this, i](double value){
+            emit signalCellValueChanged(2, i, value);
         });
 
+        // 保压时间列 / keep-pressure time column
+        connect(r3, QOverload<int>::of(&ZSpinBox::valueChanged),this, [this, i](int value){
+            emit signalCellValueChanged(3, i, static_cast<double>(value));
+        });
+
+        // MPa 为换算显示列(由吨位/缸径推导), 不写回设备
+        // MPa column is derived display only, no device write-back
         connect(r4, QOverload<double>::of(&ZDoubleSpinBox::valueChanged),this, [=](double value){
-
+            Q_UNUSED(value);
         });
     }
 }

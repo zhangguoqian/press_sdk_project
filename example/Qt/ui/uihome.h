@@ -45,6 +45,21 @@ private:
 private slots:
     void slotStartStopClicked(bool isChecked);
     void slotPushClicked(bool isChecked);
+    void slotTypeChanged(int value);
+    void slotDiameterValueChanged(double value);
+    void slotAValueChanged(double value);
+    void slotBValueChanged(double value);
+    void slotOuterDiameterValueChanged(double value);
+    void slotInnerDiameterValueChanged(double value);
+    void slotPushValueChanged(double value);
+    void slotControlDialog(bool checked);
+    void slotStepValueChanged(int value);
+    void slotCellValueChanged(int row, int column, double value);
+
+private:
+    //! 构造期间设备数据回填 UI 会触发 valueChanged，
+    //! 用该标志抑制误写回；构造完成置 true
+    bool m_UiReady = false;
 
 };
 

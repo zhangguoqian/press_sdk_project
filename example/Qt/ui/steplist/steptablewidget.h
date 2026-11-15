@@ -41,6 +41,12 @@ public:
 public slots:
     void slotSetValueChanged(int value);
 
+signals:
+    //! 单元格编辑完成 / cell editing finished
+    //! row: 1=设定压力 2=保压值 3=保压时间(此时 value 为毫秒整数)
+    //! column: 步骤索引(0 起)
+    void signalCellValueChanged(int row, int column, double value);
+
 private:
     int m_MaxStepValue;
 
