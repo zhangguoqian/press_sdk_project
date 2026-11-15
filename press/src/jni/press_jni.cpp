@@ -30,6 +30,8 @@ struct JniCallbackContext
 static std::mutex g_callbackMapMutex;
 static std::unordered_map<CPressContext*, JniCallbackContext*> g_callbackMap;
 
+static void clearPendingException(JNIEnv* env);
+
 static void setStringField(JNIEnv* env, jobject object, const char* fieldName, const char* value)
 {
     if (object == nullptr || value == nullptr)
@@ -40,12 +42,14 @@ static void setStringField(JNIEnv* env, jobject object, const char* fieldName, c
     jclass clazz = env->GetObjectClass(object);
     if (clazz == nullptr)
     {
+        clearPendingException(env);
         return;
     }
 
     jfieldID fieldID = env->GetFieldID(clazz, fieldName, "Ljava/lang/String;");
     if (fieldID == nullptr)
     {
+        clearPendingException(env);
         env->DeleteLocalRef(clazz);
         return;
     }
@@ -61,6 +65,7 @@ static void setByteField(JNIEnv* env, jobject object, const char* fieldName, uin
     jclass clazz = env->GetObjectClass(object);
     if (clazz == nullptr)
     {
+        clearPendingException(env);
         return;
     }
 
@@ -68,6 +73,10 @@ static void setByteField(JNIEnv* env, jobject object, const char* fieldName, uin
     if (fieldID != nullptr)
     {
         env->SetByteField(object, fieldID, static_cast<jbyte>(value));
+    }
+    else
+    {
+        clearPendingException(env);
     }
     env->DeleteLocalRef(clazz);
 }
@@ -77,6 +86,7 @@ static void setLongField(JNIEnv* env, jobject object, const char* fieldName, int
     jclass clazz = env->GetObjectClass(object);
     if (clazz == nullptr)
     {
+        clearPendingException(env);
         return;
     }
 
@@ -84,6 +94,10 @@ static void setLongField(JNIEnv* env, jobject object, const char* fieldName, int
     if (fieldID != nullptr)
     {
         env->SetLongField(object, fieldID, static_cast<jlong>(value));
+    }
+    else
+    {
+        clearPendingException(env);
     }
     env->DeleteLocalRef(clazz);
 }
@@ -93,6 +107,7 @@ static void setFloatField(JNIEnv* env, jobject object, const char* fieldName, fl
     jclass clazz = env->GetObjectClass(object);
     if (clazz == nullptr)
     {
+        clearPendingException(env);
         return;
     }
 
@@ -100,6 +115,10 @@ static void setFloatField(JNIEnv* env, jobject object, const char* fieldName, fl
     if (fieldID != nullptr)
     {
         env->SetFloatField(object, fieldID, value);
+    }
+    else
+    {
+        clearPendingException(env);
     }
     env->DeleteLocalRef(clazz);
 }
@@ -167,6 +186,8 @@ static void fillPressData(JNIEnv* env, jobject object, const PressData& nativeDa
     jfieldID setPField = env->GetFieldID(clazz, "m_SetPValue", "[F");
     jfieldID afterValueField = env->GetFieldID(clazz, "m_AfterValue", "[F");
     jfieldID kpTimeField = env->GetFieldID(clazz, "m_KPTime", "[I");
+    clearPendingException(env);
+
     if (setPField != nullptr)
     {
         jfloatArray setPArray = env->NewFloatArray(30);
@@ -220,12 +241,20 @@ static void readPressData(JNIEnv* env, jobject object, PressData* nativeData)
         {
             *outValue = static_cast<uint8_t>(env->GetByteField(object, fieldID));
         }
+        else
+        {
+            clearPendingException(env);
+        }
     };
     auto readFloat = [&](const char* name, float* outValue) {
         jfieldID fieldID = env->GetFieldID(clazz, name, "F");
         if (fieldID != nullptr)
         {
             *outValue = env->GetFloatField(object, fieldID);
+        }
+        else
+        {
+            clearPendingException(env);
         }
     };
 
@@ -243,13 +272,24 @@ static void readPressData(JNIEnv* env, jobject object, PressData* nativeData)
     jfieldID setPField = env->GetFieldID(clazz, "m_SetPValue", "[F");
     jfieldID afterField = env->GetFieldID(clazz, "m_AfterValue", "[F");
     jfieldID kpField = env->GetFieldID(clazz, "m_KPTime", "[I");
+    clearPendingException(env);
 
     if (setPField != nullptr)
     {
         jfloatArray array = static_cast<jfloatArray>(env->GetObjectField(object, setPField));
         if (array != nullptr)
         {
-            env->GetFloatArrayRegion(array, 0, 30, nativeData->m_SetPValue);
+            // Java 侧数组长度不可信：只拷贝实际长度，剩余清零，避免越界
+            jsize len = env->GetArrayLength(array);
+            jsize copyLen = len < 30 ? len : 30;
+            if (copyLen > 0)
+            {
+                env->GetFloatArrayRegion(array, 0, copyLen, nativeData->m_SetPValue);
+            }
+            if (copyLen < 30)
+            {
+                memset(&nativeData->m_SetPValue[copyLen], 0, (30 - copyLen) * sizeof(float));
+            }
             env->DeleteLocalRef(array);
         }
     }
@@ -258,7 +298,16 @@ static void readPressData(JNIEnv* env, jobject object, PressData* nativeData)
         jfloatArray array = static_cast<jfloatArray>(env->GetObjectField(object, afterField));
         if (array != nullptr)
         {
-            env->GetFloatArrayRegion(array, 0, 30, nativeData->m_AfterValue);
+            jsize len = env->GetArrayLength(array);
+            jsize copyLen = len < 30 ? len : 30;
+            if (copyLen > 0)
+            {
+                env->GetFloatArrayRegion(array, 0, copyLen, nativeData->m_AfterValue);
+            }
+            if (copyLen < 30)
+            {
+                memset(&nativeData->m_AfterValue[copyLen], 0, (30 - copyLen) * sizeof(float));
+            }
             env->DeleteLocalRef(array);
         }
     }
@@ -267,8 +316,13 @@ static void readPressData(JNIEnv* env, jobject object, PressData* nativeData)
         jintArray array = static_cast<jintArray>(env->GetObjectField(object, kpField));
         if (array != nullptr)
         {
-            std::vector<jint> values(30);
-            env->GetIntArrayRegion(array, 0, 30, values.data());
+            jsize len = env->GetArrayLength(array);
+            jsize copyLen = len < 30 ? len : 30;
+            std::vector<jint> values(30, 0);
+            if (copyLen > 0)
+            {
+                env->GetIntArrayRegion(array, 0, copyLen, values.data());
+            }
             for (int i = 0; i < 30; ++i)
             {
                 nativeData->m_KPTime[i] = static_cast<uint32_t>(values[i]);
@@ -293,8 +347,18 @@ static jobject newJavaObject(JNIEnv* env, const char* className)
     return instance;
 }
 
-static JNIEnv* attachCurrentThread(JavaVM* vm)
+static void clearPendingException(JNIEnv* env)
 {
+    if (env->ExceptionCheck())
+    {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+    }
+}
+
+static JNIEnv* attachCurrentThread(JavaVM* vm, bool* didAttach)
+{
+    *didAttach = false;
     JNIEnv* env = nullptr;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_8) == JNI_EDETACHED)
     {
@@ -302,6 +366,7 @@ static JNIEnv* attachCurrentThread(JavaVM* vm)
         {
             return nullptr;
         }
+        *didAttach = true;
     }
     return env;
 }
@@ -322,7 +387,8 @@ static void jniOnReadOnlyData(void* userData,
         return;
     }
 
-    JNIEnv* env = attachCurrentThread(ctx->vm);
+    bool didAttach = false;
+    JNIEnv* env = attachCurrentThread(ctx->vm, &didAttach);
     if (env == nullptr)
     {
         return;
@@ -347,7 +413,13 @@ static void jniOnReadOnlyData(void* userData,
     {
         env->DeleteLocalRef(javaData);
     }
-    detachCurrentThread(ctx->vm);
+    // Java 回调抛出的异常不能带入 Detach，否则 ART 会 abort
+    clearPendingException(env);
+    // 仅对本次 Attach 的线程 Detach；调用者自身（如 UI 线程）已附加时不能分离
+    if (didAttach)
+    {
+        detachCurrentThread(ctx->vm);
+    }
 }
 
 static void jniOnRealTimeData(void* userData,
@@ -360,7 +432,8 @@ static void jniOnRealTimeData(void* userData,
         return;
     }
 
-    JNIEnv* env = attachCurrentThread(ctx->vm);
+    bool didAttach = false;
+    JNIEnv* env = attachCurrentThread(ctx->vm, &didAttach);
     if (env == nullptr)
     {
         return;
@@ -384,7 +457,11 @@ static void jniOnRealTimeData(void* userData,
     {
         env->DeleteLocalRef(javaData);
     }
-    detachCurrentThread(ctx->vm);
+    clearPendingException(env);
+    if (didAttach)
+    {
+        detachCurrentThread(ctx->vm);
+    }
 }
 
 static void jniOnPressData(void* userData,
@@ -397,7 +474,8 @@ static void jniOnPressData(void* userData,
         return;
     }
 
-    JNIEnv* env = attachCurrentThread(ctx->vm);
+    bool didAttach = false;
+    JNIEnv* env = attachCurrentThread(ctx->vm, &didAttach);
     if (env == nullptr)
     {
         return;
@@ -421,7 +499,11 @@ static void jniOnPressData(void* userData,
     {
         env->DeleteLocalRef(javaData);
     }
-    detachCurrentThread(ctx->vm);
+    clearPendingException(env);
+    if (didAttach)
+    {
+        detachCurrentThread(ctx->vm);
+    }
 }
 
 static void jniOnError(void* userData,
@@ -435,7 +517,8 @@ static void jniOnError(void* userData,
         return;
     }
 
-    JNIEnv* env = attachCurrentThread(ctx->vm);
+    bool didAttach = false;
+    JNIEnv* env = attachCurrentThread(ctx->vm, &didAttach);
     if (env == nullptr)
     {
         return;
@@ -462,7 +545,11 @@ static void jniOnError(void* userData,
     {
         env->DeleteLocalRef(responseArray);
     }
-    detachCurrentThread(ctx->vm);
+    clearPendingException(env);
+    if (didAttach)
+    {
+        detachCurrentThread(ctx->vm);
+    }
 }
 
 static void cleanupCallbackContext(JNIEnv* env, JniCallbackContext* ctx)
@@ -504,6 +591,10 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_destroy(JNIEnv* env, jclas
         return;
     }
 
+    // 先注销回调并停止 SDK 线程（join 完成后无在途回调），再清理 JNI 全局引用，
+    // 避免定时线程回调正在执行时 jniCtx 被释放造成 use-after-free
+    cpress_unregister_data_interface(ctx);
+
     {
         std::lock_guard<std::mutex> lock(g_callbackMapMutex);
         auto it = g_callbackMap.find(ctx);
@@ -514,7 +605,6 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_destroy(JNIEnv* env, jclas
         }
     }
 
-    cpress_unregister_data_interface(ctx);
     cpress_destroy(ctx);
 }
 
@@ -626,16 +716,133 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_demolding(JNIEnv* env,
     return cpress_set_demolding(reinterpret_cast<CPressContext*>(handle), isDemolding);
 }
 
+// 通用读写命令：返回响应字节数组，失败时返回 nullptr（Java 侧为 null）
+// Generic read/write commands: return the response bytes, or nullptr on failure.
+static jbyteArray jniGenericCommand(JNIEnv* env,
+                                    jlong handle,
+                                    jint command,
+                                    jbyteArray requestData,
+                                    jint responseCapacity,
+                                    bool isWrite)
+{
+    CPressContext* ctx = reinterpret_cast<CPressContext*>(handle);
+
+    // 请求 payload：Java 侧可能传 null 或空数组，此时传 NULL 指针
+    // Request payload: the Java side may pass null or an empty array; use a
+    // NULL pointer in that case.
+    std::vector<unsigned char> request;
+    if (requestData != nullptr)
+    {
+        jsize requestLength = env->GetArrayLength(requestData);
+        if (requestLength > 0)
+        {
+            request.resize(static_cast<size_t>(requestLength));
+            env->GetByteArrayRegion(requestData,
+                                    0,
+                                    requestLength,
+                                    reinterpret_cast<jbyte*>(request.data()));
+            if (env->ExceptionCheck())
+            {
+                return nullptr;
+            }
+        }
+    }
+
+    const size_t capacity = responseCapacity > 0 ? static_cast<size_t>(responseCapacity) : 0;
+    std::vector<unsigned char> response(capacity, 0);
+    size_t actualLen = 0;
+
+    int result = 0;
+    if (isWrite)
+    {
+        result = cpress_generic_write(ctx,
+                                      static_cast<unsigned short>(command),
+                                      request.empty() ? nullptr : request.data(),
+                                      request.size(),
+                                      response.empty() ? nullptr : response.data(),
+                                      response.size(),
+                                      &actualLen);
+    }
+    else
+    {
+        result = cpress_generic_read(ctx,
+                                     static_cast<unsigned short>(command),
+                                     request.empty() ? nullptr : request.data(),
+                                     request.size(),
+                                     response.empty() ? nullptr : response.data(),
+                                     response.size(),
+                                     &actualLen);
+    }
+
+    if (result == 0)
+    {
+        return nullptr;
+    }
+
+    const size_t copyLen = actualLen < capacity ? actualLen : capacity;
+    jbyteArray out = env->NewByteArray(static_cast<jsize>(copyLen));
+    if (out == nullptr)
+    {
+        return nullptr;
+    }
+    if (copyLen > 0)
+    {
+        env->SetByteArrayRegion(out,
+                                0,
+                                static_cast<jsize>(copyLen),
+                                reinterpret_cast<const jbyte*>(response.data()));
+    }
+    return out;
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL Java_PressSdk_press_generic_read(JNIEnv* env,
+                                                                          jclass,
+                                                                          jlong handle,
+                                                                          jint command,
+                                                                          jbyteArray requestData,
+                                                                          jint responseCapacity)
+{
+    return jniGenericCommand(env, handle, command, requestData, responseCapacity, false);
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL Java_PressSdk_press_generic_write(JNIEnv* env,
+                                                                           jclass,
+                                                                           jlong handle,
+                                                                           jint command,
+                                                                           jbyteArray requestData,
+                                                                           jint responseCapacity)
+{
+    return jniGenericCommand(env, handle, command, requestData, responseCapacity, true);
+}
+
 extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_version(JNIEnv* env, jclass)
 {
     return toJavaString(env, cpress_version());
+}
+
+extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_get_serial_number(JNIEnv* env, jclass, jlong handle)
+{
+    char buffer[64] = {};
+    int result = cpress_get_serial_number(reinterpret_cast<CPressContext*>(handle), buffer, sizeof(buffer));
+    if (result == 0)
+    {
+        return toJavaString(env, "");
+    }
+    return toJavaString(env, buffer);
+}
+
+extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_set_request_timeout(JNIEnv* env, jclass, jlong handle, jint ms)
+{
+    (void)env;
+    cpress_set_request_timeout(reinterpret_cast<CPressContext*>(handle), static_cast<unsigned int>(ms));
 }
 
 extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JNIEnv* env,
                                                                                jclass,
                                                                                jlong handle,
                                                                                jobject /*self*/,
-                                                                               jobject callbacks)
+                                                                               jobject callbacks,
+                                                                               jint intervalSeconds)
 {
     CPressContext* ctx = reinterpret_cast<CPressContext*>(handle);
     if (ctx == nullptr)
@@ -643,14 +850,18 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JN
         return;
     }
 
-    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
-
-    auto it = g_callbackMap.find(ctx);
-    if (it != g_callbackMap.end())
     {
-        cleanupCallbackContext(env, it->second);
-        g_callbackMap.erase(it);
-        cpress_unregister_data_interface(ctx);
+        std::lock_guard<std::mutex> lock(g_callbackMapMutex);
+
+        auto it = g_callbackMap.find(ctx);
+        if (it != g_callbackMap.end())
+        {
+            // 先停 SDK 线程（join 后无在途回调），再清理 JNI 上下文，
+            // 避免定时线程回调正在执行时 jniCtx 被释放造成 use-after-free
+            cpress_unregister_data_interface(ctx);
+            cleanupCallbackContext(env, it->second);
+            g_callbackMap.erase(it);
+        }
     }
 
     if (callbacks == nullptr)
@@ -684,6 +895,7 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JN
     jniCtx->onErrorMethod = env->GetMethodID(jniCtx->callbacksClass,
                                              "onError",
                                              "(I[B)V");
+    clearPendingException(env);
 
     CPressDataCallbacks cCallbacks = {};
     cCallbacks.userData = jniCtx;
@@ -692,7 +904,7 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JN
     cCallbacks.onPressData = jniOnPressData;
     cCallbacks.onError = jniOnError;
 
-    cpress_register_data_interface(ctx, &cCallbacks);
+    cpress_register_data_interface(ctx, &cCallbacks, intervalSeconds);
     g_callbackMap[ctx] = jniCtx;
 }
 

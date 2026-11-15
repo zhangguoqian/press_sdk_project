@@ -274,6 +274,17 @@ namespace PressSdk.Interop
         [DllImport("press", EntryPoint = "cpress_set_demolding", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeSetDemolding(IntPtr handle, int isDemolding);
 
+        /// <summary>
+        /// Generic read/write commands. size_t maps to UIntPtr to match the native ABI,
+        /// same as the error callback above. / 通用读写命令。size_t 与上方错误回调一致，
+        /// 映射为 UIntPtr 以匹配原生 ABI。
+        /// </summary>
+        [DllImport("press", EntryPoint = "cpress_generic_read", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGenericRead(IntPtr handle, ushort command, byte[]? requestData, UIntPtr requestLen, byte[]? responseData, UIntPtr responseCapacity, out UIntPtr responseLen);
+
+        [DllImport("press", EntryPoint = "cpress_generic_write", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGenericWrite(IntPtr handle, ushort command, byte[]? requestData, UIntPtr requestLen, byte[]? responseData, UIntPtr responseCapacity, out UIntPtr responseLen);
+
         [DllImport("press", EntryPoint = "cpress_register_data_interface", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern void NativeRegisterDataInterface(IntPtr handle, ref PressCDataCallbacks callbacks);
 
@@ -366,6 +377,100 @@ namespace PressSdk.Interop
         public bool SetDemolding(bool isDemolding)
         {
             return NativeSetDemolding(_handle, isDemolding ? 1 : 0) != 0;
+        }
+
+        /// <summary>
+        /// Generic read command covering all CMDID_* commands.
+        /// 通用读命令，覆盖全部 CMDID_* 命令。
+        ///
+        /// <paramref name="command"/> must not carry the SET bit; read requests
+        /// carry exactly 1 payload byte. Returns the response bytes on success,
+        /// or null on failure (see <see cref="GetLastErrorInfo"/>).
+        /// <paramref name="command"/> 不带 SET 位；读命令请求 payload 固定 1 字节。
+        /// 成功返回响应字节数组，失败返回 null（错误信息见
+        /// <see cref="GetLastErrorInfo"/>）。
+        /// </summary>
+        /// <param name="command">Command ID without the SET bit. / 不带 SET 位的命令 ID</param>
+        /// <param name="requestData">Request payload bytes. / 请求 payload 字节</param>
+        /// <param name="responseCapacity">Response buffer capacity in bytes. / 响应缓冲容量（字节）</param>
+        public byte[]? GenericRead(ushort command, byte[]? requestData, int responseCapacity)
+        {
+            return RunGenericCommand(
+                NativeGenericRead,
+                command,
+                requestData,
+                responseCapacity);
+        }
+
+        /// <summary>
+        /// Generic write command covering all SET_CMD() commands.
+        /// 通用写命令，覆盖全部 SET_CMD() 命令。
+        ///
+        /// <paramref name="command"/> must carry the SET bit (= read command ID
+        /// | 0x1000). <paramref name="requestData"/> is the full write payload
+        /// (indexed commands carry their index prefix). The response is the
+        /// firmware echo (parameter commands) or a 1-byte status code (control
+        /// commands: 0/1 accepted, 3 rejected). Returns the response bytes on
+        /// success, or null on failure (see <see cref="GetLastErrorInfo"/>).
+        /// <paramref name="command"/> 必须带 SET 位（= 读命令 ID | 0x1000）。
+        /// <paramref name="requestData"/> 为完整写入 payload（索引型命令自带索引前缀）。
+        /// 响应为固件回显数据（参数类）或 1 字节状态码（控制类 0/1 成功，3 拒绝）。
+        /// 成功返回响应字节数组，失败返回 null（错误信息见
+        /// <see cref="GetLastErrorInfo"/>）。
+        /// </summary>
+        /// <param name="command">Command ID WITH the SET bit. / 带 SET 位的命令 ID</param>
+        /// <param name="requestData">Full write payload. / 完整写入 payload</param>
+        /// <param name="responseCapacity">Response buffer capacity in bytes. / 响应缓冲容量（字节）</param>
+        public byte[]? GenericWrite(ushort command, byte[]? requestData, int responseCapacity)
+        {
+            return RunGenericCommand(
+                NativeGenericWrite,
+                command,
+                requestData,
+                responseCapacity);
+        }
+
+        /// <summary>
+        /// Shared implementation for the generic read/write commands.
+        /// 通用读写命令的公共实现。
+        /// </summary>
+        private delegate int GenericCommandInvoker(
+            IntPtr handle,
+            ushort command,
+            byte[]? requestData,
+            UIntPtr requestLen,
+            byte[]? responseData,
+            UIntPtr responseCapacity,
+            out UIntPtr responseLen);
+
+        private byte[]? RunGenericCommand(
+            GenericCommandInvoker fn,
+            ushort command,
+            byte[]? requestData,
+            int responseCapacity)
+        {
+            var request = requestData ?? Array.Empty<byte>();
+            var capacity = responseCapacity > 0 ? responseCapacity : 0;
+            var responseBuffer = new byte[capacity];
+
+            var result = fn(
+                _handle,
+                command,
+                request,
+                (UIntPtr)(uint)request.Length,
+                responseBuffer,
+                (UIntPtr)(uint)capacity,
+                out var responseLen);
+
+            if (result == 0)
+            {
+                return null;
+            }
+
+            var actualLength = (int)Math.Min(responseLen.ToUInt64(), (ulong)capacity);
+            return actualLength == 0
+                ? Array.Empty<byte>()
+                : responseBuffer[..actualLength];
         }
 
         public void RegisterDataInterface(

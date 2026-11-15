@@ -385,6 +385,71 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
+     * Generic read command covering all CMDID_* commands.
+     * 通用读命令，覆盖全部 CMDID_* 命令。
+     *
+     * <p>{@code command} must not carry the SET bit; read requests carry exactly
+     * 1 payload byte on the wire, so {@code requestData} is usually a single byte
+     * (it may also be null or empty when the command does not need one).</p>
+     * <p>{@code command} 不带 SET 位；读命令请求 payload 固定 1 字节，
+     * {@code requestData} 通常为单字节（命令不需要时也可传 null 或空数组）。</p>
+     *
+     * @param command          command ID without the SET bit / 不带 SET 位的命令 ID
+     * @param requestData      request payload bytes / 请求 payload 字节
+     * @param responseCapacity response buffer capacity in bytes / 响应缓冲容量（字节）
+     * @return response bytes on success, null on failure / 成功返回响应字节数组，失败返回 null
+     */
+    public byte[] genericRead(int command, byte[] requestData, int responseCapacity) {
+        ensureOpen();
+        return press_generic_read(this.handle, command, requestData, responseCapacity);
+    }
+
+    /**
+     * Generic write command covering all SET_CMD() commands.
+     * 通用写命令，覆盖全部 SET_CMD() 命令。
+     *
+     * <p>{@code command} must carry the SET bit (= read command ID | 0x1000).
+     * {@code requestData} is the full write payload (indexed commands carry their
+     * index prefix). The response is the firmware echo (parameter commands) or a
+     * 1-byte status code (control commands: 0/1 accepted, 3 rejected).</p>
+     * <p>{@code command} 必须带 SET 位（= 读命令 ID | 0x1000）。
+     * {@code requestData} 为完整写入 payload（索引型命令自带索引前缀）。
+     * 响应为固件回显数据（参数类）或 1 字节状态码（控制类 0/1 成功，3 拒绝）。</p>
+     *
+     * @param command          command ID WITH the SET bit / 带 SET 位的命令 ID
+     * @param requestData      full write payload / 完整写入 payload
+     * @param responseCapacity response buffer capacity in bytes / 响应缓冲容量（字节）
+     * @return response bytes on success, null on failure / 成功返回响应字节数组，失败返回 null
+     */
+    public byte[] genericWrite(int command, byte[] requestData, int responseCapacity) {
+        ensureOpen();
+        return press_generic_write(this.handle, command, requestData, responseCapacity);
+    }
+
+    /**
+     * Read the device serial number (CMDID_SERIAL_NUMBER 0x0003).
+     * On success the value is also cached into the native ReadOnlyData.m_SerialNumber.
+     * 读取设备序列号；成功后该值同时缓存到原生 ReadOnlyData.m_SerialNumber。
+     *
+     * @return serial number string, empty on failure / 序列号字符串，失败返回空串
+     */
+    public String getSerialNumber() {
+        ensureOpen();
+        return press_get_serial_number(this.handle);
+    }
+
+    /**
+     * Set the per-request timeout in milliseconds (default 300ms, max 60000ms).
+     * 设置单次请求超时（毫秒），默认 300ms，上限 60000ms。
+     *
+     * @param ms timeout in ms; 0 restores the default / 超时毫秒数，0 恢复默认
+     */
+    public void setRequestTimeout(int ms) {
+        ensureOpen();
+        press_set_request_timeout(this.handle, ms);
+    }
+
+    /**
      * Register a callback handler to receive asynchronous data push from the native SDK.
      * 注册回调处理器，用于接收底层 SDK 的异步数据推送。
      *
@@ -393,11 +458,23 @@ public final class PressSdk implements AutoCloseable {
      * <p>再次传入同一个 callbacks 实例会替换之前的注册；传入 {@code null} 等效于
      * 调用 {@link #unregisterDataCallbacks()} 注销回调。</p>
      *
+     * @param callbacks       callback handler or null to unregister / 回调处理器，null 表示注销
+     * @param intervalSeconds periodic RealTimeData polling interval in seconds;
+     *                        &lt;= 0 disables the timer / 实时数据定时采集周期（秒），
+     *                        小于等于 0 时不启动定时采集
      * <p><b>Threading note / 线程说明</b>: Callbacks are invoked on a native SDK worker thread.</p>
      */
-    public void registerDataCallbacks(DataCallbacks callbacks) {
+    public void registerDataCallbacks(DataCallbacks callbacks, int intervalSeconds) {
         ensureOpen();
-        press_register_data_interface(this.handle, this, callbacks);
+        press_register_data_interface(this.handle, this, callbacks, intervalSeconds);
+    }
+
+    /**
+     * Register a callback handler with the default 1-second polling interval.
+     * 以默认 1 秒采集周期注册回调处理器。
+     */
+    public void registerDataCallbacks(DataCallbacks callbacks) {
+        registerDataCallbacks(callbacks, 1);
     }
 
     /**
@@ -435,9 +512,13 @@ public final class PressSdk implements AutoCloseable {
     public static native int press_get_real_time_data(long handle, RealTimeData data, int isCompressed);
     public static native int press_set_pressing(long handle, int isPressing);
     public static native int press_set_demolding(long handle, int isDemolding);
-    public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks);
+    public static native byte[] press_generic_read(long handle, int command, byte[] requestData, int responseCapacity);
+    public static native byte[] press_generic_write(long handle, int command, byte[] requestData, int responseCapacity);
+    public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks, int intervalSeconds);
     public static native void press_unregister_data_interface(long handle);
     public static native String press_version();
+    public static native String press_get_serial_number(long handle);
+    public static native void press_set_request_timeout(long handle, int ms);
 
     public static void main(String[] args) {
         try (PressSdk sdk = new PressSdk()) {

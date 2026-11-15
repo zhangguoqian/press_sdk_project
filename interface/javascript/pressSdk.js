@@ -105,6 +105,12 @@ const pressLib = ffi.Library(resolveLibraryPath(), {
   cpress_set_pressing: ['int', ['void*', 'int']],
   cpress_set_demolding: ['int', ['void*', 'int']],
 
+  // Generic read/write commands / 通用读写命令
+  // size_t is used for lengths so they round-trip correctly on 64-bit hosts.
+  // 长度使用 size_t，保证在 64 位平台上能正确来回传递。
+  cpress_generic_read: ['int', ['void*', 'ushort', 'pointer', 'size_t', 'pointer', 'size_t', 'pointer']],
+  cpress_generic_write: ['int', ['void*', 'ushort', 'pointer', 'size_t', 'pointer', 'size_t', 'pointer']],
+
   // Callback / 回调
   cpress_register_data_interface: ['void', ['void*', 'pointer']],
   cpress_unregister_data_interface: ['void', ['void*']],
@@ -296,6 +302,71 @@ class PressSdk {
   setDemolding(isDemolding) {
     this._assertHandle();
     return pressLib.cpress_set_demolding(this.handle, isDemolding ? 1 : 0) !== 0;
+  }
+
+  // Generic read command, covers all CMDID_* commands / 通用读命令，覆盖全部 CMDID_* 命令
+  // command must NOT carry the SET bit; read requests carry exactly 1 payload
+  // byte. Returns the response bytes on success, null on failure.
+  // command 不带 SET 位；读命令请求 payload 固定 1 字节。
+  // 成功返回响应字节，失败返回 null。
+  genericRead(command, requestData, responseCapacity) {
+    this._assertHandle();
+    return this._genericCommand(
+      pressLib.cpress_generic_read,
+      command,
+      requestData,
+      responseCapacity
+    );
+  }
+
+  // Generic write command, covers all SET_CMD() commands / 通用写命令，覆盖全部 SET_CMD() 命令
+  // command must carry the SET bit (= read command ID | 0x1000); requestData is
+  // the full write payload (indexed commands carry their index prefix). The
+  // response is the firmware echo (parameter commands) or a 1-byte status code
+  // (control commands: 0/1 accepted, 3 rejected). Returns the response bytes on
+  // success, null on failure.
+  // command 必须带 SET 位（= 读命令 ID | 0x1000）；requestData 为完整写入
+  // payload（索引型命令自带索引前缀）。响应为固件回显数据（参数类）或 1 字节
+  // 状态码（控制类 0/1 成功，3 拒绝）。成功返回响应字节，失败返回 null。
+  genericWrite(command, requestData, responseCapacity) {
+    this._assertHandle();
+    return this._genericCommand(
+      pressLib.cpress_generic_write,
+      command,
+      requestData,
+      responseCapacity
+    );
+  }
+
+  // Shared helper for the generic read/write commands / 通用读写命令的公共辅助方法
+  _genericCommand(fn, command, requestData, responseCapacity) {
+    let request = null;
+    let requestLen = 0;
+    if (requestData !== undefined && requestData !== null) {
+      request = Buffer.isBuffer(requestData) ? requestData : Buffer.from(requestData);
+      requestLen = request.length;
+    }
+
+    const capacity = Math.max(0, responseCapacity | 0);
+    const responseBuffer = Buffer.alloc(capacity);
+    const responseLen = ref.alloc('size_t', 0);
+
+    const result = fn(
+      this.handle,
+      command & 0xffff,
+      request === null ? ref.NULL : request,
+      requestLen,
+      capacity > 0 ? responseBuffer : ref.NULL,
+      capacity,
+      responseLen
+    );
+
+    if (result === 0) {
+      return null;
+    }
+
+    const actualLen = Math.min(Number(ref.get(responseLen)), capacity);
+    return responseBuffer.slice(0, actualLen);
   }
 
   // Register callback interface / 注册回调接口

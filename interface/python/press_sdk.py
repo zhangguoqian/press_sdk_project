@@ -228,6 +228,28 @@ class PressSdk:
     _lib.cpress_set_demolding.argtypes = [ctypes.c_void_p, ctypes.c_int]
     _lib.cpress_set_demolding.restype = ctypes.c_int
 
+    _lib.cpress_generic_read.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ushort,
+        ctypes.POINTER(ctypes.c_ubyte),
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_ubyte),
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    _lib.cpress_generic_read.restype = ctypes.c_int
+
+    _lib.cpress_generic_write.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_ushort,
+        ctypes.POINTER(ctypes.c_ubyte),
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_ubyte),
+        ctypes.c_size_t,
+        ctypes.POINTER(ctypes.c_size_t),
+    ]
+    _lib.cpress_generic_write.restype = ctypes.c_int
+
     _lib.cpress_register_data_interface.argtypes = [ctypes.c_void_p, ctypes.POINTER(PressCDataCallbacks)]
     _lib.cpress_unregister_data_interface.argtypes = [ctypes.c_void_p]
     _lib.cpress_version.restype = ctypes.c_char_p
@@ -303,6 +325,81 @@ class PressSdk:
 
     def set_demolding(self, is_demolding: bool) -> bool:
         return self._lib.cpress_set_demolding(self._handle, 1 if is_demolding else 0) != 0
+
+    def generic_read(self, command: int, request_data: bytes, response_capacity: int) -> bytes:
+        """Generic read command covering all CMDID_* commands.
+
+        ``command`` must not carry the SET bit; read requests carry exactly
+        1 payload byte on the wire. Returns the response bytes on success and
+        raises RuntimeError on failure (see ``get_last_error_info``).
+        """
+        request_bytes = bytes(request_data) if request_data else b""
+        request_len = len(request_bytes)
+        request_buf = (
+            (ctypes.c_ubyte * request_len).from_buffer_copy(request_bytes)
+            if request_len
+            else None
+        )
+
+        capacity = max(0, int(response_capacity))
+        response_buf = (ctypes.c_ubyte * capacity)() if capacity else None
+
+        actual_len = ctypes.c_size_t(0)
+        ok = self._lib.cpress_generic_read(
+            self._handle,
+            command & 0xFFFF,
+            request_buf,
+            request_len,
+            response_buf,
+            capacity,
+            ctypes.byref(actual_len),
+        )
+        if not ok:
+            raise RuntimeError(self.get_last_error_info())
+
+        length = min(actual_len.value, capacity)
+        if response_buf is None or length == 0:
+            return b""
+        return bytes(response_buf[:length])
+
+    def generic_write(self, command: int, request_data: bytes, response_capacity: int) -> bytes:
+        """Generic write command covering all SET_CMD() commands.
+
+        ``command`` must carry the SET bit (= read command ID | 0x1000);
+        ``request_data`` is the full write payload (indexed commands carry
+        their index prefix). The response is the firmware echo (parameter
+        commands) or a 1-byte status code (control commands: 0/1 accepted,
+        3 rejected). Returns the response bytes on success and raises
+        RuntimeError on failure (see ``get_last_error_info``).
+        """
+        request_bytes = bytes(request_data) if request_data else b""
+        request_len = len(request_bytes)
+        request_buf = (
+            (ctypes.c_ubyte * request_len).from_buffer_copy(request_bytes)
+            if request_len
+            else None
+        )
+
+        capacity = max(0, int(response_capacity))
+        response_buf = (ctypes.c_ubyte * capacity)() if capacity else None
+
+        actual_len = ctypes.c_size_t(0)
+        ok = self._lib.cpress_generic_write(
+            self._handle,
+            command & 0xFFFF,
+            request_buf,
+            request_len,
+            response_buf,
+            capacity,
+            ctypes.byref(actual_len),
+        )
+        if not ok:
+            raise RuntimeError(self.get_last_error_info())
+
+        length = min(actual_len.value, capacity)
+        if response_buf is None or length == 0:
+            return b""
+        return bytes(response_buf[:length])
 
     def register_data_interface(self, callbacks: PressCDataCallbacks) -> None:
         """Register low-level native callbacks if the app wants to receive updates."""
