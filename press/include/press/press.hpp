@@ -174,6 +174,13 @@ public:
     //! @return true if running / 是否正在运行。
     bool isRunning() const;
 
+    //! Set the per-request timeout in milliseconds (default 300ms).
+    //! @param ms Timeout in ms; 0 restores the default; clamped to 60000ms max.
+    //!           Weak TCP links may need a larger value than the serial default.
+    //! 设置单次请求超时（毫秒），默认 300ms；0 恢复默认，上限 60000ms。
+    //! TCP 弱网环境下可适当调大。
+    void setRequestTimeout(unsigned int ms);
+
 
     /**************************************************************************
      * Synchronous data exchange / 同步数据交换
@@ -187,6 +194,12 @@ public:
     //! @param isCompressed [in]  Request JSON-compressed response from device.
     //! @return true on success / 读取静态 (只读) 设备信息。
     bool getReadOnlyData(ReadOnlyData& data, bool isCompressed = false);
+
+    //! Read the device serial number (CMDID_SERIAL_NUMBER 0x0003).
+    //! On success the value is also cached into ReadOnlyData.m_SerialNumber.
+    //! @param serialNumber [out] Decoded serial number on success.
+    //! @return true on success / 读取设备序列号。
+    bool getSerialNumber(std::string& serialNumber);
 
     //! Read the current pressure control parameters.
     //! @param data         [out] Decoded PressData on success.
@@ -222,6 +235,181 @@ public:
     //! @param isDemolding true to start demolding, false to stop.
     //! @return true on success / 单独启动或停止脱模。
     bool setDemolding(bool isDemolding);
+
+
+    /**************************************************************************
+     * Generic command interface / 通用命令接口
+     *
+     *  覆盖固件支持的全部命令（typeprivate.h 中的 CMDID_* 与 SET_CMD()）。
+     *  - 读命令请求 payload 固定 1 字节（索引/语言代码/压缩标志/哑元 0）
+     *  - 写命令 payload 为完整数据区（索引型命令自带索引前缀）
+     *  - 写命令响应：控制类返回 1 字节状态码，参数类回显写入数据
+     *  未提供语义化封装的命令均可通过这两个方法访问，
+     *  例如: getFloatValue(CMDID_CIRCLE_D, d)、setIndexedByte(CMDID_MIX_INDEX_ISPRESS, i, v)
+     *************************************************************************/
+
+    //! Generic read command / 通用读命令
+    bool genericRead(uint16_t command, const std::vector<uint8_t>& requestData,
+                     std::vector<uint8_t>& responseData);
+
+    //! Generic write command (command must carry the SET bit) / 通用写命令（命令需带 SET 位）
+    bool genericWrite(uint16_t command, const std::vector<uint8_t>& requestData,
+                      std::vector<uint8_t>& responseData);
+
+
+    /**************************************************************************
+     * Typed command helpers / 类型化命令助手
+     *
+     *  按数据类型覆盖同类 payload 命令（command 传读命令 ID，写时自动加 SET 位）：
+     *  - 单字节: PRESS_STEP / MOLD_TYPE / AIR_TIME / PRESS_DECIMAL / PRESSURE_DECIMAL
+     *            / PMODEL / TEMP_STEP / SPEED_MOLD / BRIGHTNESS / LANGUAGE
+     *            / MIX_STEP / MIX_MOLD_TYPE ...
+     *  - 4 字节浮点: PRESS_CALIBRATE / CIRCLE_D / DEMOLD_VALUE / WATER_UP / WATER_DOWN
+     *            / MIX_CIRCLE_D ...
+     *  - 8 字节双浮点: RECT_AB / MIX_RECT_AB ...
+     *  - 索引单字节: MIX_INDEX_ISPRESS / MIX_INDEX_ISHEAT_UP / MIX_INDEX_ISHEAT_DOWN
+     *  - 索引浮点: INDEX_PRESS / INDEX_AFTER / INDEX_TEMP / INDEX_SPEED
+     *            / MIX_INDEX_PRESS / MIX_INDEX_AFTER / MIX_INDEX_TEMP_UP / MIX_INDEX_TEMP_DOWN ...
+     *  - 索引整型: INDEX_KPTIME / INDEX_KTTIME / MIX_INDEX_KTIME ...
+     *************************************************************************/
+
+    bool getByteValue(uint16_t command, uint8_t& value);                        //!< 单字节读
+    bool setByteValue(uint16_t command, uint8_t value);                        //!< 单字节写
+    bool getFloatValue(uint16_t command, float& value);                       //!< 浮点读
+    bool setFloatValue(uint16_t command, float value);                        //!< 浮点写
+    bool getFloatPairValue(uint16_t command, float& valueA, float& valueB);    //!< 双浮点读
+    bool setFloatPairValue(uint16_t command, float valueA, float valueB);     //!< 双浮点写
+    bool getIndexedByte(uint16_t command, uint8_t index, uint8_t& value);      //!< 索引单字节读
+    bool setIndexedByte(uint16_t command, uint8_t index, uint8_t value);       //!< 索引单字节写
+    bool getIndexedFloat(uint16_t command, uint8_t index, float& value);       //!< 索引浮点读
+    bool setIndexedFloat(uint16_t command, uint8_t index, float value);        //!< 索引浮点写
+    bool getIndexedInt32(uint16_t command, uint8_t index, int32_t& value);     //!< 索引整型读
+    bool setIndexedInt32(uint16_t command, uint8_t index, int32_t value);     //!< 索引整型写
+
+
+    /**************************************************************************
+     * Device info & parameters / 设备信息与参数块
+     *************************************************************************/
+
+    //! Read device name (CMDID_NAME). language: 0=Chinese, 2=English.
+    //! 读取设备名称。成功后缓存到 ReadOnlyData.m_NameZH / m_NameEN。
+    bool getName(std::string& name, uint8_t language = 0);
+
+    //! Read machine type string (CMDID_MACHINE_TYPE). Cached to ReadOnlyData.m_Type.
+    //! 读取机型字符串，成功后缓存到 ReadOnlyData.m_Type。
+    bool getMachineType(std::string& type);
+
+    //! Read the pressure parameter block (CMDID_PRESS_PARAMETER, 20 bytes).
+    //! 读取压力参数块，成功后同步缓存到 ReadOnlyData。
+    bool getPressParameter(PressParameter& param);
+
+    //! Read the temperature parameter block (CMDID_TEMP_PARAMETER, 12 bytes).
+    //! 读取温度参数块，成功后同步缓存到 ReadOnlyData。
+    bool getTempParameter(TempParameter& param);
+
+    //! Read misc info block (CMDID_OTHER_INFO, 5 bytes). Cached to ReadOnlyData.
+    //! 读取其他信息块，成功后同步缓存到 ReadOnlyData。
+    bool getOtherInfo(OtherInfo& info);
+
+    //! Read one pressure step parameter (CMDID_INDEX_PSTEP_PARAMETER, index + 12 bytes).
+    //! 读取压力段参数（索引 + 12 字节）。
+    bool getPressStepParameter(uint8_t index, PressStepParameter& param);
+
+    //! Write one pressure step parameter / 写入压力段参数。
+    bool setPressStepParameter(uint8_t index, const PressStepParameter& param);
+
+    //! Read one temperature step parameter (CMDID_INDEX_TSTEP_PARAMETER, index + 12 bytes).
+    //! 读取温度段参数（索引 + 12 字节）。
+    bool getTempStepParameter(uint8_t index, TempStepParameter& param);
+
+    //! Write one temperature step parameter / 写入温度段参数。
+    bool setTempStepParameter(uint8_t index, const TempStepParameter& param);
+
+    //! Read one mixed-mode step parameter (CMDID_MIX_INDEX_STEP_PARAMETER).
+    //! Note: firmware length check macro is 23 while the actual layout is 24
+    //! bytes (index + 23); if firmware rejects the write, fix the macro there.
+    //! 读取混合模式段参数。注意：下位机校验宏为 23 而实际布局为 24 字节，
+    //! 疑似固件 off-by-one；如写入被拒需修正固件宏。
+    bool getMixStepParameter(uint8_t index, MixStepParameter& param);
+
+    //! Write one mixed-mode step parameter / 写入混合模式段参数。
+    bool setMixStepParameter(uint8_t index, const MixStepParameter& param);
+
+
+    /**************************************************************************
+     * System commands / 系统命令
+     *************************************************************************/
+
+    //! Read device date & time (CMDID_DATE_TIME). 读取设备日期时间。
+    bool getDateTime(DateTimeInfo& dateTime);
+
+    //! Write device date & time. Layout [sec][min][hour][day][month][year].
+    //! 写入设备日期时间，布局 [秒][分][时][日][月][年]。
+    bool setDateTime(const DateTimeInfo& dateTime);
+
+    //! Read screen brightness (CMDID_BRIGHTNESS). 读取屏幕亮度。
+    bool getBrightness(uint8_t& brightness);
+
+    //! Write screen brightness / 设置屏幕亮度。
+    bool setBrightness(uint8_t brightness);
+
+    //! Read key beep enable (CMDID_BUTTON_SOUND). 读取按键提示音开关。
+    bool getButtonSound(bool& enabled);
+
+    //! Write key beep enable / 设置按键提示音开关。
+    bool setButtonSound(bool enabled);
+
+    //! Read UI language (CMDID_LANGUAGE). 读取界面语言。
+    bool getLanguage(uint8_t& language);
+
+    //! Write UI language / 设置界面语言。
+    bool setLanguage(uint8_t language);
+
+
+    /**************************************************************************
+     * State & control commands / 状态与控制命令
+     *
+     *  说明：SET_START_P (0x1531) / SET_START_TU (0x1532) / SET_START_TD (0x1533)
+     *  与 GET_GPIO4_STATE (0x05A4) 当前固件未实现（发超时），可通过 genericWrite /
+     *  genericRead 访问。MIX_RING_OUT_IN (0x0304) 固件已注释，同样走 generic。
+     *************************************************************************/
+
+    //! Read current machine state (CMDID_GET_CURRENT_STATE, 3-5 bytes by mode).
+    //! 读取机器当前状态（响应长度依模式为 3/4/5 字节，见 MachineState）。
+    bool getMachineState(MachineState& state);
+
+    //! Start or stop heating (CMDID_SET_START_HEAT). 启动或停止加热。
+    bool setStartHeat(bool isHeating);
+
+    //! Start or stop everything (CMDID_SET_START). 启动或停止全部（加压+加热）。
+    bool setStart(bool isStart);
+
+    //! Select work mode (CMDID_SELECT_MODEL_STATE, value 1/2). 选择工作模式。
+    bool selectModelState(uint8_t model);
+
+
+    /**************************************************************************
+     * JSON bulk commands (raw string form) / JSON 批量命令（字符串形式）
+     *
+     *  以下接口直接传输 JSON 字节流，仅支持未压缩模式（下位机响应总是未压缩）。
+     *  温度/混合模式参数的强类型读写可通过上述索引命令完成。
+     *************************************************************************/
+
+    //! Read all temperature parameters as raw JSON (GET_TD_JSON).
+    //! 以原始 JSON 字符串读取全部温度参数。
+    bool getTempDataJson(std::string& json);
+
+    //! Write all temperature parameters from raw JSON (SET_TD_JSON).
+    //! 以原始 JSON 字符串写入全部温度参数。
+    bool setTempDataJson(const std::string& json);
+
+    //! Read all mixed-mode parameters as raw JSON (GET_MD_JSON).
+    //! 以原始 JSON 字符串读取全部混合模式参数。
+    bool getMixDataJson(std::string& json);
+
+    //! Write all mixed-mode parameters from raw JSON (SET_MD_JSON).
+    //! 以原始 JSON 字符串写入全部混合模式参数。
+    bool setMixDataJson(const std::string& json);
 
 
     /**************************************************************************

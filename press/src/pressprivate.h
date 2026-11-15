@@ -18,12 +18,16 @@
 
 static constexpr uint16_t GET_VERSION_V      = GET_VERSION;
 static constexpr uint16_t GET_MACHINE_TYPE_V = GET_MACHINE_TYPE;
+static constexpr uint16_t GET_SERIAL_NUMBER_V = CMDID_SERIAL_NUMBER;
 static constexpr uint16_t GET_ROD_JSON_V     = GET_ROD_JSON;
 static constexpr uint16_t GET_PD_JSON_V      = GET_PD_JSON;
 static constexpr uint16_t SET_PD_JSON_V      = SET_PD_JSON;
 static constexpr uint16_t GET_RT_JSON_V      = GET_RT_JSON;
 static constexpr uint16_t SET_PRESS_V        = SET_PRESS;
 static constexpr uint16_t SET_DEMOLD_V       = SET_DEMOLD;
+
+//! 实时数据定时采集连续失败上报阈值
+static constexpr int TIMER_FAIL_REPORT_THRESHOLD = 3;
 
 enum class MachineError
 {
@@ -70,8 +74,86 @@ public:
     bool setPressData(const PressData& data, bool isCompressed = false);
     bool getRealTimeData(RealTimeData& data, bool isCompressed = false);
     bool getVersionInfo(VersionInfo& versionInfo);
+    bool getSerialNumber(std::string& serialNumber);
     bool setPressing(bool isPressing);
     bool setDemolding(bool isDemolding);
+
+    // ==================== 通用命令接口 ====================
+    //! 通用读命令：requestData 为协议要求的 1 字节请求参数
+    //! （索引 / 语言代码 / 压缩标志 / 哑元 0）， responseData 为完整响应数据区
+    bool genericRead(uint16_t command, const std::vector<uint8_t>& requestData,
+                     std::vector<uint8_t>& responseData);
+    //! 通用写命令：requestData 为完整写入数据区（索引型命令自带索引前缀），
+    //! responseData 返回固件回显数据（参数类）或 1 字节状态码（控制类）
+    bool genericWrite(uint16_t command, const std::vector<uint8_t>& requestData,
+                      std::vector<uint8_t>& responseData);
+
+    // ==================== 类型化命令助手 ====================
+    //! 单字节命令读写（请求 {0x00}，响应 1 字节；写回显 1 字节）
+    bool getByteValue(uint16_t command, uint8_t& value);
+    bool setByteValue(uint16_t command, uint8_t value);
+    //! 4 字节浮点命令读写（本机字节序 IEEE754）
+    bool getFloatValue(uint16_t command, float& value);
+    bool setFloatValue(uint16_t command, float value);
+    //! 8 字节双浮点命令读写（如 RECT_AB）
+    bool getFloatPairValue(uint16_t command, float& valueA, float& valueB);
+    bool setFloatPairValue(uint16_t command, float valueA, float valueB);
+    //! 索引单字节命令读写（请求 {index}，响应 [index, value]；写 [index, value]）
+    bool getIndexedByte(uint16_t command, uint8_t index, uint8_t& value);
+    bool setIndexedByte(uint16_t command, uint8_t index, uint8_t value);
+    //! 索引浮点命令读写（[index, float4]）
+    bool getIndexedFloat(uint16_t command, uint8_t index, float& value);
+    bool setIndexedFloat(uint16_t command, uint8_t index, float value);
+    //! 索引整型命令读写（[index, int32]），用于 KPTIME/KTTIME/KTime
+    bool getIndexedInt32(uint16_t command, uint8_t index, int32_t& value);
+    bool setIndexedInt32(uint16_t command, uint8_t index, int32_t value);
+    //! 字符串命令读取（请求 {arg}，响应 [arg, string...]）；arg 为哑元 0 / 语言代码
+    bool getStringValue(uint16_t command, uint8_t arg, std::string& text);
+
+    // ==================== 只读设备命令（ROD） ====================
+    bool getName(std::string& name, uint8_t language = 0);          //!< CMDID_NAME: 0=中文 2=英文
+    bool getMachineType(std::string& type);                        //!< CMDID_MACHINE_TYPE
+    bool getPressParameter(PressParameter& param);                  //!< CMDID_PRESS_PARAMETER
+    bool getTempParameter(TempParameter& param);                   //!< CMDID_TEMP_PARAMETER
+    bool getOtherInfo(OtherInfo& info);                             //!< CMDID_OTHER_INFO
+
+    // ==================== 段参数命令 ====================
+    bool getPressStepParameter(uint8_t index, PressStepParameter& param);   //!< 0x010A
+    bool setPressStepParameter(uint8_t index, const PressStepParameter& param);
+    bool getTempStepParameter(uint8_t index, TempStepParameter& param);     //!< 0x0205
+    bool setTempStepParameter(uint8_t index, const TempStepParameter& param);
+    bool getMixStepParameter(uint8_t index, MixStepParameter& param);       //!< 0x030D
+    bool setMixStepParameter(uint8_t index, const MixStepParameter& param);
+
+    // ==================== 系统命令 ====================
+    bool getDateTime(DateTimeInfo& dateTime);                       //!< CMDID_DATE_TIME
+    bool setDateTime(const DateTimeInfo& dateTime);
+    bool getBrightness(uint8_t& brightness);                       //!< CMDID_BRIGHTNESS
+    bool setBrightness(uint8_t brightness);
+    bool getButtonSound(bool& enabled);                            //!< CMDID_BUTTON_SOUND
+    bool setButtonSound(bool enabled);
+    bool getLanguage(uint8_t& language);                           //!< CMDID_LANGUAGE
+    bool setLanguage(uint8_t language);
+
+    // ==================== 状态与控制命令 ====================
+    bool getMachineState(MachineState& state);                     //!< CMDID_GET_CURRENT_STATE
+    bool setStartHeat(bool isHeating);                              //!< CMDID_SET_START_HEAT
+    bool setStart(bool isStart);                                    //!< CMDID_SET_START（全部电机）
+    bool selectModelState(uint8_t model);                           //!< CMDID_SELECT_MODEL_STATE（1/2）
+
+    // ==================== JSON 批量命令（字符串形式）====================
+    //! 读取全部温度参数 JSON（仅支持未压缩；下位机响应总是未压缩）
+    bool getTempDataJson(std::string& json);
+    //! 写入全部温度参数 JSON
+    bool setTempDataJson(const std::string& json);
+    //! 读取全部混合模式参数 JSON（仅支持未压缩）
+    bool getMixDataJson(std::string& json);
+    //! 写入全部混合模式参数 JSON
+    bool setMixDataJson(const std::string& json);
+
+    //! 设置单次请求超时（毫秒），0 恢复默认 300ms，上限 60000ms
+    void setRequestTimeoutMs(std::uint32_t ms);
+    std::uint32_t requestTimeoutMs() const;
 
     void run();
     void stop();
@@ -83,7 +165,7 @@ public:
     void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 1);
     void unregisterDataInterface();
 
-    const JsonData& getMachineData() const;
+    JsonData getMachineData() const;
 
 private:
     //! 启动调度线程，幂等：若已启动则直接返回
@@ -128,6 +210,7 @@ private:
     std::unique_ptr<PortBase> mpPort = nullptr;
 
     std::atomic<MachineError> m_LastError{MachineError::None};
+    std::atomic<std::uint32_t> m_RequestTimeoutMs{300};  //!< 单次请求超时（毫秒），可配置
 
     JsonData m_JsonData{};
     std::shared_ptr<PressDataInterface> mpMachineDataInterface;
@@ -136,10 +219,11 @@ private:
     std::unique_ptr<std::thread> mpRealTimeTimerThread = nullptr;
     std::atomic<bool> m_TimerRunning{false};
     std::atomic<int> m_TimerInterval{0};      //!< 实时数据定时周期（秒），<=0 表示未启用
+    std::atomic<int> m_TimerConsecutiveFailures{0};  //!< 定时采集连续失败计数（M7 断线上报）
     std::mutex m_TimerMutex{};
     std::condition_variable m_TimerCond{};
 
-    std::mutex m_JsonDataMutex{};             //!< 保护 m_JsonData 的解析与拷贝
+    mutable std::mutex m_JsonDataMutex{};     //!< 保护 m_JsonData 的解析与拷贝
     std::mutex m_LifecycleMutex{};            //!< 保护 connect/disconnect/run/stop/注册回调等生命周期操作
 };
 

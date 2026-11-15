@@ -61,6 +61,12 @@
 //! Write all temperature parameters (JSON) / 写入全部温度参数(Json格式)
 #define SET_TD_JSON SET_CMD(CMDID_TD_JSON)
 
+//! Read all mixed-mode parameters (JSON) / 读取全部混合模式参数(Json格式)
+#define GET_MD_JSON CMDID_MD_JSON
+
+//! Write all mixed-mode parameters (JSON) / 写入全部混合模式参数(Json格式)
+#define SET_MD_JSON SET_CMD(CMDID_MD_JSON)
+
 //! Read all real-time state (JSON) / 读取全部实时状态 (Json 格式)
 #define GET_RT_JSON CMDID_GET_CURRENT_STATE_JSON
 
@@ -152,6 +158,9 @@ struct PressData
     float    m_SetPValue[MAX_PStep];   //!< Target pressure per step / 每步设定压力
     float    m_AfterValue[MAX_PStep];   //!< Hold pressure per step / 每步保压值
     uint32_t m_KPTime[MAX_PStep];       //!< Keep-pressure time per step (ms) / 每步保压时间 (毫秒)
+
+    // 固件 PD JSON 携带的排气时间（尾部追加，旧字段偏移不变）
+    uint8_t  m_AirTime;                //!< Exhaust time (seconds) / 排气时间(秒)
 };
 
 
@@ -165,11 +174,25 @@ struct PressData
 struct RealTimeData
 {
     uint8_t  m_ModelState;      //!< 0=normal, 1=speed, 2=3-speed mode / 0 普通模式 / 1 速度模式 / 2 三速模式
-    uint8_t  m_PressState;      //!< 0=idle, 1=pressing, 2=demolding / 0 未加压 / 1 加压中 / 2 脱模中
+    uint8_t  m_PressState;      //!< Derived from m_IsPStart / 由加压标志推导(0=未加压, 1=加压中)
     uint8_t  m_CPStep;          //!< Current active step index / 当前执行步骤
     float    m_PressValue;      //!< Live pressure reading / 实时压力数据
     uint32_t m_PTime;           //!< Countdown remaining (ms) / 剩余倒计时 (毫秒)
-    uint8_t  m_PdChanged;       //!< PressData modification flag / 压力数据是否已变更
+    uint8_t  m_PdChanged;       //!< Always 0, kept for compatibility / 固件无此字段，恒为 0（兼容保留）
+
+    // 固件 RT JSON 对齐字段（尾部追加，上方字段偏移不变，旧消费者不受影响）
+    // Firmware RT JSON aligned fields (appended; offsets above unchanged)
+    uint8_t  m_IsPStart;        //!< Press start flag (0/1) / 加压启动标志
+    uint8_t  m_IsTStart;        //!< Heat start flag (0/1) / 加热启动标志
+    uint8_t  m_IsT1Start;       //!< Auxiliary heat start flag (0/1) / 辅助加热启动标志
+    uint8_t  m_CTStep;          //!< Current temperature step / 当前温度步骤
+    uint8_t  m_CT1Step;         //!< Current auxiliary temperature step / 当前辅助温度步骤
+    float    m_MoldPressure;    //!< Mold pressure / 模具压力
+    float    m_TUpValue;        //!< Upper heat realtime temperature / 上加热实时温度
+    float    m_TDownValue;      //!< Lower heat realtime temperature / 下加热实时温度
+    uint32_t m_TTime;           //!< Temperature countdown remaining (ms) / 保温剩余倒计时 (毫秒)
+    uint32_t m_T1Time;          //!< Auxiliary countdown remaining (ms) / 辅助保温剩余倒计时 (毫秒)
+    uint8_t  m_IsAir;           //!< Exhaust flag (0/1) / 排气标志
 };
 
 struct VersionInfo
@@ -178,6 +201,118 @@ struct VersionInfo
     uint8_t m_Major;
     uint8_t m_Minor;
     uint8_t m_Patch;
+};
+
+//! Pressure parameter block (CMDID_PRESS_PARAMETER, 21 bytes) / 压力参数块
+//! 布局: [MaxPLimit f4][MinPLimit f4][Max_Min f4][Diameter f4]
+//!       [MaxPStep u1][PDecimal u1][PressDecimal u1][PModel u1][OutType u1]
+struct PressParameter
+{
+    float   m_MaxPLimit;      //!< Upper pressure limit / 压力上限
+    float   m_MinPLimit;      //!< Lower pressure limit / 压力下限
+    float   m_MaxMin;         //!< Max - Min difference / 最大最小压力差
+    float   m_Diameter;       //!< Cylinder diameter (mm) / 油缸直径
+    uint8_t m_MaxPStep;       //!< Maximum pressure steps / 最大压力步数
+    uint8_t m_PDecimal;       //!< Pressure value decimal places / 压力值小数位
+    uint8_t m_PressDecimal;   //!< Pressure unit decimal places / 压强单位小数位
+    uint8_t m_PModel;         //!< Pressure mode switch flag / 压力模式切换标志
+    uint8_t m_OutType;        //!< Output signal type / 输出信号类型
+};
+
+//! Temperature parameter block (CMDID_TEMP_PARAMETER, 12 bytes) / 温度参数块
+//! 布局: [MaxTLimit f4][MinTLimit f4][MaxTStep u1][TDecimal u1][IsHasWater u1][IsHasSpeed u1]
+struct TempParameter
+{
+    float   m_MaxTLimit;     //!< Upper temperature limit / 温度上限
+    float   m_MinTLimit;     //!< Lower temperature limit / 温度下限
+    uint8_t m_MaxTStep;      //!< Maximum temperature steps / 最大温度步数
+    uint8_t m_TDecimal;      //!< Temperature decimal places / 温度小数位
+    uint8_t m_IsHasWater;    //!< Has water cooling flag / 是否有冷却
+    uint8_t m_IsHasSpeed;    //!< Has speed mode flag / 是否有速度模式
+};
+
+//! Miscellaneous info block (CMDID_OTHER_INFO, 5 bytes) / 其他信息块
+//! 布局: [Screenshot u1][StartDelay u1][IsHideLang u1][Remote u1][VersionType u1]
+struct OtherInfo
+{
+    uint8_t m_Screenshot;    //!< Screenshot enable flag / 截屏使能标志
+    uint8_t m_StartDelay;   //!< Start-up delay (seconds) / 启动延迟(秒)
+    uint8_t m_IsHideLang;    //!< Hide language menu flag / 隐藏语言菜单标志
+    uint8_t m_Remote;        //!< Remote control enable flag / 远程控制使能标志
+    uint8_t m_VersionType;   //!< Firmware version type / 固件版本类型
+};
+
+//! Device date & time (CMDID_DATE_TIME, 6 bytes) / 设备日期时间
+//! 布局: [Second u1][Minute u1][Hour u1][Day u1][Month u1][Year u1]（下位机 tm 字段顺序）
+struct DateTimeInfo
+{
+    uint8_t m_Second;    //!< Seconds (0-59) / 秒
+    uint8_t m_Minute;    //!< Minutes (0-59) / 分
+    uint8_t m_Hour;      //!< Hours (0-23) / 时
+    uint8_t m_Day;       //!< Day of month (1-31) / 日
+    uint8_t m_Month;     //!< Month (1-12) / 月
+    uint8_t m_Year;      //!< Year (full value, e.g. 2026) / 年（完整数值）
+};
+
+//! Machine state (CMDID_GET_CURRENT_STATE, variable length) / 机器状态
+//! 下位机 RTData::getRtData 二进制布局（字段数依模式分支）:
+//!   [model u1][flags u1][CPStep u1][CTStep u1?][CT1Step u1?]
+//!   [PValue f4][TUpValue f4][TDownValue f4]
+//!   [PTime u4][TTime u4?][T1Time u4?][FlowChange u1]
+//! flags 位组合: bit0=IsPStart(加压) bit1=IsTStart(加热) bit2=IsT1Start(辅助加热)
+//! m_Count 为实际 payload 字节数（20/25/30），据此判断哪些字段有效。
+struct MachineState
+{
+    uint8_t m_ModelState;     //!< Work mode / 工作模式
+    uint8_t m_Flags;          //!< Start flags bit-combined / 启动标志位组合
+    uint8_t m_PressStep;      //!< Current press step / 当前压力步骤
+    uint8_t m_TempStep;       //!< Current temperature step / 当前温度步骤
+    uint8_t m_Temp1Step;      //!< Second temperature step (P_T_T mode) / 第二温度步骤
+
+    // 实时值 / live values (appended, aligned with firmware getRtData)
+    float    m_PressValue;    //!< Live pressure / 实时压力
+    float    m_TempUpValue;   //!< Upper heat realtime temperature / 上加热实时温度
+    float    m_TempDownValue; //!< Lower heat realtime temperature / 下加热实时温度
+    uint32_t m_PTime;         //!< Pressure countdown remaining (ms) / 压力剩余倒计时(毫秒)
+    uint32_t m_TTime;         //!< Temperature countdown remaining (ms) / 保温剩余倒计时(毫秒)
+    uint32_t m_T1Time;        //!< Auxiliary countdown remaining (ms) / 辅助剩余倒计时(毫秒)
+    uint8_t  m_FlowChange;    //!< Flow change flag (firmware raw byte) / 流量变化原始字节
+    uint8_t  m_Count;         //!< Number of parsed payload bytes (20/25/30) / 实际解析字节数
+};
+
+//! Pressure step parameter (CMDID_INDEX_PSTEP_PARAMETER, index + 12 bytes) / 压力步骤段参数
+//! 帧内布局: [index u1][SetPValue f4][AfterValue f4][KPTime i4]
+struct PressStepParameter
+{
+    float    m_SetPValue;     //!< Target pressure / 设定压力
+    float    m_AfterValue;    //!< Hold pressure / 保压值
+    uint32_t m_KPTime;        //!< Keep-pressure time (ms) / 保压时间(毫秒)
+};
+
+//! Temperature step parameter (CMDID_INDEX_TSTEP_PARAMETER, index + 12 bytes) / 温度步骤段参数
+//! 帧内布局: [index u1][TempValue f4][SpeedValue f4][KTTime i4]
+struct TempStepParameter
+{
+    float    m_TempValue;     //!< Target temperature / 设定温度
+    float    m_SpeedValue;    //!< Speed value / 速度值
+    uint32_t m_KTTime;        //!< Keep-temperature time (ms) / 保温时间(毫秒)
+};
+
+//! Mixed-mode step parameter (CMDID_MIX_INDEX_STEP_PARAMETER, index + 23 bytes) / 混合模式步骤段参数
+//! 帧内布局: [index u1][IsPress u1][SetPValue f4][AfterValue f4]
+//!           [IsUpHeat u1][UpTemp f4][IsDownHeat u1][DownTemp f4][KTime i4]
+//! 注意: 下位机长度校验宏为 23，而实际组包为 24 字节（index + 23），
+//! 疑似固件 off-by-one；写入时以 24 字节布局为准，如被固件拒绝需固件侧修正。
+struct MixStepParameter
+{
+    uint8_t  m_IsPress;       //!< Press flag (0/1) / 是否加压
+    float    m_SetPValue;     //!< Target pressure / 设定压力
+    float    m_AfterValue;    //!< Hold pressure / 保压值
+    uint8_t  m_IsUpHeat;      //!< Heat-up flag (0/1) / 是否加热
+    float    m_UpTemp;        //!< Heat-up temperature / 加热温度
+    uint8_t  m_IsDownHeat;    //!< Cool-down flag (0/1) / 是否冷却
+    float    m_DownTemp;      //!< Cool-down temperature / 冷却温度
+    uint32_t m_KTime;         //!< Keep time (ms) / 保持时间(毫秒)
 };
 
 #if defined(__cplusplus)

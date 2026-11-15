@@ -58,6 +58,16 @@ bool Press::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
     return mpPrivate->getReadOnlyData(data, isCompressed);
 }
 
+bool Press::getSerialNumber(std::string& serialNumber)
+{
+    return mpPrivate->getSerialNumber(serialNumber);
+}
+
+void Press::setRequestTimeout(unsigned int ms)
+{
+    mpPrivate->setRequestTimeoutMs(static_cast<std::uint32_t>(ms));
+}
+
 
 
 bool Press::getPressData(PressData& data, bool isCompressed)
@@ -83,6 +93,225 @@ bool Press::setPressing(bool isPressing)
 bool Press::setDemolding(bool isDemolding)
 {
     return mpPrivate->setDemolding(isDemolding);
+}
+
+// ==================== 通用命令接口 ====================
+
+bool Press::genericRead(uint16_t command, const std::vector<uint8_t>& requestData,
+                        std::vector<uint8_t>& responseData)
+{
+    return mpPrivate->genericRead(command, requestData, responseData);
+}
+
+bool Press::genericWrite(uint16_t command, const std::vector<uint8_t>& requestData,
+                         std::vector<uint8_t>& responseData)
+{
+    return mpPrivate->genericWrite(command, requestData, responseData);
+}
+
+// ==================== 类型化命令助手 ====================
+
+bool Press::getByteValue(uint16_t command, uint8_t& value)
+{
+    return mpPrivate->getByteValue(command, value);
+}
+
+bool Press::setByteValue(uint16_t command, uint8_t value)
+{
+    return mpPrivate->setByteValue(command, value);
+}
+
+bool Press::getFloatValue(uint16_t command, float& value)
+{
+    return mpPrivate->getFloatValue(command, value);
+}
+
+bool Press::setFloatValue(uint16_t command, float value)
+{
+    return mpPrivate->setFloatValue(command, value);
+}
+
+bool Press::getFloatPairValue(uint16_t command, float& valueA, float& valueB)
+{
+    return mpPrivate->getFloatPairValue(command, valueA, valueB);
+}
+
+bool Press::setFloatPairValue(uint16_t command, float valueA, float valueB)
+{
+    return mpPrivate->setFloatPairValue(command, valueA, valueB);
+}
+
+bool Press::getIndexedByte(uint16_t command, uint8_t index, uint8_t& value)
+{
+    return mpPrivate->getIndexedByte(command, index, value);
+}
+
+bool Press::setIndexedByte(uint16_t command, uint8_t index, uint8_t value)
+{
+    return mpPrivate->setIndexedByte(command, index, value);
+}
+
+bool Press::getIndexedFloat(uint16_t command, uint8_t index, float& value)
+{
+    return mpPrivate->getIndexedFloat(command, index, value);
+}
+
+bool Press::setIndexedFloat(uint16_t command, uint8_t index, float value)
+{
+    return mpPrivate->setIndexedFloat(command, index, value);
+}
+
+bool Press::getIndexedInt32(uint16_t command, uint8_t index, int32_t& value)
+{
+    return mpPrivate->getIndexedInt32(command, index, value);
+}
+
+bool Press::setIndexedInt32(uint16_t command, uint8_t index, int32_t value)
+{
+    return mpPrivate->setIndexedInt32(command, index, value);
+}
+
+// ==================== 设备信息与参数块 ====================
+
+bool Press::getName(std::string& name, uint8_t language)
+{
+    return mpPrivate->getName(name, language);
+}
+
+bool Press::getMachineType(std::string& type)
+{
+    return mpPrivate->getMachineType(type);
+}
+
+bool Press::getPressParameter(PressParameter& param)
+{
+    return mpPrivate->getPressParameter(param);
+}
+
+bool Press::getTempParameter(TempParameter& param)
+{
+    return mpPrivate->getTempParameter(param);
+}
+
+bool Press::getOtherInfo(OtherInfo& info)
+{
+    return mpPrivate->getOtherInfo(info);
+}
+
+bool Press::getPressStepParameter(uint8_t index, PressStepParameter& param)
+{
+    return mpPrivate->getPressStepParameter(index, param);
+}
+
+bool Press::setPressStepParameter(uint8_t index, const PressStepParameter& param)
+{
+    return mpPrivate->setPressStepParameter(index, param);
+}
+
+bool Press::getTempStepParameter(uint8_t index, TempStepParameter& param)
+{
+    return mpPrivate->getTempStepParameter(index, param);
+}
+
+bool Press::setTempStepParameter(uint8_t index, const TempStepParameter& param)
+{
+    return mpPrivate->setTempStepParameter(index, param);
+}
+
+bool Press::getMixStepParameter(uint8_t index, MixStepParameter& param)
+{
+    return mpPrivate->getMixStepParameter(index, param);
+}
+
+bool Press::setMixStepParameter(uint8_t index, const MixStepParameter& param)
+{
+    return mpPrivate->setMixStepParameter(index, param);
+}
+
+// ==================== 系统命令 ====================
+
+bool Press::getDateTime(DateTimeInfo& dateTime)
+{
+    return mpPrivate->getDateTime(dateTime);
+}
+
+bool Press::setDateTime(const DateTimeInfo& dateTime)
+{
+    return mpPrivate->setDateTime(dateTime);
+}
+
+bool Press::getBrightness(uint8_t& brightness)
+{
+    return mpPrivate->getBrightness(brightness);
+}
+
+bool Press::setBrightness(uint8_t brightness)
+{
+    return mpPrivate->setBrightness(brightness);
+}
+
+bool Press::getButtonSound(bool& enabled)
+{
+    return mpPrivate->getButtonSound(enabled);
+}
+
+bool Press::setButtonSound(bool enabled)
+{
+    return mpPrivate->setButtonSound(enabled);
+}
+
+bool Press::getLanguage(uint8_t& language)
+{
+    return mpPrivate->getLanguage(language);
+}
+
+bool Press::setLanguage(uint8_t language)
+{
+    return mpPrivate->setLanguage(language);
+}
+
+// ==================== 状态与控制命令 ====================
+
+bool Press::getMachineState(MachineState& state)
+{
+    return mpPrivate->getMachineState(state);
+}
+
+bool Press::setStartHeat(bool isHeating)
+{
+    return mpPrivate->setStartHeat(isHeating);
+}
+
+bool Press::setStart(bool isStart)
+{
+    return mpPrivate->setStart(isStart);
+}
+
+bool Press::selectModelState(uint8_t model)
+{
+    return mpPrivate->selectModelState(model);
+}
+
+// ==================== JSON 批量命令（字符串形式） ====================
+
+bool Press::getTempDataJson(std::string& json)
+{
+    return mpPrivate->getTempDataJson(json);
+}
+
+bool Press::setTempDataJson(const std::string& json)
+{
+    return mpPrivate->setTempDataJson(json);
+}
+
+bool Press::getMixDataJson(std::string& json)
+{
+    return mpPrivate->getMixDataJson(json);
+}
+
+bool Press::setMixDataJson(const std::string& json)
+{
+    return mpPrivate->setMixDataJson(json);
 }
 
 void Press::registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds)

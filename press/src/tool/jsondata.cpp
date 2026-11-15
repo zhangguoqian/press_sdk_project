@@ -104,16 +104,9 @@ int JsonData::jsonToReadOnlyData(const std::string& json) // NOLINT(*-convert-me
         return 9;
     }
 
-    code = JsonToValue::getUInt8Value("FontZH", root, m_ReadOnlyData.m_FontZH, 0, 32);
-    if (code != RetValueCode::VALUE_NO_ERROR)
-    {
-        return 10;
-    }
-    code = JsonToValue::getUInt8Value("FontEN", root, m_ReadOnlyData.m_FontEN, 0, 32);
-    if (code != RetValueCode::VALUE_NO_ERROR)
-    {
-        return 11;
-    }
+    // 固件 ROD JSON 不含 FontZH/FontEN 字段，对应结构字段保持默认值
+    // (firmware ROD JSON has no FontZH/FontEN; struct fields keep defaults)
+
     /**压力相关**/
     code = JsonToValue::getUInt8Value("MaxPStep", root, m_ReadOnlyData.m_MaxPStep, 0, 100);
     if (code != RetValueCode::VALUE_NO_ERROR)
@@ -192,6 +185,13 @@ int JsonData::jsonToReadOnlyData(const std::string& json) // NOLINT(*-convert-me
     {
         return 27;
     }
+    // 序列号为可选字段：设备 JSON 未携带时保留原值（可经 getSerialNumber 单独查询填充）
+    code = JsonToValue::getStringValue("SerialNumber", root, tempStr);
+    if (RetValueCode::VALUE_NO_ERROR == code)
+    {
+        std::strncpy(m_ReadOnlyData.m_SerialNumber, tempStr.c_str(), sizeof(m_ReadOnlyData.m_SerialNumber) - 1);
+        m_ReadOnlyData.m_SerialNumber[sizeof(m_ReadOnlyData.m_SerialNumber) - 1] = '\0';
+    }
     return 0;
 }
 
@@ -204,36 +204,83 @@ int JsonData::jsonToRealTimeData(const std::string& json)
         return -1;
     }
     RetValueCode code = RetValueCode::VALUE_NO_ERROR;
+    // 固件 RT JSON 字段（rtdata.cpp）: ModelState, IsPStart, IsTStart, IsT1Start,
+    // CPStep, CTStep, CT1Step, PValue, MoldPressure, TUpValue, TDownValue,
+    // PTime, TTime, T1Time, IsAir
     code = JsonToValue::getUInt8Value("ModelState", root, m_RealTimeData.m_ModelState, 0, 2);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 1;
     }
-    code = JsonToValue::getUInt8Value("PressState", root, m_RealTimeData.m_PressState, 0, 2);
+    code = JsonToValue::getUInt8Value("IsPStart", root, m_RealTimeData.m_IsPStart, 0, 1);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 2;
     }
-    code = JsonToValue::getUInt8Value("CPStep", root, m_RealTimeData.m_CPStep, 0, 100);
+    code = JsonToValue::getUInt8Value("IsTStart", root, m_RealTimeData.m_IsTStart, 0, 1);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 3;
     }
-    code = JsonToValue::getFloatValue("PressValue", root, m_RealTimeData.m_PressValue, 0.0f, 400.0f);
-    if (code != RetValueCode::VALUE_NO_ERROR)
-    {
-        return 4;
-    }
-    code = JsonToValue::getUInt32Value("PTime", root, m_RealTimeData.m_PTime, 0, 0xFFFFFFFF);
+    // T1（辅助温度）字段：单温机固件可能输出未初始化的大整数垃圾值，
+    // 宽容解析——读取失败或超范围时置 0，不中断整体解析
+    uint32_t t1Raw = 0;
+    (void)JsonToValue::getUInt32Value("IsT1Start", root, t1Raw, 0, 0xFFFFFFFF);
+    m_RealTimeData.m_IsT1Start = static_cast<uint8_t>(t1Raw);
+    code = JsonToValue::getUInt8Value("CPStep", root, m_RealTimeData.m_CPStep, 0, 100);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 5;
     }
-    code = JsonToValue::getUInt8Value("PdChanged", root, m_RealTimeData.m_PdChanged, 0, 1);
+    code = JsonToValue::getUInt8Value("CTStep", root, m_RealTimeData.m_CTStep, 0, 100);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 6;
     }
+    t1Raw = 0;
+    (void)JsonToValue::getUInt32Value("CT1Step", root, t1Raw, 0, 0xFFFFFFFF);
+    m_RealTimeData.m_CT1Step = static_cast<uint8_t>(t1Raw);
+    // 压力/温度传感器零漂可能产生小幅负值，下限放宽到 -50
+    code = JsonToValue::getFloatValue("PValue", root, m_RealTimeData.m_PressValue, -50.0f, 400.0f);
+    if (code != RetValueCode::VALUE_NO_ERROR)
+    {
+        return 8;
+    }
+    code = JsonToValue::getFloatValue("MoldPressure", root, m_RealTimeData.m_MoldPressure, -50.0f, 400.0f);
+    if (code != RetValueCode::VALUE_NO_ERROR)
+    {
+        return 9;
+    }
+    code = JsonToValue::getFloatValue("TUpValue", root, m_RealTimeData.m_TUpValue, -50.0f, 510.0f);
+    if (code != RetValueCode::VALUE_NO_ERROR)
+    {
+        return 10;
+    }
+    code = JsonToValue::getFloatValue("TDownValue", root, m_RealTimeData.m_TDownValue, -50.0f, 510.0f);
+    if (code != RetValueCode::VALUE_NO_ERROR)
+    {
+        return 11;
+    }
+    code = JsonToValue::getUInt32Value("PTime", root, m_RealTimeData.m_PTime, 0, 0xFFFFFFFF);
+    if (code != RetValueCode::VALUE_NO_ERROR)
+    {
+        return 12;
+    }
+    code = JsonToValue::getUInt32Value("TTime", root, m_RealTimeData.m_TTime, 0, 0xFFFFFFFF);
+    if (code != RetValueCode::VALUE_NO_ERROR)
+    {
+        return 13;
+    }
+    m_RealTimeData.m_T1Time = 0;
+    (void)JsonToValue::getUInt32Value("T1Time", root, m_RealTimeData.m_T1Time, 0, 0xFFFFFFFF);
+    code = JsonToValue::getUInt8Value("IsAir", root, m_RealTimeData.m_IsAir, 0, 1);
+    if (code != RetValueCode::VALUE_NO_ERROR)
+    {
+        return 15;
+    }
+    // 推导兼容字段（旧消费者仍可用） / derived legacy fields
+    m_RealTimeData.m_PressState = m_RealTimeData.m_IsPStart ? 1 : 0;
+    m_RealTimeData.m_PdChanged = 0;
     return 0;
 }
 
@@ -271,31 +318,17 @@ int JsonData::jsonToPressData(const std::string& json) // NOLINT(*-convert-membe
     {
         return 5;
     }
-    code = JsonToValue::getFloatValue("OuterD", root, m_PressData.m_OuterD, 0.0f, 200.0f);
-    if (code != RetValueCode::VALUE_NO_ERROR)
-    {
-        return 6;
-    }
-    code = JsonToValue::getFloatValue("InnerD", root, m_PressData.m_InnerD, 0.0f, 200.0f);
-    if (code != RetValueCode::VALUE_NO_ERROR)
-    {
-        return 7;
-    }
+    // 固件 PD JSON 不含 OuterD/InnerD/Speed/DemoldValue，
+    // 对应结构字段保持默认值 (firmware PD JSON has no such fields)
     code = JsonToValue::getFloatValue("CheckValue", root, m_PressData.m_CheckValue, 0.0f, 5.0f);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 8;
     }
-
-    code = JsonToValue::getUInt8Value("Speed", root, m_PressData.m_Speed, 0, 1);
+    code = JsonToValue::getUInt8Value("AirTime", root, m_PressData.m_AirTime, 0, 60);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
         return 9;
-    }
-    code = JsonToValue::getFloatValue("DemoldValue", root, m_PressData.m_DemoldValue, 0.0f, 200.0f);
-    if (code != RetValueCode::VALUE_NO_ERROR)
-    {
-        return 10;
     }
 
     std::vector<float> tmpFv;
@@ -398,11 +431,9 @@ std::string toJsonString(const PressData& data)
     root["A"] = data.m_A;
     root["B"] = data.m_B;
     root["D"] = data.m_D;
-    root["OuterD"] = data.m_OuterD;
-    root["InnerD"] = data.m_InnerD;
     root["CheckValue"] = data.m_CheckValue;
-    root["Speed"] = data.m_Speed;
-    root["DemoldValue"] = data.m_DemoldValue;
+    root["AirTime"] = data.m_AirTime;
+    // 固件 PD JSON 无 OuterD/InnerD/Speed/DemoldValue 字段，不再下发
 
     Json::Value array;
     for(const auto &var:data.m_SetPValue){
