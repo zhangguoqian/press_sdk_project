@@ -24,12 +24,16 @@
 #include "press.hpp"
 #include "typeprivate.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace
 {
@@ -50,6 +54,71 @@ void report(const char* name, bool ok, Press& press)
         ++g_fail;
         std::printf("[FAIL] %s  (last error: %s)\n", name, press.getLastErrorInfo());
     }
+}
+
+//! 性能采样结构 / Latency sample holder
+struct BenchResult
+{
+    const char* name;   //!< 命令名 / command label
+    int         ok;     //!< 成功次数 / successful calls
+    int         n;      //!< 采样次数 / sample count
+    double      minMs;  //!< 最小耗时 / min latency
+    double      avgMs;  //!< 平均耗时 / average latency
+    double      p50Ms;  //!< 中位数 / median latency
+    double      maxMs;  //!< 最大耗时 / max latency
+};
+
+std::vector<BenchResult> g_bench;
+
+//! 重复执行 fn 并统计耗时分布 / Run fn repeatedly and collect latency stats
+template <typename Fn>
+void bench(const char* name, int repeats, Fn&& fn)
+{
+    std::vector<double> samples;
+    samples.reserve(static_cast<size_t>(repeats));
+    int okCount = 0;
+    for (int i = 0; i < repeats; ++i)
+    {
+        const auto t0 = std::chrono::steady_clock::now();
+        const bool ok = fn();
+        const auto t1 = std::chrono::steady_clock::now();
+        samples.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+        if (ok)
+        {
+            ++okCount;
+        }
+    }
+    std::sort(samples.begin(), samples.end());
+    double sum = 0.0;
+    for (double v : samples)
+    {
+        sum += v;
+    }
+    const BenchResult r{name, okCount, repeats,
+                        samples.front(), sum / samples.size(),
+                        samples[samples.size() / 2], samples.back()};
+    g_bench.push_back(r);
+    std::printf("  [bench] %-34s ok=%2d/%2d  min=%7.2f  avg=%7.2f  p50=%7.2f  max=%7.2f ms\n",
+                name, r.ok, r.n, r.minMs, r.avgMs, r.p50Ms, r.maxMs);
+}
+
+//! 打印性能汇总表 / Print the latency summary table
+void printBenchTable()
+{
+    if (g_bench.empty())
+    {
+        return;
+    }
+    std::printf("\n================ latency summary / 耗时汇总 ================\n");
+    std::printf("%-34s %5s %9s %9s %9s %9s\n",
+                "command", "ok", "min(ms)", "avg(ms)", "p50(ms)", "max(ms)");
+    std::printf("-------------------------------------------------------------------------------\n");
+    for (const auto& r : g_bench)
+    {
+        std::printf("%-34s %2d/%-2d %9.2f %9.2f %9.2f %9.2f\n",
+                    r.name, r.ok, r.n, r.minMs, r.avgMs, r.p50Ms, r.maxMs);
+    }
+    std::printf("===============================================================================\n");
 }
 
 //! 回调实现：打印异步上报的数据 / Callback impl printing async reports
@@ -74,6 +143,21 @@ public:
             std::printf("  [callback] onRealTimeData: err=%d\n", errorCode);
             return;
         }
+
+        // 记录回调间隔用于评估定时器精度 / record callback interval for timer accuracy
+        const auto now = std::chrono::steady_clock::now();
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_hasLast)
+            {
+                m_intervals.push_back(
+                    std::chrono::duration<double, std::milli>(now - m_last).count());
+            }
+            m_last = now;
+            m_hasLast = true;
+            ++m_count;
+        }
+
         std::printf("  [callback] onRealTimeData: mode=%u P:%s T:%s pStep=%u tStep=%u press=%.3f upT=%.1f downT=%.1f remain=%ums\n",
                     static_cast<unsigned>(data.m_ModelState),
                     data.m_IsPStart ? "on" : "off",
@@ -86,6 +170,50 @@ public:
     {
         std::printf("  [callback] onError: cmd=0x%04X\n", static_cast<unsigned>(cmdCode));
     }
+
+    //! 清零统计，避免基准测试中的直接调用污染定时器统计
+    //! Reset stats so direct calls made by the benchmark do not pollute timer metrics
+    void resetStats()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_intervals.clear();
+        m_count = 0;
+        m_hasLast = false;
+    }
+
+    //! 打印回调间隔统计 / Print callback interval statistics
+    void printIntervalStats()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_intervals.empty())
+        {
+            std::printf("callback count=%d, no interval sample\n", m_count);
+            return;
+        }
+        std::vector<double> v = m_intervals;
+        std::sort(v.begin(), v.end());
+        double sum = 0.0;
+        for (double d : v)
+        {
+            sum += d;
+        }
+        double var = 0.0;
+        const double avg = sum / v.size();
+        for (double d : v)
+        {
+            var += (d - avg) * (d - avg);
+        }
+        var /= v.size();
+        std::printf("callback count=%d  interval avg=%.1f ms  min=%.1f  max=%.1f  stddev=%.2f ms\n",
+                    m_count, avg, v.front(), v.back(), std::sqrt(var));
+    }
+
+private:
+    std::mutex                                m_mutex;
+    std::chrono::steady_clock::time_point     m_last{};
+    bool                                      m_hasLast = false;
+    int                                       m_count = 0;
+    std::vector<double>                       m_intervals;
 };
 
 void printDateTime(const DateTimeInfo& t)
@@ -148,7 +276,12 @@ int main(int argc, char* argv[])
     Press press;
 
     // ==================== 1. 连接（内部完成版本握手）====================
-    report("connect", press.connect(portName.c_str(), portType), press);
+    const auto connectStart = std::chrono::steady_clock::now();
+    const bool connectOk = press.connect(portName.c_str(), portType);
+    const auto connectEnd = std::chrono::steady_clock::now();
+    report("connect", connectOk, press);
+    std::printf("  connect latency: %.1f ms (includes version handshake)\n",
+                std::chrono::duration<double, std::milli>(connectEnd - connectStart).count());
     if (!press.isConnected())
     {
         std::printf("Connect failed, abort. err: %s\n", press.getLastErrorInfo());
@@ -375,14 +508,88 @@ int main(int argc, char* argv[])
         }
     }
 
-    // ==================== 10. 等待定时采集回调输出 ====================
+    // ==================== 10. 性能基准 / Latency benchmark ====================
+    // 每个命令重复执行并统计 min/avg/p50/max，用于评估各层函数性能。
+    // Every command runs repeatedly to collect latency distribution.
+    std::printf("\n================ benchmark / 性能基准 ================\n");
+    {
+        bench("genericRead(VERSION)", 10, [&] {
+            std::vector<uint8_t> r;
+            return press.genericRead(CMDID_VERSION, {0x00}, r);
+        });
+        bench("getByteValue(PRESS_STEP)", 10, [&] {
+            uint8_t v = 0;
+            return press.getByteValue(CMDID_PRESS_STEP, v);
+        });
+        bench("getFloatValue(PRESS_CALIBRATE)", 10, [&] {
+            float v = 0.0f;
+            return press.getFloatValue(CMDID_PRESS_CALIBRATE, v);
+        });
+        bench("getFloatPairValue(RECT_AB)", 10, [&] {
+            float a = 0.0f, b = 0.0f;
+            return press.getFloatPairValue(CMDID_RECT_AB, a, b);
+        });
+        bench("getIndexedFloat(INDEX_PRESS)", 10, [&] {
+            float v = 0.0f;
+            return press.getIndexedFloat(CMDID_INDEX_PRESS, 0, v);
+        });
+        bench("getIndexedInt32(INDEX_KPTIME)", 10, [&] {
+            int32_t v = 0;
+            return press.getIndexedInt32(CMDID_INDEX_KPTIME, 0, v);
+        });
+        bench("getPressParameter", 10, [&] {
+            PressParameter p{};
+            return press.getPressParameter(p);
+        });
+        bench("getMachineState", 10, [&] {
+            MachineState s{};
+            return press.getMachineState(s);
+        });
+        bench("getReadOnlyData(JSON)", 5, [&] {
+            ReadOnlyData d{};
+            return press.getReadOnlyData(d);
+        });
+        bench("getRealTimeData(JSON)", 5, [&] {
+            RealTimeData d{};
+            return press.getRealTimeData(d);
+        });
+        bench("getTempDataJson", 5, [&] {
+            std::string j;
+            return press.getTempDataJson(j);
+        });
+        bench("getMixDataJson", 5, [&] {
+            std::string j;
+            return press.getMixDataJson(j);
+        });
+        bench("setBrightness(read-back)", 5, [&] {
+            uint8_t b = 0;
+            if (!press.getBrightness(b))
+            {
+                return false;
+            }
+            return press.setBrightness(b);
+        });
+        bench("genericRead(MACHINE_TYPE)", 10, [&] {
+            std::vector<uint8_t> r;
+            return press.genericRead(CMDID_MACHINE_TYPE, {0x00}, r);
+        });
+    }
+
+    // ==================== 11. 等待定时采集回调输出 ====================
+    // 先清零统计：基准测试中直接调用 getRealTimeData 也会触发回调
+    // reset first: direct getRealTimeData calls in the benchmark also fire callbacks
+    callback.resetStats();
     std::printf("\nwaiting 3 seconds for periodic callbacks...\n\n");
     std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    printBenchTable();
+    std::printf("\nperiodic timer (configured 1 s):\n");
+    callback.printIntervalStats();
 
     // ==================== 清理 / Cleanup ====================
     press.unregisterDataInterface();
     press.disconnect();
-    std::printf("disconnected.\n\n");
+    std::printf("\ndisconnected.\n\n");
 
     std::printf("==== result: %d passed, %d failed ====\n", g_pass, g_fail);
     return (g_fail == 0) ? 0 : 1;
