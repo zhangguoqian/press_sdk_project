@@ -2,6 +2,8 @@
 
 #include "press.hpp"
 
+#include <algorithm>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -226,6 +228,32 @@ PRESS_C_EXPORT int cpress_get_real_time_data(CPressContext* handle,
     return handle->impl->getRealTimeData(*data, isCompressed != 0) ? 1 : 0;
 }
 
+PRESS_C_EXPORT int cpress_get_serial_number(CPressContext* handle, char* buf, size_t bufSize)
+{
+    if (handle == nullptr || handle->impl == nullptr || buf == nullptr || bufSize == 0)
+    {
+        return 0;
+    }
+
+    std::string serialNumber;
+    if (!handle->impl->getSerialNumber(serialNumber))
+    {
+        return 0;
+    }
+    std::strncpy(buf, serialNumber.c_str(), bufSize - 1);
+    buf[bufSize - 1] = '\0';
+    return 1;
+}
+
+PRESS_C_EXPORT void cpress_set_request_timeout(CPressContext* handle, unsigned int ms)
+{
+    if (handle == nullptr || handle->impl == nullptr)
+    {
+        return;
+    }
+    handle->impl->setRequestTimeout(ms);
+}
+
 PRESS_C_EXPORT int cpress_set_pressing(CPressContext* handle, int isPressing)
 {
     if (handle == nullptr || handle->impl == nullptr)
@@ -246,17 +274,95 @@ PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding)
     return handle->impl->setDemolding(isDemolding != 0) ? 1 : 0;
 }
 
+PRESS_C_EXPORT int cpress_generic_read(CPressContext* handle, unsigned short command,
+                                       const unsigned char* requestData, size_t requestLen,
+                                       unsigned char* responseData, size_t responseCapacity,
+                                       size_t* responseLen)
+{
+    if (handle == nullptr || handle->impl == nullptr)
+    {
+        return 0;
+    }
+    if ((requestData == nullptr && requestLen > 0) ||
+        (responseData == nullptr && responseCapacity > 0))
+    {
+        return 0;
+    }
+
+    std::vector<uint8_t> request(requestData, requestData + requestLen);
+    std::vector<uint8_t> response;
+    if (!handle->impl->genericRead(command, request, response))
+    {
+        if (responseLen != nullptr)
+        {
+            *responseLen = 0;
+        }
+        return 0;
+    }
+    if (responseLen != nullptr)
+    {
+        *responseLen = response.size();
+    }
+    if (responseCapacity > 0 && !response.empty())
+    {
+        std::memcpy(responseData, response.data(), std::min(response.size(), responseCapacity));
+    }
+    return 1;
+}
+
+PRESS_C_EXPORT int cpress_generic_write(CPressContext* handle, unsigned short command,
+                                        const unsigned char* requestData, size_t requestLen,
+                                        unsigned char* responseData, size_t responseCapacity,
+                                        size_t* responseLen)
+{
+    if (handle == nullptr || handle->impl == nullptr)
+    {
+        return 0;
+    }
+    if ((requestData == nullptr && requestLen > 0) ||
+        (responseData == nullptr && responseCapacity > 0))
+    {
+        return 0;
+    }
+
+    std::vector<uint8_t> request(requestData, requestData + requestLen);
+    std::vector<uint8_t> response;
+    if (!handle->impl->genericWrite(command, request, response))
+    {
+        if (responseLen != nullptr)
+        {
+            *responseLen = 0;
+        }
+        return 0;
+    }
+    if (responseLen != nullptr)
+    {
+        *responseLen = response.size();
+    }
+    if (responseCapacity > 0 && !response.empty())
+    {
+        std::memcpy(responseData, response.data(), std::min(response.size(), responseCapacity));
+    }
+    return 1;
+}
+
 PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle,
-                                                 const CPressDataCallbacks* callbacks)
+                                                 const CPressDataCallbacks* callbacks,
+                                                 int intervalSeconds)
 {
     if (handle == nullptr || handle->impl == nullptr || callbacks == nullptr)
     {
         return;
     }
 
+    // 先注销（停定时线程、保证无在途回调），再替换 adapter，避免旧 adapter
+    // 被析构后 impl 内的非拥有指针仍被回调访问
+    handle->impl->unregisterDataInterface();
+    handle->callbackAdapter.reset();
+
     handle->callbacks = *callbacks;
     handle->callbackAdapter.reset(new CMachineDataAdapter(handle->callbacks));
-    handle->impl->registerDataInterface(handle->callbackAdapter.get());
+    handle->impl->registerDataInterface(handle->callbackAdapter.get(), intervalSeconds);
 }
 
 PRESS_C_EXPORT void cpress_unregister_data_interface(CPressContext* handle)
