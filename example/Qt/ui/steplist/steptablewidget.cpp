@@ -5,6 +5,7 @@
 #include "steptablewidget.h"
 #include <QHeaderView>
 #include <QDebug>
+#include <QStringList>
 
 StepTableWidget::StepTableWidget(QWidget *parent) :
         QTableWidget(parent) ,
@@ -25,6 +26,17 @@ StepTableWidget::StepTableWidget(QWidget *parent) :
 
     this->setVerticalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
     this->setHorizontalScrollBarPolicy(Qt::ScrollBarPolicy::ScrollBarAlwaysOff);
+
+    // 行数与行标题由代码设置（原先依赖 .ui 中的 <row> 定义）
+    // rows and row labels are defined here (previously provided by the .ui file)
+    this->setRowCount(5);
+    this->setVerticalHeaderLabels(QStringList()
+                                  << QStringLiteral("阶段")
+                                  << QStringLiteral("设定压力(Ton)")
+                                  << QStringLiteral("补压下限(Ton)")
+                                  << QStringLiteral("保压时间(ms)")
+                                  << QStringLiteral("模具压强(Mpa)"));
+    this->verticalHeader()->setDefaultSectionSize(42);
     initDBoxVector(m_MaxStepValue);
 }
 
