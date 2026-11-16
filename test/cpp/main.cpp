@@ -227,9 +227,70 @@ void printMachineState(const MachineState& s)
 {
     const char* press = (s.m_Flags & 0x01) ? "running" : "stopped";
     const char* heat = (s.m_Flags & 0x02) ? "running" : "stopped";
-    std::printf("  mode=%u press=%s heat=%s pStep=%u tStep=%u press=%.3f upT=%.1f downT=%.1f pRemain=%ums (%u bytes)\n",
-                s.m_ModelState, press, heat, s.m_PressStep, s.m_TempStep,
-                s.m_PressValue, s.m_TempUpValue, s.m_TempDownValue, s.m_PTime, s.m_Count);
+    std::printf("  mode=%u flags=0x%02X press=%s heat=%s pStep=%u tStep=%u t1Step=%u\n",
+                s.m_ModelState, s.m_Flags, press, heat,
+                s.m_PressStep, s.m_TempStep, s.m_Temp1Step);
+    std::printf("  press=%.3f upT=%.1f downT=%.1f pRemain=%ums tRemain=%ums t1Remain=%ums flow=%u (%u bytes)\n",
+                s.m_PressValue, s.m_TempUpValue, s.m_TempDownValue,
+                s.m_PTime, s.m_TTime, s.m_T1Time, s.m_FlowChange, s.m_Count);
+}
+
+//! 十六进制 dump / hex dump
+void printHex(const char* label, const std::vector<uint8_t>& data)
+{
+    std::printf("  %s (%zu bytes):", label, data.size());
+    for (uint8_t b : data)
+    {
+        std::printf(" %02X", b);
+    }
+    std::printf("\n");
+}
+
+void printReadOnlyData(const ReadOnlyData& d)
+{
+    std::printf("  nameZH='%.64s'\n", d.m_NameZH);
+    std::printf("  nameEN='%.64s'\n", d.m_NameEN);
+    std::printf("  type='%.64s'  sn='%.64s'\n", d.m_Type, d.m_SerialNumber);
+    std::printf("  Screenshot=%u StartDelay=%u VersionType=%u IsHideLang=%u Remote=%u Network=%u FontZH=%u FontEN=%u\n",
+                d.m_Screenshot, d.m_StartDelay, d.m_VersionType, d.m_IsHideLang,
+                d.m_Remote, d.m_Network, d.m_FontZH, d.m_FontEN);
+    std::printf("  MaxPStep=%u MaxP=%.3f MinP=%.3f Max_Min=%.3f Diameter=%.3f PDecimal=%u PressDecimal=%u PModel=%u OutType=%u\n",
+                d.m_MaxPStep, d.m_MaxPLimit, d.m_MinPLimit, d.m_Max_Min, d.m_Diameter,
+                d.m_PDecimal, d.m_PressDecimal, d.m_PModel, d.m_OutType);
+    std::printf("  MaxTStep=%u MaxT=%.3f MinT=%.3f TDecimal=%u IsHasWater=%u IsHasSpeed=%u\n",
+                d.m_MaxTStep, d.m_MaxTLimit, d.m_MinTLimit,
+                d.m_TDecimal, d.m_IsHasWater, d.m_IsHasSpeed);
+}
+
+void printPressData(const PressData& d)
+{
+    std::printf("  PStep=%u Type=%u A=%.3f B=%.3f D=%.3f OuterD=%.3f InnerD=%.3f CheckValue=%.3f\n",
+                d.m_PStep, d.m_Type, d.m_A, d.m_B, d.m_D,
+                d.m_OuterD, d.m_InnerD, d.m_CheckValue);
+    std::printf("  Speed=%u DemoldValue=%.3f AirTime=%u\n",
+                d.m_Speed, d.m_DemoldValue, d.m_AirTime);
+    const unsigned n = (d.m_PStep < MAX_PStep) ? d.m_PStep : MAX_PStep;
+    for (unsigned i = 0; i < n; ++i)
+    {
+        std::printf("    step[%u]: setP=%.3f after=%.3f kpTime=%ums\n",
+                    i, d.m_SetPValue[i], d.m_AfterValue[i], d.m_KPTime[i]);
+    }
+    if (n == 0)
+    {
+        std::printf("    (no active step / 无有效步骤)\n");
+    }
+}
+
+void printRealTimeData(const RealTimeData& d)
+{
+    std::printf("  mode=%u pressState=%u pdChanged=%u cPStep=%u cTStep=%u cT1Step=%u\n",
+                d.m_ModelState, d.m_PressState, d.m_PdChanged,
+                d.m_CPStep, d.m_CTStep, d.m_CT1Step);
+    std::printf("  IsPStart=%u IsTStart=%u IsT1Start=%u IsAir=%u\n",
+                d.m_IsPStart, d.m_IsTStart, d.m_IsT1Start, d.m_IsAir);
+    std::printf("  press=%.3f moldPress=%.3f upT=%.1f downT=%.1f\n",
+                d.m_PressValue, d.m_MoldPressure, d.m_TUpValue, d.m_TDownValue);
+    std::printf("  PTime=%ums TTime=%ums T1Time=%ums\n", d.m_PTime, d.m_TTime, d.m_T1Time);
 }
 
 void usage()
@@ -325,9 +386,11 @@ int main(int argc, char* argv[])
         {
             ++g_pass;
             std::printf("[PASS] getPressParameter\n");
-            std::printf("  MaxP=%.3f MinP=%.3f Diameter=%.3f MaxStep=%u PDecimal=%u OutType=%u\n",
-                        pp.m_MaxPLimit, pp.m_MinPLimit, pp.m_Diameter,
-                        pp.m_MaxPStep, pp.m_PDecimal, pp.m_OutType);
+            std::printf("  MaxP=%.3f MinP=%.3f Max_Min=%.3f Diameter=%.3f MaxStep=%u "
+                        "PDecimal=%u PressDecimal=%u PModel=%u OutType=%u\n",
+                        pp.m_MaxPLimit, pp.m_MinPLimit, pp.m_MaxMin, pp.m_Diameter,
+                        pp.m_MaxPStep, pp.m_PDecimal, pp.m_PressDecimal,
+                        pp.m_PModel, pp.m_OutType);
         }
         else
         {
@@ -337,24 +400,52 @@ int main(int argc, char* argv[])
         }
 
         TempParameter tp{};
-        report("getTempParameter", press.getTempParameter(tp), press);
+        bool tpOk = press.getTempParameter(tp);
+        report("getTempParameter", tpOk, press);
+        if (tpOk)
+        {
+            std::printf("  MaxT=%.3f MinT=%.3f MaxTStep=%u TDecimal=%u IsHasWater=%u IsHasSpeed=%u\n",
+                        tp.m_MaxTLimit, tp.m_MinTLimit, tp.m_MaxTStep,
+                        tp.m_TDecimal, tp.m_IsHasWater, tp.m_IsHasSpeed);
+        }
 
         OtherInfo oi{};
-        report("getOtherInfo", press.getOtherInfo(oi), press);
+        bool oiOk = press.getOtherInfo(oi);
+        report("getOtherInfo", oiOk, press);
+        if (oiOk)
+        {
+            std::printf("  Screenshot=%u StartDelay=%u IsHideLang=%u Remote=%u VersionType=%u\n",
+                        oi.m_Screenshot, oi.m_StartDelay, oi.m_IsHideLang,
+                        oi.m_Remote, oi.m_VersionType);
+        }
     }
 
     // ==================== 4. JSON 批量命令 ====================
     {
         ReadOnlyData ro;
-        report("getReadOnlyData(json)", press.getReadOnlyData(ro), press);
+        bool roOk = press.getReadOnlyData(ro);
+        report("getReadOnlyData(json)", roOk, press);
+        if (roOk)
+        {
+            printReadOnlyData(ro);
+        }
 
         PressData pd;
-        report("getPressData(json)", press.getPressData(pd), press);
+        bool pdOk = press.getPressData(pd);
+        report("getPressData(json)", pdOk, press);
+        if (pdOk)
+        {
+            printPressData(pd);
+        }
 
         RealTimeData rt;
         bool rtOk = press.getRealTimeData(rt);
         report("getRealTimeData(json)", rtOk, press);
-        if (!rtOk)
+        if (rtOk)
+        {
+            printRealTimeData(rt);
+        }
+        else
         {
             // 解析失败时 dump 固件返回的原始 JSON 辅助诊断
             // dump raw firmware JSON for diagnosis on parse failure
@@ -367,17 +458,19 @@ int main(int argc, char* argv[])
         }
 
         std::string tempJson;
-        report("getTempDataJson", press.getTempDataJson(tempJson), press);
-        if (!tempJson.empty())
+        bool tjOk = press.getTempDataJson(tempJson);
+        report("getTempDataJson", tjOk, press);
+        if (tjOk)
         {
-            std::printf("  temp json (%zu bytes): %.60s...\n", tempJson.size(), tempJson.c_str());
+            std::printf("  temp json (%zu bytes): %s\n", tempJson.size(), tempJson.c_str());
         }
 
         std::string mixJson;
-        report("getMixDataJson", press.getMixDataJson(mixJson), press);
-        if (!mixJson.empty())
+        bool mjOk = press.getMixDataJson(mixJson);
+        report("getMixDataJson", mjOk, press);
+        if (mjOk)
         {
-            std::printf("  mix json (%zu bytes): %.60s...\n", mixJson.size(), mixJson.c_str());
+            std::printf("  mix json (%zu bytes): %s\n", mixJson.size(), mixJson.c_str());
         }
     }
 
@@ -425,10 +518,25 @@ int main(int argc, char* argv[])
         }
 
         TempStepParameter tsp{};
-        report("getTempStepParameter(0)", press.getTempStepParameter(0, tsp), press);
+        bool tspOk = press.getTempStepParameter(0, tsp);
+        report("getTempStepParameter(0)", tspOk, press);
+        if (tspOk)
+        {
+            std::printf("  tempValue=%.3f speedValue=%.3f ktTime=%ums\n",
+                        tsp.m_TempValue, tsp.m_SpeedValue, tsp.m_KTTime);
+        }
 
         MixStepParameter msp{};
-        report("getMixStepParameter(0)", press.getMixStepParameter(0, msp), press);
+        bool mspOk = press.getMixStepParameter(0, msp);
+        report("getMixStepParameter(0)", mspOk, press);
+        if (mspOk)
+        {
+            std::printf("  IsPress=%u setP=%.3f after=%.3f IsUpHeat=%u upTemp=%.3f "
+                        "IsDownHeat=%u downTemp=%.3f kTime=%ums\n",
+                        msp.m_IsPress, msp.m_SetPValue, msp.m_AfterValue,
+                        msp.m_IsUpHeat, msp.m_UpTemp,
+                        msp.m_IsDownHeat, msp.m_DownTemp, msp.m_KTime);
+        }
     }
 
     // ==================== 7. 系统命令 ====================
@@ -442,17 +550,36 @@ int main(int argc, char* argv[])
         }
 
         uint8_t brightness = 0;
-        report("getBrightness", press.getBrightness(brightness), press);
+        bool brOk = press.getBrightness(brightness);
+        report("getBrightness", brOk, press);
+        if (brOk)
+        {
+            std::printf("  brightness = %u\n", brightness);
+        }
 
         // 唯一的写示例：读出-写回，不改变设备状态
         // The single write example: read then write the same value back
-        report("setBrightness(read-back)", press.setBrightness(brightness), press);
+        if (brOk)
+        {
+            report("setBrightness(read-back)", press.setBrightness(brightness), press);
+            std::printf("  wrote back brightness = %u\n", brightness);
+        }
 
         bool sound = false;
-        report("getButtonSound", press.getButtonSound(sound), press);
+        bool sndOk = press.getButtonSound(sound);
+        report("getButtonSound", sndOk, press);
+        if (sndOk)
+        {
+            std::printf("  button sound = %s (%d)\n", sound ? "on" : "off", sound ? 1 : 0);
+        }
 
         uint8_t language = 0;
-        report("getLanguage", press.getLanguage(language), press);
+        bool langOk = press.getLanguage(language);
+        report("getLanguage", langOk, press);
+        if (langOk)
+        {
+            std::printf("  language = %u\n", language);
+        }
     }
 
     // ==================== 8. 状态查询 ====================
@@ -491,10 +618,11 @@ int main(int argc, char* argv[])
         std::vector<uint8_t> response;
         bool ok = press.genericRead(CMDID_MACHINE_TYPE, {0x00}, response);
         report("genericRead(MACHINE_TYPE)", ok, press);
-        if (ok && !response.empty())
+        if (ok)
         {
-            std::string type(response.begin(), response.end());
-            std::printf("  machine type (generic) = %s\n", type.c_str());
+            printHex("response", response);
+            std::printf("  machine type (generic) = %s\n",
+                        std::string(response.begin(), response.end()).c_str());
         }
 
         // 例：generic 写——把亮度写回当前值（与 setBrightness 等价，命令需带 SET 位）
@@ -505,6 +633,11 @@ int main(int argc, char* argv[])
             std::vector<uint8_t> echo;
             ok = press.genericWrite(SET_CMD(CMDID_BRIGHTNESS), {brightness}, echo);
             report("genericWrite(BRIGHTNESS)", ok, press);
+            std::printf("  request payload: %02X\n", brightness);
+            if (ok)
+            {
+                printHex("echo", echo);
+            }
         }
     }
 
