@@ -341,6 +341,16 @@ std::size_t TcpSocket::receive(void *buf, std::size_t max_size) {
 #endif
 }
 
+void TcpSocket::flushInput() {
+    // 打开时即为非阻塞模式，直接循环 recv 取空缓冲；0/EWOULDBLOCK 表示已取完
+    if (!m_is_open) return;
+    uint8_t drain[256];
+    while (true) {
+        std::size_t n = receive(drain, sizeof(drain));
+        if (n == 0) break;
+    }
+}
+
 void TcpSocket::setPortName(const char *portName) {
     if (!portName) return;
 

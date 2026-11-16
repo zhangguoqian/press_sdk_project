@@ -102,6 +102,12 @@ public:
     std::size_t receive(void *buf, std::size_t max_size) override;
 
     /**
+     * @brief Drain pending input data with non-blocking recv until the buffer is empty
+     *        以非阻塞 recv 循环读取并丢弃接收缓冲中的残留数据
+     */
+    void flushInput() override;
+
+    /**
      * @brief Parse and set the target host address and port — 解析并设置目标主机地址与端口
      *        Format: "host:port" — 格式: "host:port"
      *        - IPv4: "192.168.1.1:8080"

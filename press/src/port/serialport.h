@@ -155,6 +155,12 @@ public:
     std::size_t receive(void *buf, std::size_t max_size) override;
 
     /**
+     * @brief Discard pending input data (PurgeComm on Windows, tcflush on POSIX)
+     *        清空接收缓冲残留数据（Windows 用 PurgeComm，POSIX 用 tcflush）
+     */
+    void flushInput() override;
+
+    /**
      * @brief Set the serial port name — 设置串口名称
      *        Windows: "COM1" ~ "COM256"
      *        Linux:   "/dev/ttyS0" "/dev/ttyUSB0" "/dev/ttyAMA0", etc.

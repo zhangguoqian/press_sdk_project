@@ -237,6 +237,12 @@ std::size_t SerialPort::receive(void *buf, std::size_t max_size) {
     return read;
 }
 
+void SerialPort::flushInput() {
+    if (m_is_open && m_handle != INVALID_HANDLE_VALUE) {
+        ::PurgeComm(m_handle, PURGE_RXABORT | PURGE_RXCLEAR);
+    }
+}
+
 void SerialPort::setPortName(const char *portName) {
     if (portName) m_port_name = portName;
 }
@@ -596,6 +602,12 @@ std::size_t SerialPort::receive(void *buf, std::size_t max_size) {
             return 0;
         }
         return 0;
+    }
+}
+
+void SerialPort::flushInput() {
+    if (m_is_open && m_fd >= 0) {
+        ::tcflush(m_fd, TCIFLUSH);
     }
 }
 

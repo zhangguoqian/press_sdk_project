@@ -62,6 +62,15 @@ public:
     virtual std::size_t receive(void *buf, std::size_t max_size) = 0;
 
     /**
+     * @brief Discard all pending input data in the port's receive buffer
+     *        清空端口接收缓冲中的残留数据
+     *        Used before issuing a new request so stale bytes from a previous
+     *        timed-out exchange cannot be mis-framed with the next response.
+     *        用于发送新请求前清理上次超时交互残留的字节，避免与下一响应错位拼接。
+     */
+    virtual void flushInput() = 0;
+
+    /**
      * @brief Send data — std::vector convenience overload — 发送数据 — std::vector 便捷重载
      * @param data Byte data to send — 要发送的字节数据
      * @return Number of bytes actually sent — 实际发送的字节数
