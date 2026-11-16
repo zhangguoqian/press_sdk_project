@@ -148,11 +148,12 @@ RetValueCode JsonToValue::getFloatVector(const std::string& key, const Json::Val
 RetValueCode JsonToValue::getFloatVector(const std::string& key, const Json::Value& root, std::vector<float>& value,
                                          int minLimitValue, const std::vector<float>& maxLimitValue, int maxSize)
 {
-    RetValueCode code = _getFloatVector(key, root, value, maxSize);
+    // 参数长度校验前置，避免参数错误时出参 value 已被填充产生副作用
     if ((int) maxLimitValue.size() != maxSize)
     {
         return RetValueCode::VALUE_ERROR_PARAMETER;
     }
+    RetValueCode code = _getFloatVector(key, root, value, maxSize);
     if (code == RetValueCode::VALUE_NO_ERROR)
     {
         for (size_t i = 0; i < value.size(); i++)
