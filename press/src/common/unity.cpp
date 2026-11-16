@@ -19,7 +19,13 @@ std::string Unity::getCurrentTime()
     auto now = std::chrono::system_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
     std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm tm = *std::localtime(&t);
+#if defined(_WIN32)
+    std::tm tm{};
+    localtime_s(&tm, &t);
+#else
+    std::tm tm{};
+    localtime_r(&t, &tm);
+#endif
 
     std::ostringstream oss;
     oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
