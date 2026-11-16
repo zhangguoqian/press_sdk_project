@@ -60,8 +60,7 @@ press_sdk_project/
 │   │   └── press/
 │   │       ├── press.h
 │   │       ├── press.hpp
-│   │       ├── presstype.h
-│   │       └── typeprivate.h
+│   │       └── presstype.h
 │   └── src/
 │       ├── c/
 │       │   └── cpress.cpp
@@ -78,6 +77,7 @@ press_sdk_project/
 │       ├── press.cpp
 │       ├── pressprivate.cpp
 │       ├── pressprivate.h
+│       ├── typeprivate.h
 │       ├── port/
 │       │   ├── portbase.h
 │       │   ├── serialport.cpp
