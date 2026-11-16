@@ -101,6 +101,7 @@ private:
     void applyStyle();
     void loadDeviceData();
     void refreshStepTables();
+    bool writePressData();
     void updateBottomBar(bool separateMode);
     void setActiveNav(QToolButton* button, bool active);
     void showPage(int index);

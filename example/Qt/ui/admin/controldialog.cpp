@@ -49,7 +49,7 @@ void ControlDialog::slotGetRodData()
     if (epMachine->isRunning())
     {
         ReadOnlyData readOnlyData;
-        if (epMachine->getReadOnlyData(readOnlyData))
+        if (epMachine->getReadOnlyDataJson(readOnlyData))
         {
             qDebug() << readOnlyData;
             _show_text_log(QString::fromStdString(toJsonString(readOnlyData)));
@@ -63,7 +63,7 @@ void ControlDialog::slotGetRodData()
 void ControlDialog::slotGetPdData()
 {
     PressData pressData;
-    if (epMachine->getPressData(pressData))
+    if (epMachine->getPressDataJson(pressData))
     {
         qDebug() << pressData;
         _show_text_log(QString::fromStdString(toJsonString(pressData)));
@@ -77,7 +77,7 @@ void ControlDialog::slotGetRtData()
 {
 
     RealTimeData realTimeData;
-    if (epMachine->getRealTimeData(realTimeData))
+    if (epMachine->getRealTimeDataJson(realTimeData))
     {
         qDebug() << realTimeData;
         _show_text_log(QString::fromStdString(toJsonString(realTimeData)));
@@ -163,7 +163,7 @@ void ControlDialog::slotDemolding(bool isDemolding)
 void ControlDialog::slotSetPressData()
 {
     PressData pressData;
-    if (epMachine->getPressData(pressData))
+    if (epMachine->getPressDataJson(pressData))
     {
         qDebug() << pressData;
         _show_text_log(QString::fromStdString(toJsonString(pressData)));
@@ -172,7 +172,7 @@ void ControlDialog::slotSetPressData()
         _show_error_log(epMachine->getLastErrorInfo(), 0);
     }
     pressData.m_PStep = 1;
-    if (epMachine->setPressData(pressData))
+    if (epMachine->setPressDataJson(pressData))
     {
         _show_text_log("set press data success");
     }else

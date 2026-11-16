@@ -193,7 +193,7 @@ public:
     //! @param data         [out] Decoded ReadOnlyData on success.
     //! @param isCompressed [in]  Request JSON-compressed response from device.
     //! @return true on success / 读取静态 (只读) 设备信息。
-    bool getReadOnlyData(ReadOnlyData& data, bool isCompressed = false);
+    bool getReadOnlyDataJson(ReadOnlyData& data, bool isCompressed = false);
 
     //! Read the device serial number (CMDID_SERIAL_NUMBER 0x0003).
     //! On success the value is also cached into ReadOnlyData.m_SerialNumber.
@@ -205,19 +205,19 @@ public:
     //! @param data         [out] Decoded PressData on success.
     //! @param isCompressed [in]  Request JSON-compressed response from device.
     //! @return true on success / 读取当前压力控制参数。
-    bool getPressData(PressData& data, bool isCompressed = false);
+    bool getPressDataJson(PressData& data, bool isCompressed = false);
 
     //! Write pressure control parameters to the device.
     //! @param data         [in]  New pressure parameters to send.
     //! @param isCompressed [in]  Encode the payload as JSON before sending.
     //! @return true on success / 写入压力控制参数到设备。
-    bool setPressData(const PressData& data, bool isCompressed = false);
+    bool setPressDataJson(const PressData& data, bool isCompressed = false);
 
     //! Read live real-time machine state.
     //! @param data         [out] Decoded RealTimeData on success.
     //! @param isCompressed [in]  Request JSON-compressed response from device.
     //! @return true on success / 读取实时机器状态。
-    bool getRealTimeData(RealTimeData& data, bool isCompressed = false);
+    bool getRealTimeDataJson(RealTimeData& data, bool isCompressed = false);
 
 
     /**************************************************************************
@@ -235,56 +235,6 @@ public:
     //! @param isDemolding true to start demolding, false to stop.
     //! @return true on success / 单独启动或停止脱模。
     bool setDemolding(bool isDemolding);
-
-
-    /**************************************************************************
-     * Generic command interface / 通用命令接口
-     *
-     *  覆盖固件支持的全部命令（typeprivate.h 中的 CMDID_* 与 SET_CMD()）。
-     *  - 读命令请求 payload 固定 1 字节（索引/语言代码/压缩标志/哑元 0）
-     *  - 写命令 payload 为完整数据区（索引型命令自带索引前缀）
-     *  - 写命令响应：控制类返回 1 字节状态码，参数类回显写入数据
-     *  未提供语义化封装的命令均可通过这两个方法访问，
-     *  例如: getFloatValue(CMDID_CIRCLE_D, d)、setIndexedByte(CMDID_MIX_INDEX_ISPRESS, i, v)
-     *************************************************************************/
-
-    //! Generic read command / 通用读命令
-    bool genericRead(uint16_t command, const std::vector<uint8_t>& requestData,
-                     std::vector<uint8_t>& responseData);
-
-    //! Generic write command (command must carry the SET bit) / 通用写命令（命令需带 SET 位）
-    bool genericWrite(uint16_t command, const std::vector<uint8_t>& requestData,
-                      std::vector<uint8_t>& responseData);
-
-
-    /**************************************************************************
-     * Typed command helpers / 类型化命令助手
-     *
-     *  按数据类型覆盖同类 payload 命令（command 传读命令 ID，写时自动加 SET 位）：
-     *  - 单字节: PRESS_STEP / MOLD_TYPE / AIR_TIME / PRESS_DECIMAL / PRESSURE_DECIMAL
-     *            / PMODEL / TEMP_STEP / SPEED_MOLD / BRIGHTNESS / LANGUAGE
-     *            / MIX_STEP / MIX_MOLD_TYPE ...
-     *  - 4 字节浮点: PRESS_CALIBRATE / CIRCLE_D / DEMOLD_VALUE / WATER_UP / WATER_DOWN
-     *            / MIX_CIRCLE_D ...
-     *  - 8 字节双浮点: RECT_AB / MIX_RECT_AB ...
-     *  - 索引单字节: MIX_INDEX_ISPRESS / MIX_INDEX_ISHEAT_UP / MIX_INDEX_ISHEAT_DOWN
-     *  - 索引浮点: INDEX_PRESS / INDEX_AFTER / INDEX_TEMP / INDEX_SPEED
-     *            / MIX_INDEX_PRESS / MIX_INDEX_AFTER / MIX_INDEX_TEMP_UP / MIX_INDEX_TEMP_DOWN ...
-     *  - 索引整型: INDEX_KPTIME / INDEX_KTTIME / MIX_INDEX_KTIME ...
-     *************************************************************************/
-
-    bool getByteValue(uint16_t command, uint8_t& value);                        //!< 单字节读
-    bool setByteValue(uint16_t command, uint8_t value);                        //!< 单字节写
-    bool getFloatValue(uint16_t command, float& value);                       //!< 浮点读
-    bool setFloatValue(uint16_t command, float value);                        //!< 浮点写
-    bool getFloatPairValue(uint16_t command, float& valueA, float& valueB);    //!< 双浮点读
-    bool setFloatPairValue(uint16_t command, float valueA, float valueB);     //!< 双浮点写
-    bool getIndexedByte(uint16_t command, uint8_t index, uint8_t& value);      //!< 索引单字节读
-    bool setIndexedByte(uint16_t command, uint8_t index, uint8_t value);       //!< 索引单字节写
-    bool getIndexedFloat(uint16_t command, uint8_t index, float& value);       //!< 索引浮点读
-    bool setIndexedFloat(uint16_t command, uint8_t index, float value);        //!< 索引浮点写
-    bool getIndexedInt32(uint16_t command, uint8_t index, int32_t& value);     //!< 索引整型读
-    bool setIndexedInt32(uint16_t command, uint8_t index, int32_t value);     //!< 索引整型写
 
 
     /**************************************************************************
@@ -370,8 +320,8 @@ public:
      * State & control commands / 状态与控制命令
      *
      *  说明：SET_START_P (0x1531) / SET_START_TU (0x1532) / SET_START_TD (0x1533)
-     *  与 GET_GPIO4_STATE (0x05A4) 当前固件未实现（发超时），可通过 genericWrite /
-     *  genericRead 访问。MIX_RING_OUT_IN (0x0304) 固件已注释，同样走 generic。
+     *  与 GET_GPIO4_STATE (0x05A4) 当前固件未实现（发超时）；MIX_RING_OUT_IN
+     *  (0x0304) 固件已注释，以上命令暂不提供封装。
      *************************************************************************/
 
     //! Read current machine state (CMDID_GET_CURRENT_STATE, 3-5 bytes by mode).

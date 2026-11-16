@@ -837,7 +837,7 @@ void UiHome::initConnect()
 
 void UiHome::loadDeviceData()
 {
-    if (!epMachine->getReadOnlyData(m_ReadOnlyData))
+    if (!epMachine->getReadOnlyDataJson(m_ReadOnlyData))
     {
         QMessageBox::warning(this, QStringLiteral("提示"), QStringLiteral("获取设备参数失败!"));
     }
@@ -846,7 +846,7 @@ void UiHome::loadDeviceData()
         m_pChartView->setRange(0, m_ReadOnlyData.m_MaxPLimit);
     }
 
-    if (!epMachine->getPressData(m_PressData))
+    if (!epMachine->getPressDataJson(m_PressData))
     {
         QMessageBox::warning(this, QStringLiteral("提示"), QStringLiteral("获取设备配置失败!"));
     }
@@ -1250,10 +1250,7 @@ void UiHome::slotStepCountChanged(int value)
         return;
     }
     m_PressData.m_PStep = static_cast<uint8_t>(value);
-    if (!epMachine->setByteValue(CMDID_PRESS_STEP, static_cast<uint8_t>(value)))
-    {
-        qDebug() << Q_FUNC_INFO << "setByteValue(PRESS_STEP) failed:" << epMachine->getLastErrorInfo();
-    }
+    writePressData();
 }
 
 void UiHome::slotMoldTypeChanged(int value)
@@ -1266,11 +1263,8 @@ void UiHome::slotMoldTypeChanged(int value)
     {
         return;
     }
-    m_PressData.m_Type = value;
-    if (!epMachine->setByteValue(CMDID_MOLD_TYPE, static_cast<uint8_t>(value)))
-    {
-        qDebug() << Q_FUNC_INFO << "setByteValue(MOLD_TYPE) failed:" << epMachine->getLastErrorInfo();
-    }
+    m_PressData.m_Type = static_cast<uint8_t>(value);
+    writePressData();
 }
 
 void UiHome::slotDiameterChanged(double value)
@@ -1280,10 +1274,7 @@ void UiHome::slotDiameterChanged(double value)
         return;
     }
     m_PressData.m_D = static_cast<float>(value);
-    if (!epMachine->setFloatValue(CMDID_CIRCLE_D, static_cast<float>(value)))
-    {
-        qDebug() << Q_FUNC_INFO << "setFloatValue(CIRCLE_D) failed:" << epMachine->getLastErrorInfo();
-    }
+    writePressData();
 }
 
 void UiHome::slotAChanged(double value)
@@ -1293,12 +1284,7 @@ void UiHome::slotAChanged(double value)
         return;
     }
     m_PressData.m_A = static_cast<float>(value);
-    if (!epMachine->setFloatPairValue(CMDID_RECT_AB,
-                                      static_cast<float>(m_pDBoxA->value()),
-                                      static_cast<float>(m_pDBoxB->value())))
-    {
-        qDebug() << Q_FUNC_INFO << "setFloatPairValue(RECT_AB) failed:" << epMachine->getLastErrorInfo();
-    }
+    writePressData();
 }
 
 void UiHome::slotBChanged(double value)
@@ -1308,12 +1294,7 @@ void UiHome::slotBChanged(double value)
         return;
     }
     m_PressData.m_B = static_cast<float>(value);
-    if (!epMachine->setFloatPairValue(CMDID_RECT_AB,
-                                      static_cast<float>(m_pDBoxA->value()),
-                                      static_cast<float>(m_pDBoxB->value())))
-    {
-        qDebug() << Q_FUNC_INFO << "setFloatPairValue(RECT_AB) failed:" << epMachine->getLastErrorInfo();
-    }
+    writePressData();
 }
 
 void UiHome::slotOuterDChanged(double value)
@@ -1343,10 +1324,8 @@ void UiHome::slotDemoldValueChanged(double value)
         return;
     }
     m_PressData.m_DemoldValue = static_cast<float>(value);
-    if (!epMachine->setFloatValue(CMDID_DEMOLD_VALUE, static_cast<float>(value)))
-    {
-        qDebug() << Q_FUNC_INFO << "setFloatValue(DEMOLD_VALUE) failed:" << epMachine->getLastErrorInfo();
-    }
+    // 固件 PD JSON 无对应字段，仅同步本地缓存
+    // no firmware PD field, local cache only
 }
 
 void UiHome::slotCellValueChanged(int row, int column, double value)
@@ -1362,21 +1341,21 @@ void UiHome::slotCellValueChanged(int row, int column, double value)
             if (column < MAX_PStep)
             {
                 m_PressData.m_SetPValue[column] = static_cast<float>(value);
-                ok = epMachine->setIndexedFloat(CMDID_INDEX_PRESS, column, static_cast<float>(value));
+                ok = writePressData();
             }
             break;
         case 2: // 保压值 / after pressure
             if (column < MAX_PStep)
             {
                 m_PressData.m_AfterValue[column] = static_cast<float>(value);
-                ok = epMachine->setIndexedFloat(CMDID_INDEX_AFTER, column, static_cast<float>(value));
+                ok = writePressData();
             }
             break;
         case 3: // 保压时间(毫秒) / keep time (ms)
             if (column < MAX_PStep)
             {
                 m_PressData.m_KPTime[column] = static_cast<uint32_t>(value);
-                ok = epMachine->setIndexedInt32(CMDID_INDEX_KPTIME, column, static_cast<int32_t>(value));
+                ok = writePressData();
             }
             break;
         default:
@@ -1384,10 +1363,20 @@ void UiHome::slotCellValueChanged(int row, int column, double value)
     }
     if (!ok)
     {
-        qDebug() << Q_FUNC_INFO << "indexed write failed, row=" << row
-                 << " column=" << column << " err:" << epMachine->getLastErrorInfo();
+        qDebug() << Q_FUNC_INFO << "press data write failed, row=" << row
+                 << " column=" << column;
     }
     refreshStepTables();
+}
+
+bool UiHome::writePressData()
+{
+    if (!epMachine->setPressDataJson(m_PressData))
+    {
+        qDebug() << Q_FUNC_INFO << "setPressDataJson failed:" << epMachine->getLastErrorInfo();
+        return false;
+    }
+    return true;
 }
 
 void UiHome::slotControlDialog()

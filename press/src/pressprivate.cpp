@@ -126,7 +126,7 @@ uint64_t PressPrivate::getMachineRegisterNo() const
     return m_RegisterNo;
 }
 
-bool PressPrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
+bool PressPrivate::getReadOnlyDataJson(ReadOnlyData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_ROD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
@@ -164,7 +164,7 @@ bool PressPrivate::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
     return true;
 }
 
-bool PressPrivate::getPressData(PressData& data, bool isCompressed)
+bool PressPrivate::getPressDataJson(PressData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_PD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
@@ -202,7 +202,7 @@ bool PressPrivate::getPressData(PressData& data, bool isCompressed)
     return true;
 }
 
-bool PressPrivate::setPressData(const PressData& data, bool isCompressed)
+bool PressPrivate::setPressDataJson(const PressData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
     std::vector<uint8_t> commandListData;
@@ -217,7 +217,7 @@ bool PressPrivate::setPressData(const PressData& data, bool isCompressed)
     return _handleSetResponse(SET_PD_JSON_V, responseListData);
 }
 
-bool PressPrivate::getRealTimeData(RealTimeData& data, bool isCompressed)
+bool PressPrivate::getRealTimeDataJson(RealTimeData& data, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_RT_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
@@ -436,7 +436,7 @@ MachineError PressPrivate::_parseResponseFrame(const std::vector<uint8_t>& respo
     }
 
     // SET（写）命令响应为回显数据（参数类）或 1 字节状态码（控制类），
-    // 统一拷贝完整数据区，由上层 _handleSetResponse / genericWrite 按命令类型解释
+    // 统一拷贝完整数据区，由上层 _handleSetResponse 按命令类型解释
     out.m_FrameDataList.assign(response.begin() + 12, response.begin() + 12 + readDataLen);
 
     return MachineError::None;
@@ -835,7 +835,7 @@ void PressPrivate::_startRealTimeTimer(int intervalSeconds)
             }
 
             RealTimeData realTimeData;
-            if (getRealTimeData(realTimeData))
+            if (getRealTimeDataJson(realTimeData))
             {
                 m_TimerConsecutiveFailures.store(0);
             }
@@ -862,7 +862,7 @@ void PressPrivate::_stopRealTimeTimer()
     mpRealTimeTimerThread.reset();
 }
 
-// ==================== 通用命令接口与类型化助手 ====================
+// ==================== 协议数据辅助 ====================
 // 协议约定（依据下位机 receive.cpp / data 实现整理）：
 //   1. 数值编码为 4 字节本机字节序（小端 IEEE754 / int32，union 直接拷贝）
 //   2. 读命令请求 payload 固定 1 字节（索引 / 语言代码 / 压缩标志 / 哑元 0）
@@ -900,240 +900,6 @@ void _appendHostInt32(std::vector<uint8_t>& data, int32_t value)
 }
 } // namespace
 
-bool PressPrivate::genericRead(uint16_t command, const std::vector<uint8_t>& requestData,
-                               std::vector<uint8_t>& responseData)
-{
-    return _requestCommand(command, requestData, responseData);
-}
-
-bool PressPrivate::genericWrite(uint16_t command, const std::vector<uint8_t>& requestData,
-                               std::vector<uint8_t>& responseData)
-{
-    return _requestCommand(command, requestData, responseData);
-}
-
-bool PressPrivate::getByteValue(uint16_t command, uint8_t& value)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(command, {0x00}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    if (!GET_BOOL(responseListData.size()))
-    {
-        _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    value = responseListData[0];
-    return true;
-}
-
-bool PressPrivate::setByteValue(uint16_t command, uint8_t value)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(command), {value}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    // 参数类写命令：回显校验
-    if (responseListData.size() != 1 || responseListData[0] != value)
-    {
-        _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    return true;
-}
-
-bool PressPrivate::getFloatValue(uint16_t command, float& value)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(command, {0x00}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    if (responseListData.size() != 4)
-    {
-        _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    value = _readHostFloat(responseListData, 0);
-    return true;
-}
-
-bool PressPrivate::setFloatValue(uint16_t command, float value)
-{
-    std::vector<uint8_t> requestListData;
-    _appendHostFloat(requestListData, value);
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(command), requestListData, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    if (responseListData.size() != 4)
-    {
-        _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    return true;
-}
-
-bool PressPrivate::getFloatPairValue(uint16_t command, float& valueA, float& valueB)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(command, {0x00}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    if (responseListData.size() != 8)
-    {
-        _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    valueA = _readHostFloat(responseListData, 0);
-    valueB = _readHostFloat(responseListData, 4);
-    return true;
-}
-
-bool PressPrivate::setFloatPairValue(uint16_t command, float valueA, float valueB)
-{
-    std::vector<uint8_t> requestListData;
-    _appendHostFloat(requestListData, valueA);
-    _appendHostFloat(requestListData, valueB);
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(command), requestListData, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    if (responseListData.size() != 8)
-    {
-        _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    return true;
-}
-
-bool PressPrivate::getIndexedByte(uint16_t command, uint8_t index, uint8_t& value)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(command, {index}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    if (responseListData.size() != 2 || responseListData[0] != index)
-    {
-        _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    value = responseListData[1];
-    return true;
-}
-
-bool PressPrivate::setIndexedByte(uint16_t command, uint8_t index, uint8_t value)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(command), {index, value}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    if (responseListData.size() != 2 || responseListData[0] != index)
-    {
-        _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    return true;
-}
-
-bool PressPrivate::getIndexedFloat(uint16_t command, uint8_t index, float& value)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(command, {index}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    if (responseListData.size() != 5 || responseListData[0] != index)
-    {
-        _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    value = _readHostFloat(responseListData, 1);
-    return true;
-}
-
-bool PressPrivate::setIndexedFloat(uint16_t command, uint8_t index, float value)
-{
-    std::vector<uint8_t> requestListData;
-    requestListData.push_back(index);
-    _appendHostFloat(requestListData, value);
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(command), requestListData, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    if (responseListData.size() != 5 || responseListData[0] != index)
-    {
-        _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    return true;
-}
-
-bool PressPrivate::getIndexedInt32(uint16_t command, uint8_t index, int32_t& value)
-{
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(command, {index}, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    if (responseListData.size() != 5 || responseListData[0] != index)
-    {
-        _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
-        return false;
-    }
-    value = _readHostInt32(responseListData, 1);
-    return true;
-}
-
-bool PressPrivate::setIndexedInt32(uint16_t command, uint8_t index, int32_t value)
-{
-    std::vector<uint8_t> requestListData;
-    requestListData.push_back(index);
-    _appendHostInt32(requestListData, value);
-    std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(command), requestListData, responseListData))
-    {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    if (responseListData.size() != 5 || responseListData[0] != index)
-    {
-        _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(command), responseListData);
-        return false;
-    }
-    return true;
-}
 
 bool PressPrivate::getStringValue(uint16_t command, uint8_t arg, std::string& text)
 {
@@ -1495,38 +1261,109 @@ bool PressPrivate::setDateTime(const DateTimeInfo& dateTime)
 
 bool PressPrivate::getBrightness(uint8_t& brightness)
 {
-    return getByteValue(CMDID_BRIGHTNESS, brightness);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(CMDID_BRIGHTNESS, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BRIGHTNESS, responseListData);
+        return false;
+    }
+    if (!GET_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BRIGHTNESS, responseListData);
+        return false;
+    }
+    brightness = responseListData[0];
+    return true;
 }
 
 bool PressPrivate::setBrightness(uint8_t brightness)
 {
-    return setByteValue(CMDID_BRIGHTNESS, brightness);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_CMD(CMDID_BRIGHTNESS), {brightness}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BRIGHTNESS), responseListData);
+        return false;
+    }
+    // 参数类写命令：回显校验
+    if (responseListData.size() != 1 || responseListData[0] != brightness)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BRIGHTNESS), responseListData);
+        return false;
+    }
+    return true;
 }
 
 bool PressPrivate::getButtonSound(bool& enabled)
 {
-    uint8_t value = 0;
-    if (!getByteValue(CMDID_BUTTON_SOUND, value))
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(CMDID_BUTTON_SOUND, {0x00}, responseListData))
     {
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BUTTON_SOUND, responseListData);
         return false;
     }
-    enabled = (value != 0);
+    if (!GET_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BUTTON_SOUND, responseListData);
+        return false;
+    }
+    enabled = (responseListData[0] != 0);
     return true;
 }
 
 bool PressPrivate::setButtonSound(bool enabled)
 {
-    return setByteValue(CMDID_BUTTON_SOUND, enabled ? 1 : 0);
+    const uint8_t value = enabled ? 1 : 0;
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_CMD(CMDID_BUTTON_SOUND), {value}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BUTTON_SOUND), responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != value)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BUTTON_SOUND), responseListData);
+        return false;
+    }
+    return true;
 }
 
 bool PressPrivate::getLanguage(uint8_t& language)
 {
-    return getByteValue(CMDID_LANGUAGE, language);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(CMDID_LANGUAGE, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_LANGUAGE, responseListData);
+        return false;
+    }
+    if (!GET_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(CMDID_LANGUAGE, responseListData);
+        return false;
+    }
+    language = responseListData[0];
+    return true;
 }
 
 bool PressPrivate::setLanguage(uint8_t language)
 {
-    return setByteValue(CMDID_LANGUAGE, language);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_CMD(CMDID_LANGUAGE), {language}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_LANGUAGE), responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != language)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_LANGUAGE), responseListData);
+        return false;
+    }
+    return true;
 }
 
 // ==================== 状态与控制命令 ====================

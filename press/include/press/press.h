@@ -161,7 +161,7 @@ PRESS_C_EXPORT int cpress_is_running(const CPressContext* handle);
 //!                    0 = false, non-zero = true. / 是否使用压缩 JSON 模式。
 //!                    0 表示 false，非 0 表示 true。
 //! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
-PRESS_C_EXPORT int cpress_get_read_only_data(CPressContext* handle, ReadOnlyData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_get_read_only_data_json(CPressContext* handle, ReadOnlyData* data, int isCompressed);
 
 //! Read the device serial number (CMDID_SERIAL_NUMBER 0x0003) / 读取设备序列号
 //! On success the value is also cached into ReadOnlyData.m_SerialNumber.
@@ -180,15 +180,15 @@ PRESS_C_EXPORT void cpress_set_request_timeout(CPressContext* handle, unsigned i
 
 //! Read pressure configuration / 读取压力参数
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_get_press_data(CPressContext* handle, PressData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_get_press_data_json(CPressContext* handle, PressData* data, int isCompressed);
 
 //! Write pressure configuration / 写入压力参数
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_set_press_data(CPressContext* handle, const PressData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_set_press_data_json(CPressContext* handle, const PressData* data, int isCompressed);
 
 //! Read live machine state / 读取实时机器状态
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_get_real_time_data(CPressContext* handle, RealTimeData* data, int isCompressed);
+PRESS_C_EXPORT int cpress_get_real_time_data_json(CPressContext* handle, RealTimeData* data, int isCompressed);
 
 //! Start or stop the pressing action only / 启动或停止单独的加压动作
 //! @param isPressing   0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
@@ -197,34 +197,6 @@ PRESS_C_EXPORT int cpress_set_pressing(CPressContext* handle, int isPressing);
 //! Start or stop the demolding action only / 启动或停止单独的脱模动作
 //! @param isDemolding  0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
 PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding);
-
-//! Generic read command, covers all CMDID_* commands / 通用读命令，覆盖全部 CMDID_* 命令
-//! @param handle          Active context / 有效的上下文
-//! @param command         Command ID without the SET bit / 不带 SET 位的命令 ID
-//! @param requestData     Request payload bytes (read commands carry exactly 1 byte)
-//!                        / 请求 payload 字节（读命令固定 1 字节）
-//! @param requestLen      Length of requestData / 请求字节数
-//! @param responseData    Output buffer for the response data, may be NULL when
-//!                        only the status is needed / 响应数据输出缓冲，不需要时可 NULL
-//! @param responseCapacity Capacity of responseData / 输出缓冲容量
-//! @param responseLen     Output: actual response length, may be NULL / 实际响应长度，可 NULL
-//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
-PRESS_C_EXPORT int cpress_generic_read(CPressContext* handle, unsigned short command,
-                                       const unsigned char* requestData, size_t requestLen,
-                                       unsigned char* responseData, size_t responseCapacity,
-                                       size_t* responseLen);
-
-//! Generic write command, covers all SET_CMD() commands / 通用写命令，覆盖全部 SET_CMD() 命令
-//! @param command         Command ID WITH the SET bit (SET_CMD macro) / 需带 SET 位的命令 ID
-//! @param requestData     Full write payload (indexed commands carry the index prefix)
-//!                        / 完整写入 payload（索引型命令自带索引前缀）
-//! @param responseData    Output buffer for the echoed data, may be NULL / 回显数据缓冲，可 NULL
-//! @param responseLen     Output: actual response length, may be NULL / 实际响应长度，可 NULL
-//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
-PRESS_C_EXPORT int cpress_generic_write(CPressContext* handle, unsigned short command,
-                                        const unsigned char* requestData, size_t requestLen,
-                                        unsigned char* responseData, size_t responseCapacity,
-                                        size_t* responseLen);
 
 //! Register callback handlers / 注册回调处理器
 //! @param handle     Active context / 有效的上下文

@@ -69,44 +69,15 @@ public:
     bool isConnected() const;
     uint64_t getMachineRegisterNo() const;
 
-    bool getReadOnlyData(ReadOnlyData& data, bool isCompressed = false);
-    bool getPressData(PressData& data, bool isCompressed = false);
-    bool setPressData(const PressData& data, bool isCompressed = false);
-    bool getRealTimeData(RealTimeData& data, bool isCompressed = false);
+    bool getReadOnlyDataJson(ReadOnlyData& data, bool isCompressed = false);
+    bool getPressDataJson(PressData& data, bool isCompressed = false);
+    bool setPressDataJson(const PressData& data, bool isCompressed = false);
+    bool getRealTimeDataJson(RealTimeData& data, bool isCompressed = false);
     bool getVersionInfo(VersionInfo& versionInfo);
     bool getSerialNumber(std::string& serialNumber);
     bool setPressing(bool isPressing);
     bool setDemolding(bool isDemolding);
 
-    // ==================== 通用命令接口 ====================
-    //! 通用读命令：requestData 为协议要求的 1 字节请求参数
-    //! （索引 / 语言代码 / 压缩标志 / 哑元 0）， responseData 为完整响应数据区
-    bool genericRead(uint16_t command, const std::vector<uint8_t>& requestData,
-                     std::vector<uint8_t>& responseData);
-    //! 通用写命令：requestData 为完整写入数据区（索引型命令自带索引前缀），
-    //! responseData 返回固件回显数据（参数类）或 1 字节状态码（控制类）
-    bool genericWrite(uint16_t command, const std::vector<uint8_t>& requestData,
-                      std::vector<uint8_t>& responseData);
-
-    // ==================== 类型化命令助手 ====================
-    //! 单字节命令读写（请求 {0x00}，响应 1 字节；写回显 1 字节）
-    bool getByteValue(uint16_t command, uint8_t& value);
-    bool setByteValue(uint16_t command, uint8_t value);
-    //! 4 字节浮点命令读写（本机字节序 IEEE754）
-    bool getFloatValue(uint16_t command, float& value);
-    bool setFloatValue(uint16_t command, float value);
-    //! 8 字节双浮点命令读写（如 RECT_AB）
-    bool getFloatPairValue(uint16_t command, float& valueA, float& valueB);
-    bool setFloatPairValue(uint16_t command, float valueA, float valueB);
-    //! 索引单字节命令读写（请求 {index}，响应 [index, value]；写 [index, value]）
-    bool getIndexedByte(uint16_t command, uint8_t index, uint8_t& value);
-    bool setIndexedByte(uint16_t command, uint8_t index, uint8_t value);
-    //! 索引浮点命令读写（[index, float4]）
-    bool getIndexedFloat(uint16_t command, uint8_t index, float& value);
-    bool setIndexedFloat(uint16_t command, uint8_t index, float value);
-    //! 索引整型命令读写（[index, int32]），用于 KPTIME/KTTIME/KTime
-    bool getIndexedInt32(uint16_t command, uint8_t index, int32_t& value);
-    bool setIndexedInt32(uint16_t command, uint8_t index, int32_t value);
     //! 字符串命令读取（请求 {arg}，响应 [arg, string...]）；arg 为哑元 0 / 语言代码
     bool getStringValue(uint16_t command, uint8_t arg, std::string& text);
 

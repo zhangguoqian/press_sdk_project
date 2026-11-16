@@ -342,36 +342,36 @@ public final class PressSdk implements AutoCloseable {
         return press_is_running(this.handle) != 0;
     }
 
-    public boolean getReadOnlyData(ReadOnlyData data, boolean isCompressed) {
+    public boolean getReadOnlyDataJson(ReadOnlyData data, boolean isCompressed) {
         ensureOpen();
         if (data == null) {
             throw new IllegalArgumentException("data must not be null.");
         }
-        return press_get_read_only_data(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_get_read_only_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
     }
 
-    public boolean getPressData(PressData data, boolean isCompressed) {
+    public boolean getPressDataJson(PressData data, boolean isCompressed) {
         ensureOpen();
         if (data == null) {
             throw new IllegalArgumentException("data must not be null.");
         }
-        return press_get_press_data(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_get_press_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
     }
 
-    public boolean setPressData(PressData data, boolean isCompressed) {
+    public boolean setPressDataJson(PressData data, boolean isCompressed) {
         ensureOpen();
         if (data == null) {
             throw new IllegalArgumentException("data must not be null.");
         }
-        return press_set_press_data(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_set_press_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
     }
 
-    public boolean getRealTimeData(RealTimeData data, boolean isCompressed) {
+    public boolean getRealTimeDataJson(RealTimeData data, boolean isCompressed) {
         ensureOpen();
         if (data == null) {
             throw new IllegalArgumentException("data must not be null.");
         }
-        return press_get_real_time_data(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_get_real_time_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
     }
 
     public boolean setPressing(boolean isPressing) {
@@ -382,48 +382,6 @@ public final class PressSdk implements AutoCloseable {
     public boolean setDemolding(boolean isDemolding) {
         ensureOpen();
         return press_set_demolding(this.handle, isDemolding ? 1 : 0) != 0;
-    }
-
-    /**
-     * Generic read command covering all CMDID_* commands.
-     * 通用读命令，覆盖全部 CMDID_* 命令。
-     *
-     * <p>{@code command} must not carry the SET bit; read requests carry exactly
-     * 1 payload byte on the wire, so {@code requestData} is usually a single byte
-     * (it may also be null or empty when the command does not need one).</p>
-     * <p>{@code command} 不带 SET 位；读命令请求 payload 固定 1 字节，
-     * {@code requestData} 通常为单字节（命令不需要时也可传 null 或空数组）。</p>
-     *
-     * @param command          command ID without the SET bit / 不带 SET 位的命令 ID
-     * @param requestData      request payload bytes / 请求 payload 字节
-     * @param responseCapacity response buffer capacity in bytes / 响应缓冲容量（字节）
-     * @return response bytes on success, null on failure / 成功返回响应字节数组，失败返回 null
-     */
-    public byte[] genericRead(int command, byte[] requestData, int responseCapacity) {
-        ensureOpen();
-        return press_generic_read(this.handle, command, requestData, responseCapacity);
-    }
-
-    /**
-     * Generic write command covering all SET_CMD() commands.
-     * 通用写命令，覆盖全部 SET_CMD() 命令。
-     *
-     * <p>{@code command} must carry the SET bit (= read command ID | 0x1000).
-     * {@code requestData} is the full write payload (indexed commands carry their
-     * index prefix). The response is the firmware echo (parameter commands) or a
-     * 1-byte status code (control commands: 0/1 accepted, 3 rejected).</p>
-     * <p>{@code command} 必须带 SET 位（= 读命令 ID | 0x1000）。
-     * {@code requestData} 为完整写入 payload（索引型命令自带索引前缀）。
-     * 响应为固件回显数据（参数类）或 1 字节状态码（控制类 0/1 成功，3 拒绝）。</p>
-     *
-     * @param command          command ID WITH the SET bit / 带 SET 位的命令 ID
-     * @param requestData      full write payload / 完整写入 payload
-     * @param responseCapacity response buffer capacity in bytes / 响应缓冲容量（字节）
-     * @return response bytes on success, null on failure / 成功返回响应字节数组，失败返回 null
-     */
-    public byte[] genericWrite(int command, byte[] requestData, int responseCapacity) {
-        ensureOpen();
-        return press_generic_write(this.handle, command, requestData, responseCapacity);
     }
 
     /**
@@ -506,14 +464,12 @@ public final class PressSdk implements AutoCloseable {
     public static native void press_run(long handle);
     public static native void press_stop(long handle);
     public static native int press_is_running(long handle);
-    public static native int press_get_read_only_data(long handle, ReadOnlyData data, int isCompressed);
-    public static native int press_get_press_data(long handle, PressData data, int isCompressed);
-    public static native int press_set_press_data(long handle, PressData data, int isCompressed);
-    public static native int press_get_real_time_data(long handle, RealTimeData data, int isCompressed);
+    public static native int press_get_read_only_data_json(long handle, ReadOnlyData data, int isCompressed);
+    public static native int press_get_press_data_json(long handle, PressData data, int isCompressed);
+    public static native int press_set_press_data_json(long handle, PressData data, int isCompressed);
+    public static native int press_get_real_time_data_json(long handle, RealTimeData data, int isCompressed);
     public static native int press_set_pressing(long handle, int isPressing);
     public static native int press_set_demolding(long handle, int isDemolding);
-    public static native byte[] press_generic_read(long handle, int command, byte[] requestData, int responseCapacity);
-    public static native byte[] press_generic_write(long handle, int command, byte[] requestData, int responseCapacity);
     public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks, int intervalSeconds);
     public static native void press_unregister_data_interface(long handle);
     public static native String press_version();

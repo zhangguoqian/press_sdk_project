@@ -180,7 +180,7 @@ PRESS_C_EXPORT int cpress_is_running(const CPressContext* handle)
     return handle->impl->isRunning() ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_read_only_data(CPressContext* handle,
+PRESS_C_EXPORT int cpress_get_read_only_data_json(CPressContext* handle,
                                             ReadOnlyData* data,
                                             int isCompressed)
 {
@@ -189,10 +189,10 @@ PRESS_C_EXPORT int cpress_get_read_only_data(CPressContext* handle,
         return 0;
     }
 
-    return handle->impl->getReadOnlyData(*data, isCompressed != 0) ? 1 : 0;
+    return handle->impl->getReadOnlyDataJson(*data, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_press_data(CPressContext* handle,
+PRESS_C_EXPORT int cpress_get_press_data_json(CPressContext* handle,
                                         PressData* data,
                                         int isCompressed)
 {
@@ -201,10 +201,10 @@ PRESS_C_EXPORT int cpress_get_press_data(CPressContext* handle,
         return 0;
     }
 
-    return handle->impl->getPressData(*data, isCompressed != 0) ? 1 : 0;
+    return handle->impl->getPressDataJson(*data, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_set_press_data(CPressContext* handle,
+PRESS_C_EXPORT int cpress_set_press_data_json(CPressContext* handle,
                                         const PressData* data,
                                         int isCompressed)
 {
@@ -213,10 +213,10 @@ PRESS_C_EXPORT int cpress_set_press_data(CPressContext* handle,
         return 0;
     }
 
-    return handle->impl->setPressData(*data, isCompressed != 0) ? 1 : 0;
+    return handle->impl->setPressDataJson(*data, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_real_time_data(CPressContext* handle,
+PRESS_C_EXPORT int cpress_get_real_time_data_json(CPressContext* handle,
                                            RealTimeData* data,
                                            int isCompressed)
 {
@@ -225,7 +225,7 @@ PRESS_C_EXPORT int cpress_get_real_time_data(CPressContext* handle,
         return 0;
     }
 
-    return handle->impl->getRealTimeData(*data, isCompressed != 0) ? 1 : 0;
+    return handle->impl->getRealTimeDataJson(*data, isCompressed != 0) ? 1 : 0;
 }
 
 PRESS_C_EXPORT int cpress_get_serial_number(CPressContext* handle, char* buf, size_t bufSize)
@@ -272,78 +272,6 @@ PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding)
     }
 
     return handle->impl->setDemolding(isDemolding != 0) ? 1 : 0;
-}
-
-PRESS_C_EXPORT int cpress_generic_read(CPressContext* handle, unsigned short command,
-                                       const unsigned char* requestData, size_t requestLen,
-                                       unsigned char* responseData, size_t responseCapacity,
-                                       size_t* responseLen)
-{
-    if (handle == nullptr || handle->impl == nullptr)
-    {
-        return 0;
-    }
-    if ((requestData == nullptr && requestLen > 0) ||
-        (responseData == nullptr && responseCapacity > 0))
-    {
-        return 0;
-    }
-
-    std::vector<uint8_t> request(requestData, requestData + requestLen);
-    std::vector<uint8_t> response;
-    if (!handle->impl->genericRead(command, request, response))
-    {
-        if (responseLen != nullptr)
-        {
-            *responseLen = 0;
-        }
-        return 0;
-    }
-    if (responseLen != nullptr)
-    {
-        *responseLen = response.size();
-    }
-    if (responseCapacity > 0 && !response.empty())
-    {
-        std::memcpy(responseData, response.data(), std::min(response.size(), responseCapacity));
-    }
-    return 1;
-}
-
-PRESS_C_EXPORT int cpress_generic_write(CPressContext* handle, unsigned short command,
-                                        const unsigned char* requestData, size_t requestLen,
-                                        unsigned char* responseData, size_t responseCapacity,
-                                        size_t* responseLen)
-{
-    if (handle == nullptr || handle->impl == nullptr)
-    {
-        return 0;
-    }
-    if ((requestData == nullptr && requestLen > 0) ||
-        (responseData == nullptr && responseCapacity > 0))
-    {
-        return 0;
-    }
-
-    std::vector<uint8_t> request(requestData, requestData + requestLen);
-    std::vector<uint8_t> response;
-    if (!handle->impl->genericWrite(command, request, response))
-    {
-        if (responseLen != nullptr)
-        {
-            *responseLen = 0;
-        }
-        return 0;
-    }
-    if (responseLen != nullptr)
-    {
-        *responseLen = response.size();
-    }
-    if (responseCapacity > 0 && !response.empty())
-    {
-        std::memcpy(responseData, response.data(), std::min(response.size(), responseCapacity));
-    }
-    return 1;
 }
 
 PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle,

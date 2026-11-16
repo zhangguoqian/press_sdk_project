@@ -53,9 +53,9 @@ bool Press::isRunning() const
     return mpPrivate->isRunning();
 }
 
-bool Press::getReadOnlyData(ReadOnlyData& data, bool isCompressed)
+bool Press::getReadOnlyDataJson(ReadOnlyData& data, bool isCompressed)
 {
-    return mpPrivate->getReadOnlyData(data, isCompressed);
+    return mpPrivate->getReadOnlyDataJson(data, isCompressed);
 }
 
 bool Press::getSerialNumber(std::string& serialNumber)
@@ -70,19 +70,19 @@ void Press::setRequestTimeout(unsigned int ms)
 
 
 
-bool Press::getPressData(PressData& data, bool isCompressed)
+bool Press::getPressDataJson(PressData& data, bool isCompressed)
 {
-    return mpPrivate->getPressData(data, isCompressed);
+    return mpPrivate->getPressDataJson(data, isCompressed);
 }
 
-bool Press::setPressData(const PressData& data, bool isCompressed)
+bool Press::setPressDataJson(const PressData& data, bool isCompressed)
 {
-    return mpPrivate->setPressData(data, isCompressed);
+    return mpPrivate->setPressDataJson(data, isCompressed);
 }
 
-bool Press::getRealTimeData(RealTimeData& data, bool isCompressed)
+bool Press::getRealTimeDataJson(RealTimeData& data, bool isCompressed)
 {
-    return mpPrivate->getRealTimeData(data, isCompressed);
+    return mpPrivate->getRealTimeDataJson(data, isCompressed);
 }
 
 bool Press::setPressing(bool isPressing)
@@ -93,82 +93,6 @@ bool Press::setPressing(bool isPressing)
 bool Press::setDemolding(bool isDemolding)
 {
     return mpPrivate->setDemolding(isDemolding);
-}
-
-// ==================== 通用命令接口 ====================
-
-bool Press::genericRead(uint16_t command, const std::vector<uint8_t>& requestData,
-                        std::vector<uint8_t>& responseData)
-{
-    return mpPrivate->genericRead(command, requestData, responseData);
-}
-
-bool Press::genericWrite(uint16_t command, const std::vector<uint8_t>& requestData,
-                         std::vector<uint8_t>& responseData)
-{
-    return mpPrivate->genericWrite(command, requestData, responseData);
-}
-
-// ==================== 类型化命令助手 ====================
-
-bool Press::getByteValue(uint16_t command, uint8_t& value)
-{
-    return mpPrivate->getByteValue(command, value);
-}
-
-bool Press::setByteValue(uint16_t command, uint8_t value)
-{
-    return mpPrivate->setByteValue(command, value);
-}
-
-bool Press::getFloatValue(uint16_t command, float& value)
-{
-    return mpPrivate->getFloatValue(command, value);
-}
-
-bool Press::setFloatValue(uint16_t command, float value)
-{
-    return mpPrivate->setFloatValue(command, value);
-}
-
-bool Press::getFloatPairValue(uint16_t command, float& valueA, float& valueB)
-{
-    return mpPrivate->getFloatPairValue(command, valueA, valueB);
-}
-
-bool Press::setFloatPairValue(uint16_t command, float valueA, float valueB)
-{
-    return mpPrivate->setFloatPairValue(command, valueA, valueB);
-}
-
-bool Press::getIndexedByte(uint16_t command, uint8_t index, uint8_t& value)
-{
-    return mpPrivate->getIndexedByte(command, index, value);
-}
-
-bool Press::setIndexedByte(uint16_t command, uint8_t index, uint8_t value)
-{
-    return mpPrivate->setIndexedByte(command, index, value);
-}
-
-bool Press::getIndexedFloat(uint16_t command, uint8_t index, float& value)
-{
-    return mpPrivate->getIndexedFloat(command, index, value);
-}
-
-bool Press::setIndexedFloat(uint16_t command, uint8_t index, float value)
-{
-    return mpPrivate->setIndexedFloat(command, index, value);
-}
-
-bool Press::getIndexedInt32(uint16_t command, uint8_t index, int32_t& value)
-{
-    return mpPrivate->getIndexedInt32(command, index, value);
-}
-
-bool Press::setIndexedInt32(uint16_t command, uint8_t index, int32_t value)
-{
-    return mpPrivate->setIndexedInt32(command, index, value);
 }
 
 // ==================== 设备信息与参数块 ====================

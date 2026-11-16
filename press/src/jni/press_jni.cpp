@@ -664,10 +664,10 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_is_running(JNIEnv* env, jc
     return cpress_is_running(reinterpret_cast<CPressContext*>(handle));
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_read_only_data(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_read_only_data_json(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
 {
     ReadOnlyData nativeData = {};
-    int result = cpress_get_read_only_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
+    int result = cpress_get_read_only_data_json(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
     if (result != 0)
     {
         fillReadOnlyData(env, data, nativeData);
@@ -675,10 +675,10 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_read_only_data(JNIEnv*
     return result;
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_press_data(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_press_data_json(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
 {
     PressData nativeData = {};
-    int result = cpress_get_press_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
+    int result = cpress_get_press_data_json(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
     if (result != 0)
     {
         fillPressData(env, data, nativeData);
@@ -686,17 +686,17 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_press_data(JNIEnv* env
     return result;
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_press_data(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_press_data_json(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
 {
     PressData nativeData = {};
     readPressData(env, data, &nativeData);
-    return cpress_set_press_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
+    return cpress_set_press_data_json(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_real_time_data(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_real_time_data_json(JNIEnv* env, jclass, jlong handle, jobject data, jint isCompressed)
 {
     RealTimeData nativeData = {};
-    int result = cpress_get_real_time_data(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
+    int result = cpress_get_real_time_data_json(reinterpret_cast<CPressContext*>(handle), &nativeData, isCompressed);
     if (result != 0)
     {
         fillRealTimeData(env, data, nativeData);
@@ -714,105 +714,6 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_demolding(JNIEnv* env,
 {
     (void)env;
     return cpress_set_demolding(reinterpret_cast<CPressContext*>(handle), isDemolding);
-}
-
-// 通用读写命令：返回响应字节数组，失败时返回 nullptr（Java 侧为 null）
-// Generic read/write commands: return the response bytes, or nullptr on failure.
-static jbyteArray jniGenericCommand(JNIEnv* env,
-                                    jlong handle,
-                                    jint command,
-                                    jbyteArray requestData,
-                                    jint responseCapacity,
-                                    bool isWrite)
-{
-    CPressContext* ctx = reinterpret_cast<CPressContext*>(handle);
-
-    // 请求 payload：Java 侧可能传 null 或空数组，此时传 NULL 指针
-    // Request payload: the Java side may pass null or an empty array; use a
-    // NULL pointer in that case.
-    std::vector<unsigned char> request;
-    if (requestData != nullptr)
-    {
-        jsize requestLength = env->GetArrayLength(requestData);
-        if (requestLength > 0)
-        {
-            request.resize(static_cast<size_t>(requestLength));
-            env->GetByteArrayRegion(requestData,
-                                    0,
-                                    requestLength,
-                                    reinterpret_cast<jbyte*>(request.data()));
-            if (env->ExceptionCheck())
-            {
-                return nullptr;
-            }
-        }
-    }
-
-    const size_t capacity = responseCapacity > 0 ? static_cast<size_t>(responseCapacity) : 0;
-    std::vector<unsigned char> response(capacity, 0);
-    size_t actualLen = 0;
-
-    int result = 0;
-    if (isWrite)
-    {
-        result = cpress_generic_write(ctx,
-                                      static_cast<unsigned short>(command),
-                                      request.empty() ? nullptr : request.data(),
-                                      request.size(),
-                                      response.empty() ? nullptr : response.data(),
-                                      response.size(),
-                                      &actualLen);
-    }
-    else
-    {
-        result = cpress_generic_read(ctx,
-                                     static_cast<unsigned short>(command),
-                                     request.empty() ? nullptr : request.data(),
-                                     request.size(),
-                                     response.empty() ? nullptr : response.data(),
-                                     response.size(),
-                                     &actualLen);
-    }
-
-    if (result == 0)
-    {
-        return nullptr;
-    }
-
-    const size_t copyLen = actualLen < capacity ? actualLen : capacity;
-    jbyteArray out = env->NewByteArray(static_cast<jsize>(copyLen));
-    if (out == nullptr)
-    {
-        return nullptr;
-    }
-    if (copyLen > 0)
-    {
-        env->SetByteArrayRegion(out,
-                                0,
-                                static_cast<jsize>(copyLen),
-                                reinterpret_cast<const jbyte*>(response.data()));
-    }
-    return out;
-}
-
-extern "C" JNIEXPORT jbyteArray JNICALL Java_PressSdk_press_generic_read(JNIEnv* env,
-                                                                          jclass,
-                                                                          jlong handle,
-                                                                          jint command,
-                                                                          jbyteArray requestData,
-                                                                          jint responseCapacity)
-{
-    return jniGenericCommand(env, handle, command, requestData, responseCapacity, false);
-}
-
-extern "C" JNIEXPORT jbyteArray JNICALL Java_PressSdk_press_generic_write(JNIEnv* env,
-                                                                           jclass,
-                                                                           jlong handle,
-                                                                           jint command,
-                                                                           jbyteArray requestData,
-                                                                           jint responseCapacity)
-{
-    return jniGenericCommand(env, handle, command, requestData, responseCapacity, true);
 }
 
 extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_version(JNIEnv* env, jclass)

@@ -11,11 +11,9 @@
  *   - 异步回调 + 定时采集 RealTimeData          callbacks + periodic RealTimeData fetch
  *   - 设备信息命令 (名称/机型/序列号/参数块)    device info commands
  *   - JSON 批量命令 (ROD/PD/TD/MD/RT)          JSON bulk commands
- *   - 类型化助手 (单字节/浮点/双浮点/索引)      typed helpers
  *   - 段参数命令 (压力/温度/混合模式)          step-parameter commands
  *   - 系统命令 (日期时间/亮度/提示音/语言)      system commands
  *   - 状态查询与控制命令                        state & control commands
- *   - 通用命令接口                              generic read/write
  *
  * 安全说明: 示例只做只读查询；唯一的写操作是"读出-写回"（不改变设备状态）。
  * Safety: the example only reads; the single write is read-back (state unchanged).
@@ -423,38 +421,27 @@ int main(int argc, char* argv[])
     // ==================== 4. JSON 批量命令 ====================
     {
         ReadOnlyData ro;
-        bool roOk = press.getReadOnlyData(ro);
-        report("getReadOnlyData(json)", roOk, press);
+        bool roOk = press.getReadOnlyDataJson(ro);
+        report("getReadOnlyDataJson(json)", roOk, press);
         if (roOk)
         {
             printReadOnlyData(ro);
         }
 
         PressData pd;
-        bool pdOk = press.getPressData(pd);
-        report("getPressData(json)", pdOk, press);
+        bool pdOk = press.getPressDataJson(pd);
+        report("getPressDataJson(json)", pdOk, press);
         if (pdOk)
         {
             printPressData(pd);
         }
 
         RealTimeData rt;
-        bool rtOk = press.getRealTimeData(rt);
-        report("getRealTimeData(json)", rtOk, press);
+        bool rtOk = press.getRealTimeDataJson(rt);
+        report("getRealTimeDataJson(json)", rtOk, press);
         if (rtOk)
         {
             printRealTimeData(rt);
-        }
-        else
-        {
-            // 解析失败时 dump 固件返回的原始 JSON 辅助诊断
-            // dump raw firmware JSON for diagnosis on parse failure
-            std::vector<uint8_t> raw;
-            if (press.genericRead(CMDID_GET_CURRENT_STATE_JSON, {0x00}, raw))
-            {
-                std::printf("  raw RT json (%zu bytes): %s\n", raw.size(),
-                            std::string(raw.begin(), raw.end()).c_str());
-            }
         }
 
         std::string tempJson;
@@ -472,33 +459,6 @@ int main(int argc, char* argv[])
         {
             std::printf("  mix json (%zu bytes): %s\n", mixJson.size(), mixJson.c_str());
         }
-    }
-
-    // ==================== 5. 类型化助手 ====================
-    {
-        uint8_t step = 0;
-        report("getByteValue(PRESS_STEP)", press.getByteValue(CMDID_PRESS_STEP, step), press);
-        std::printf("  press step = %u\n", step);
-
-        float calibrate = 0.0f;
-        report("getFloatValue(PRESS_CALIBRATE)", press.getFloatValue(CMDID_PRESS_CALIBRATE, calibrate), press);
-        std::printf("  calibrate = %.3f\n", calibrate);
-
-        float rectA = 0.0f, rectB = 0.0f;
-        report("getFloatPairValue(RECT_AB)", press.getFloatPairValue(CMDID_RECT_AB, rectA, rectB), press);
-        std::printf("  rect A=%.3f B=%.3f\n", rectA, rectB);
-
-        float indexPress = 0.0f;
-        report("getIndexedFloat(INDEX_PRESS, 0)", press.getIndexedFloat(CMDID_INDEX_PRESS, 0, indexPress), press);
-        std::printf("  step0 press = %.3f\n", indexPress);
-
-        int32_t kpTime = 0;
-        report("getIndexedInt32(INDEX_KPTIME, 0)", press.getIndexedInt32(CMDID_INDEX_KPTIME, 0, kpTime), press);
-        std::printf("  step0 kpTime = %d\n", kpTime);
-
-        uint8_t isPress = 0;
-        report("getIndexedByte(MIX_INDEX_ISPRESS, 0)", press.getIndexedByte(CMDID_MIX_INDEX_ISPRESS, 0, isPress), press);
-        std::printf("  mix step0 isPress = %u\n", isPress);
     }
 
     // ==================== 6. 段参数命令 ====================
@@ -591,54 +551,10 @@ int main(int argc, char* argv[])
         {
             printMachineState(state);
         }
-        else
-        {
-            // 失败时 dump 0x0500 原始响应辅助诊断 / dump raw response for diagnosis
-            std::vector<uint8_t> raw;
-            if (press.genericRead(CMDID_GET_CURRENT_STATE, {0x00}, raw))
-            {
-                std::printf("  raw 0x0500 response (%zu bytes):", raw.size());
-                for (uint8_t b : raw)
-                {
-                    std::printf(" %02X", b);
-                }
-                std::printf("\n");
-            }
-        }
 
         // 注册号在 connect 时由固件分配 / register number assigned by firmware at connect
         std::printf("  register no = %llu\n",
                     static_cast<unsigned long long>(press.getMachineRegisterNo()));
-    }
-
-    // ==================== 9. 通用命令接口 ====================
-    {
-        // 例：通过 generic 接口读取机型字符串（与 getMachineType 等价）
-        // e.g. read the machine type via the generic interface
-        std::vector<uint8_t> response;
-        bool ok = press.genericRead(CMDID_MACHINE_TYPE, {0x00}, response);
-        report("genericRead(MACHINE_TYPE)", ok, press);
-        if (ok)
-        {
-            printHex("response", response);
-            std::printf("  machine type (generic) = %s\n",
-                        std::string(response.begin(), response.end()).c_str());
-        }
-
-        // 例：generic 写——把亮度写回当前值（与 setBrightness 等价，命令需带 SET 位）
-        // e.g. generic write; the command must carry the SET bit
-        uint8_t brightness = 0;
-        if (press.getBrightness(brightness))
-        {
-            std::vector<uint8_t> echo;
-            ok = press.genericWrite(SET_CMD(CMDID_BRIGHTNESS), {brightness}, echo);
-            report("genericWrite(BRIGHTNESS)", ok, press);
-            std::printf("  request payload: %02X\n", brightness);
-            if (ok)
-            {
-                printHex("echo", echo);
-            }
-        }
     }
 
     // ==================== 10. 性能基准 / Latency benchmark ====================
@@ -646,30 +562,6 @@ int main(int argc, char* argv[])
     // Every command runs repeatedly to collect latency distribution.
     std::printf("\n================ benchmark / 性能基准 ================\n");
     {
-        bench("genericRead(VERSION)", 10, [&] {
-            std::vector<uint8_t> r;
-            return press.genericRead(CMDID_VERSION, {0x00}, r);
-        });
-        bench("getByteValue(PRESS_STEP)", 10, [&] {
-            uint8_t v = 0;
-            return press.getByteValue(CMDID_PRESS_STEP, v);
-        });
-        bench("getFloatValue(PRESS_CALIBRATE)", 10, [&] {
-            float v = 0.0f;
-            return press.getFloatValue(CMDID_PRESS_CALIBRATE, v);
-        });
-        bench("getFloatPairValue(RECT_AB)", 10, [&] {
-            float a = 0.0f, b = 0.0f;
-            return press.getFloatPairValue(CMDID_RECT_AB, a, b);
-        });
-        bench("getIndexedFloat(INDEX_PRESS)", 10, [&] {
-            float v = 0.0f;
-            return press.getIndexedFloat(CMDID_INDEX_PRESS, 0, v);
-        });
-        bench("getIndexedInt32(INDEX_KPTIME)", 10, [&] {
-            int32_t v = 0;
-            return press.getIndexedInt32(CMDID_INDEX_KPTIME, 0, v);
-        });
         bench("getPressParameter", 10, [&] {
             PressParameter p{};
             return press.getPressParameter(p);
@@ -678,13 +570,13 @@ int main(int argc, char* argv[])
             MachineState s{};
             return press.getMachineState(s);
         });
-        bench("getReadOnlyData(JSON)", 5, [&] {
+        bench("getReadOnlyDataJson(JSON)", 5, [&] {
             ReadOnlyData d{};
-            return press.getReadOnlyData(d);
+            return press.getReadOnlyDataJson(d);
         });
-        bench("getRealTimeData(JSON)", 5, [&] {
+        bench("getRealTimeDataJson(JSON)", 5, [&] {
             RealTimeData d{};
-            return press.getRealTimeData(d);
+            return press.getRealTimeDataJson(d);
         });
         bench("getTempDataJson", 5, [&] {
             std::string j;
@@ -702,15 +594,11 @@ int main(int argc, char* argv[])
             }
             return press.setBrightness(b);
         });
-        bench("genericRead(MACHINE_TYPE)", 10, [&] {
-            std::vector<uint8_t> r;
-            return press.genericRead(CMDID_MACHINE_TYPE, {0x00}, r);
-        });
     }
 
     // ==================== 11. 等待定时采集回调输出 ====================
-    // 先清零统计：基准测试中直接调用 getRealTimeData 也会触发回调
-    // reset first: direct getRealTimeData calls in the benchmark also fire callbacks
+    // 先清零统计：基准测试中直接调用 getRealTimeDataJson 也会触发回调
+    // reset first: direct getRealTimeDataJson calls in the benchmark also fire callbacks
     callback.resetStats();
     std::printf("\nwaiting 3 seconds for periodic callbacks...\n\n");
     std::this_thread::sleep_for(std::chrono::seconds(3));

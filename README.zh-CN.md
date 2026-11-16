@@ -144,7 +144,7 @@ if (!cpress_connect(ctx, "COM3", 0)) {
 }
 
 PressData data = {0};
-if (cpress_get_press_data(ctx, &data, 0)) {
+if (cpress_get_press_data_json(ctx, &data, 0)) {
     // 使用 data
 }
 
@@ -226,7 +226,7 @@ from press_sdk import PressSdk, PortType
 
 sdk = PressSdk()
 if sdk.connect("COM3", PortType.SerialPortType):
-    data = sdk.get_press_data()
+    data = sdk.get_press_data_json()
     print(data.m_PStep)
 sdk.close()
 ```
@@ -244,7 +244,7 @@ const { PressSdk, PortType } = require('./interface/javascript/pressSdk');
 
 const sdk = new PressSdk();
 if (sdk.connect('COM3', PortType.SerialPortType)) {
-  const data = sdk.getPressData();
+  const data = sdk.getPressDataJson();
   console.log(data && data.m_PStep);
 }
 sdk.close();
@@ -261,7 +261,7 @@ sdk.close();
 ```dart
 final sdk = PressSdk();
 if (sdk.connect('COM3', portType: PortType.serialPortType)) {
-  final data = sdk.getPressData();
+  final data = sdk.getPressDataJson();
   if (data != null) {
     print(data.mPStep);
   }
@@ -289,12 +289,12 @@ if (!press.connect("COM3", SerialPortType)) {
 }
 
 ReadOnlyData rod;
-if (press.getReadOnlyData(rod)) {
+if (press.getReadOnlyDataJson(rod)) {
     // 使用 rod 中的字段
 }
 
 PressData pd;
-if (press.getPressData(pd)) {
+if (press.getPressDataJson(pd)) {
     pd.m_PStep = 3;
     pd.m_SetPValue[0] = 10.0f;
     pd.m_SetPValue[1] = 20.0f;
@@ -305,11 +305,11 @@ if (press.getPressData(pd)) {
     pd.m_KPTime[0] = 5000;
     pd.m_KPTime[1] = 5000;
     pd.m_KPTime[2] = 5000;
-    press.setPressData(pd);
+    press.setPressDataJson(pd);
 }
 
 RealTimeData rt;
-if (press.getRealTimeData(rt)) {
+if (press.getRealTimeDataJson(rt)) {
     // rt.m_PressValue, rt.m_PressState, rt.m_CPStep, rt.m_PTime
 }
 
@@ -355,10 +355,10 @@ press.registerDataInterface(&handler);
 
 - Press::connect
 - Press::disconnect
-- Press::getReadOnlyData
-- Press::getPressData
-- Press::setPressData
-- Press::getRealTimeData
+- Press::getReadOnlyDataJson
+- Press::getPressDataJson
+- Press::setPressDataJson
+- Press::getRealTimeDataJson
 - Press::setPressing
 - Press::setDemolding
 - Press::run
