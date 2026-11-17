@@ -1,6 +1,6 @@
 # press_sdk_project 代码审查报告
 
-> **审查日期**：2026-11-15
+> **审查日期**：2026-11-18
 > **审查范围**：`press/` 全部自研源码（核心引擎、端口层、工具层、C 接口、JNI 封装）。
 > `press/src/json/` 为第三方 jsoncpp 库，`example/`、`test/`、`build/` 不在本次范围。
 >
@@ -9,6 +9,7 @@
 > **修订记录**
 > - 2026-11-15：首次审查，共 15 个问题（S 级 3 个、M 级 8 个、L 级 4 个）。
 > - 2026-11-15：**全部 15 个问题修复完成**（S1-S3、M1-M8、L1-L4），并实现两个遗留功能扩展（`getSerialNumber` 查询、采集周期参数化）。已用 CMake + MinGW 13.1 完成编译验证，`libpress.dll`（含核心引擎、C 接口、JNI）构建通过；Qt 示例链接失败为验证工具链与 llvm-mingw 版 Qt 库 ABI 不匹配，与本次改动无关。C#/Dart/JS/Python 四个语言绑定待同步新增的 `get_serial_number` / `set_request_timeout` / 注册周期参数。
+> - 2026-11-18：**复核 + 接口面重构审查**。15 个历史问题保持修复状态；期间完成公共接口收敛（删除通用命令接口与类型化命令助手、数据接口全面 JSON 字符串化、新增 32 个压力/温度命令接口、命令 ID 统一为 `static constexpr` 常量、公共头不再依赖私有 `typeprivate.h`）。本轮新增 6 项发现（E2 年份契约、E3 自动补压值注释、E4 回调重复、E5 性能、E6 JSON 写命令压缩标志、E7 脱模命令未实现），其中 E6 已于同日修复并真机验证，详见第七节。
 
 ---
 
@@ -64,3 +65,45 @@
 - ~~JNI 采集周期固定 1 秒~~ **已实现**：`cpress_register_data_interface` 与 `press_register_data_interface` 增加 `intervalSeconds` 参数，≤0 时不启动定时采集（与 press.hpp 文档一致）；Java 层保留原签名重载（默认 1 秒）。
 - **待同步**：`interface/` 下 C#（PressSdk.cs）、Dart、JavaScript、Python 四个语言绑定需同步新增 `get_serial_number` / `set_request_timeout` 接口与注册周期参数。
 - `build_review/` 为本次编译验证的临时目录（已加入 .gitignore），文件被 Qt Creator 进程锁定暂时无法删除，关闭 Qt Creator 后可手动删除。
+
+## 七、2026-11-18 复核
+
+### 7.1 复核结论
+
+S1-S3、M1-M8、L1-L4 共 15 项**仍保持修复状态**，未发现回归。受接口重构影响的三处表述需更新：
+
+| 条目 | 变化 |
+|---|---|
+| M8 | `fillPressData` / `readPressData` 等硬编码长度 30 的 JNI 辅助函数已随 JSON 字符串化删除，问题不复存在 |
+| L2 | `GET_VERSION` 等 12 个命令别名宏已删除，全部命令统一为 `pressprivate.h` 中的 `static constexpr` 常量（读取 `GET_*_V`、写入/控制 `SET_*_V`） |
+| S1/S2/M3 | JNI 回调改为 `const char* json` + `NewStringUTF`，Attach/Detach 配对、注册前先注销、异常清理逻辑保持不变 |
+
+### 7.2 本轮接口面变更
+
+- 删除通用命令接口 `genericRead` / `genericWrite` 及其 C API、语言绑定。
+- 删除 12 个类型化命令助手（`getByteValue` / `setFloatValue` / `getIndexedInt32` 等）。
+- 8 个 JSON 数据接口统一命名并改为 `std::string` 直传：`getReadOnlyDataJson` / `getPressDataJson` / `setPressDataJson` / `getRealTimeDataJson` / `getTempDataJson` / `setTempDataJson` / `getMixDataJson` / `setMixDataJson`。
+- 新增 32 个命令接口：压力单值/索引 18 个（段数量、校准值、模具类型、圆形/矩形尺寸、排气时间、按索引的压力/保压/保压时间）、温度单值/索引 14 个（段数量、速度模式、按索引的温度/速度/保温时间、最大/最小水量）。
+- `PressDataInterface` 五个数据回调全部改为 `const std::string& json`，并新增 `onTempData` / `onMixData`。
+- C API（`cpress_*`）、JNI/Java、C#、Python、JavaScript 同步；Dart 未暴露 JSON 接口，无需改动。
+- 公共头 `presstype.h` 不再包含私有 `typeprivate.h`，命令常量宏移入 `press/src/typeprivate.h`，安装包不再发布私有头。
+- `press.hpp` 按连接管理、机器身份、运行控制、JSON 数据接口、设备参数、系统命令、状态控制、静态工具八类重排。
+
+### 7.3 新增发现
+
+| # | 位置 | 问题 | 建议 |
+|---|---|---|---|
+| 🟡 E2 | [presstype.h:218](file:///E:/code/work/press_project/press_sdk_project/press/include/press/presstype.h#L218) | `DateTimeInfo::m_Year` 注释为完整年份（如 2026），但协议与实现均为 `tm_year`（1900 偏移）；按注释传入 2026 会被截断为 234，设备年份变为 2134 | 注释改为 tm_year，或 SDK 内统一转换并同步 `getDateTime()` / `setDateTime()` |
+| 🟡 E3 | [presstype.h:83](file:///E:/code/work/press_project/press_sdk_project/press/include/press/presstype.h#L83)、[177](file:///E:/code/work/press_project/press_sdk_project/press/include/press/presstype.h#L177) | `m_Max_Min` / `m_MaxMin` 注释为“最大最小压力差”，实际是自动补压值（`AfterValue = SetP - value`，默认 0.3） | 注释改为“自动补压值 / auto repress offset” |
+| 🟡 E4 | [pressprivate.cpp](file:///E:/code/work/press_project/press_sdk_project/press/src/pressprivate.cpp#L129-L156) 等 5 个 `get*Json()` | 主动调用 get 接口时，成功/失败路径都会触发对应 `on*` 回调；与定时采集同时使用时同一份数据会被上报两次 | 明确“定时器模式 / 主动拉取模式”二选一，或提供抑制主动回调的开关 |
+| 🟢 E5 | 全链路 | 性能符合 115200 串口带宽预期（小命令 46 ms 地板、TD 494 B≈93 ms、MD 1077 B≈152 ms、定时器 1047 ms±6.22 ms），非缺陷 | 后续可考虑提高波特率、固定速率定时器、缩小轮询粒度 |
+| 🟢 E6 | [receive.cpp](file:///E:/code/work/press_project/auto_hot_press/src/interface/receive.cpp) PD/TD/MD 的 SET_JSON 分支 | 固件原未剥离 SDK 写入的首字节压缩标志，导致三个 JSON 写接口失败；**已修复**：与 ROD 对齐，读 `data[0]` 为标志，`data+1`/`size-1` 交给解析函数 | 已通过 2026-11-18 真机写回验证（3/3） |
+| 🔴 E7 | `auto_hot_press` | `CMDID_SET_START_DEMOLD`(0x1523) 未实现，`setDemolding` 两个方向均失败 | 补充处理分支，或在协议文档标注暂不支持 |
+
+> 固件侧 `RTData` 成员未初始化（T1 垃圾值）、`FlowChange` 未初始化、混合段参数 23/24 字节 off-by-one 三项已由固件修复并在 2026-11-18 真机回归通过，不属本仓库范围。
+
+### 7.4 验证方式
+
+- Release 构建：`press.dll`、`press_bot_qtgui.exe`、`press_cpp_test.exe` 全部通过，无警告。
+- 真机回归：串口 COM14，72 个可基准接口中 **67 项通过、0 项失败、1 项跳过（E7）**；含 22 项参数设置“读出-写回-校验”、4 项真实运行控制命令（加热、加压、全部启动、模式切换）及 3 项 JSON 批量写回，结束后设备恢复空闲与原模式。
+- 性能报告：`press_api_performance_report.md`（全部接口 min/avg/p50/max），明细见 `press_sdk_test_report.md`。

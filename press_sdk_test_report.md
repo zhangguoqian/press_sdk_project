@@ -1,13 +1,14 @@
 # Press SDK 上位机接口测试报告
 
-- **测试日期**：2026-11-15
-- **测试对象**：press_sdk_project（C++ 接口，`Press` 类）
-- **被测程序**：`build/test/cpp/Debug/press_cpp_test.exe`
+- **测试日期**：2026-11-18
+- **测试对象**：press_sdk_project（C++ 接口，`Press` 类，JSON 字符串接口）
+- **被测程序**：`build/test/cpp/Release/press_cpp_test.exe`
 - **测试代码**：`test/cpp/main.cpp`
 - **设备**：自动热压机，固件源码 `auto_hot_press`（对照审查）
 - **连接**：串口 COM14，115200 8N1
 - **SDK 版本**：1.0.0
-- **结论**：**30 项接口全部通过（0 失败）**；发现 **5 处缺陷/契约错误**（固件 3 处、SDK 2 处）与 **2 处行为/性能问题**。
+- **结论**：本轮覆盖全部 72 个可基准接口：**67 项通过、0 项失败、1 项跳过**。PD/TD/MD 三个 JSON 写接口在固件修复后全部通过（原值写回校验成功）；仅 `setDemolding` 因固件未实现 `CMDID_SET_START_DEMOLD`(0x1523) 跳过。
+- **性能报告**：[press_api_performance_report.md](press_api_performance_report.md)（72 个接口的 min/avg/p50/max）
 
 ---
 
@@ -17,7 +18,7 @@
 
 | 接口 | 结果 | 返回值 |
 |---|---|---|
-| connect | PASS | true，40.3 ms（含版本握手） |
+| connect | PASS | true，58.1 ms（含版本握手） |
 
 ### 1.2 设备信息
 
@@ -31,36 +32,34 @@
 | getTempParameter | MaxT=310.000 MinT=25.000 MaxTStep=30 TDecimal=1 IsHasWater=1 IsHasSpeed=0 |
 | getOtherInfo | Screenshot=0 StartDelay=3 IsHideLang=0 Remote=1 VersionType=2 |
 
-### 1.3 JSON 结构体
+### 1.3 JSON 批量命令
 
-**ReadOnlyData（ROD）**
+**ReadOnlyData（ROD，370 字节）**
 
-```
-nameZH=''  nameEN=''
-type='TYPE'  sn='ASD123'
-Screenshot=0 StartDelay=3 VersionType=2 IsHideLang=0 Remote=1 Network=0 FontZH=0 FontEN=0
-MaxPStep=30 MaxP=30.000 MinP=0.500 Max_Min=0.300 Diameter=110.000
-PDecimal=1 PressDecimal=2 PModel=0 OutType=0
-MaxTStep=30 MaxT=310.000 MinT=25.000 TDecimal=1 IsHasWater=1 IsHasSpeed=0
-```
-
-**PressData（PD）**
-
-```
-PStep=3 Type=1 A=100.000 B=100.000 D=100.000 OuterD=0.000 InnerD=0.000 CheckValue=0.000
-Speed=0 DemoldValue=0.000 AirTime=1
-  step[0]: setP=1.000 after=0.700 kpTime=600ms
-  step[1]: setP=2.000 after=1.700 kpTime=600ms
-  step[2]: setP=3.000 after=2.700 kpTime=600ms
+```json
+{"NameZH":"","NameEN":"","Type":"TYPE","Screenshot":0,"StartDelay":3,"VersionType":2,
+ "SerialNumber":"ASD123","IsHideLang":0,"Remote":1,"Network":0,
+ "MaxPStep":30,"MaxPLimit":30.0,"MinPLimit":0.5,"Max_Min":0.3,"Diameter":110.0,
+ "PDecimal":1,"PressDecimal":2,"PModel":0,"OutType":0,
+ "MaxTStep":30,"MaxTLimit":310.0,"MinTLimit":25.0,"TDecimal":1,"IsHasWater":1,"IsHasSpeed":0}
 ```
 
-**RealTimeData（RT）**
+**PressData（PD，520 字节）**
 
+```json
+{"PStep":3,"Type":1,"A":100.0,"B":100.0,"D":100.0,"CheckValue":0.0,"AirTime":1,
+ "SetPValue":[1.0,2.0,...,30.0],
+ "AfterValue":[0.7,1.7,...,29.7],
+ "KPTime":[600 × 30]}
 ```
-mode=2 pressState=0 pdChanged=0 cPStep=0 cTStep=0 cT1Step=34
-IsPStart=0 IsTStart=0 IsT1Start=0 IsAir=0
-press=6.063 moldPress=15.910 upT=17.3 downT=-16.1
-PTime=600ms TTime=500ms T1Time=151661602ms
+
+**RealTimeData（RT，221–222 字节，随运行状态变化）**
+
+```json
+{"ModelState":2,"IsPStart":0,"IsTStart":0,"IsT1Start":0,
+ "CPStep":0,"CTStep":0,"CT1Step":0,
+ "PValue":2.494,"MoldPressure":33.22,"TUpValue":15.83,"TDownValue":2.136,
+ "PTime":600,"TTime":500,"T1Time":0,"IsAir":0,"FlowChange":0}
 ```
 
 **TemperatureData（TD，494 字节）**
@@ -75,142 +74,207 @@ PTime=600ms TTime=500ms T1Time=151661602ms
 ```json
 {"Step":3,"Type":1,"A":100.0,"B":100.0,"D":100.0,
  "IsPress":[0,1,...],"SetPValue":[1.0..30.0],"AfterValue":[1.0..30.0],
- "IsUpHeat":[1,0,...],"UpTemp":[10.0..300.0],
- "IsDownHeat":[1,0,...],"DownTemp":[10.0..300.0],"KTime":[600 × 30]}
+ "IsUpHeat":[1,0,...],"UpTemp":[25.0,25.0,30.0..300.0],
+ "IsDownHeat":[1,0,...],"DownTemp":[25.0,25.0,30.0..300.0],"KTime":[600 × 30]}
 ```
 
-### 1.4 类型化助手
+### 1.4 压力单值命令
 
 | 接口 | 返回值 |
 |---|---|
-| getByteValue(PRESS_STEP) | 3 |
-| getFloatValue(PRESS_CALIBRATE) | 0.000 |
-| getFloatPairValue(RECT_AB) | A=100.000 B=100.000 |
-| getIndexedFloat(INDEX_PRESS,0) | 1.000 |
-| getIndexedInt32(INDEX_KPTIME,0) | 600 |
-| getIndexedByte(MIX_INDEX_ISPRESS,0) | 0 |
+| getPressStepCount | 3 |
+| getCalibrationValue | 0.000 |
+| getModeType | 1 |
+| getCircle | 100.000 |
+| getRectangle | A=100.000 B=100.000 |
+| getAirTime | 1 s |
+| getPressValueIndex(0) | 1.000 |
+| getAfterValueIndex(0) | 0.700 |
+| getKeepPressTime(0) | 600 ms |
 
-### 1.5 段参数
+### 1.5 温度单值命令
+
+| 接口 | 返回值 |
+|---|---|
+| getTempStepCount | 5 |
+| getTempSpeedMold | 0 |
+| getStartTempIndex(0) | 30.000 |
+| getTempSpeedIndex(0) | 3.000 |
+| getKeepTempTime(0) | 500 ms |
+| getMaxWaterValue | 25.000 |
+| getMinWaterValue | 25.000 |
+
+### 1.6 段参数
 
 | 接口 | 返回值 |
 |---|---|
 | getPressStepParameter(0) | setP=1.000 after=0.700 kpTime=600ms |
 | getTempStepParameter(0) | tempValue=30.000 speedValue=3.000 ktTime=500ms |
-| getMixStepParameter(0) | IsPress=0 setP=1.000 after=1.000 IsUpHeat=1 upTemp=10.000 IsDownHeat=1 downTemp=10.000 kTime=600ms |
+| getMixStepParameter(0) | IsPress=0 setP=1.000 after=1.000 IsUpHeat=1 upTemp=25.000 IsDownHeat=1 downTemp=25.000 kTime=600ms |
 
-### 1.6 系统与状态
+### 1.7 系统与状态
 
 | 接口 | 返回值 |
 |---|---|
-| getDateTime | 2026-11-15 20:59:53 |
-| getBrightness | 16 |
-| setBrightness（读回写） | true，写回 16 |
+| getDateTime | 2026-11-18 00:12:55 |
+| getBrightness | 79 |
+| setBrightness（读回写） | true，写回 79 |
 | getButtonSound | off (0) |
 | getLanguage | 1 |
-| getMachineState | mode=2 flags=0x00 press=stopped heat=stopped pStep=0 tStep=0 t1Step=0；press=7.522 upT=14.7 downT=-17.0 pRemain=600ms tRemain=500ms t1Remain=0ms flow=34（25 字节） |
+| getMachineState | mode=2 flags=0x00 press=stopped heat=stopped pStep=0 tStep=0 t1Step=0；press=5.660 upT=10.9 downT=4.1 pRemain=600ms tRemain=500ms t1Remain=0ms flow=0（25 字节） |
 | getMachineRegisterNo | 3482765854958183396 |
 
-### 1.7 通用接口
+### 1.8 设置命令（读出-写回-校验）
 
-```
-genericRead(MACHINE_TYPE)  → 4 字节: 54 59 50 45（"TYPE"）
-genericWrite(BRIGHTNESS)   → 请求 10，回显 10
-```
+测试方式：先读取当前值 → 原值写回 → 重新读取校验，设备配置不变。
 
-### 1.8 性能
+| 接口 | 结果 | 写回值 |
+|---|---|---|
+| setPressStepCount | PASS | 3 |
+| setCalibrationValue | PASS | 0.000 |
+| setModeType | PASS | 1 |
+| setCircle | PASS | 100.000 |
+| setRectangle | PASS | A=100.000 B=100.000 |
+| setAirTime | PASS | 1 |
+| setPressValueIndex(0) | PASS | 1.000 |
+| setAfterValueIndex(0) | PASS | 0.700 |
+| setKeepPressTime(0) | PASS | 600 |
+| setTempStepCount | PASS | 5 |
+| setTempSpeedMold | PASS | 0 |
+| setTempIndex(0) | PASS | 30.000 |
+| setTempSpeedIndex(0) | PASS | 3.000 |
+| setKeepTempTime(0) | PASS | 500 |
+| setMaxWaterValue | PASS | 25.000 |
+| setMinWaterValue | PASS | 25.000 |
+| setDateTime | PASS | 2026-11-18 00:12:58 |
+| setButtonSound | PASS | off |
+| setLanguage | PASS | 1 |
+| setPressStepParameter(0) | PASS | setP=1.000 after=0.700 kpTime=600 |
+| setTempStepParameter(0) | PASS | temp=30.000 speed=3.000 ktTime=500 |
+| setMixStepParameter(0) | PASS | setP=1.000 after=1.000 upTemp=25.000 downTemp=25.000 kTime=600 |
 
-| 命令 | 成功 | min | avg | p50 | max |
-|---|---|---|---|---|---|
-| genericRead(VERSION) | 10/10 | 45.85 | 55.37 | 46.62 | 107.59 |
-| getByteValue | 10/10 | 45.57 | 49.45 | 46.64 | 61.83 |
-| getFloatValue | 10/10 | 45.84 | 50.97 | 46.70 | 62.55 |
-| getFloatPairValue | 10/10 | 45.99 | 54.38 | 47.32 | 92.65 |
-| getIndexedFloat | 10/10 | 45.79 | 51.32 | 47.36 | 62.69 |
-| getIndexedInt32 | 10/10 | 45.51 | 54.19 | 46.78 | 93.61 |
-| getPressParameter | 10/10 | 45.87 | 50.99 | 46.70 | 62.83 |
-| getMachineState | 10/10 | 45.70 | 54.45 | 46.80 | 109.44 |
-| getReadOnlyData | 5/5 | 47.29 | 68.45 | 61.19 | 93.06 |
-| getRealTimeData | 5/5 | 31.14 | 46.51 | 46.34 | 61.93 |
-| getTempDataJson | 5/5 | 62.60 | 86.31 | 92.31 | 106.98 |
-| getMixDataJson | 5/5 | 141.81 | 161.83 | 153.71 | 205.19 |
-| setBrightness（读回） | 5/5 | 61.53 | 93.87 | 95.54 | 110.46 |
-| genericRead(MACHINE_TYPE) | 10/10 | 45.59 | 55.34 | 46.50 | 91.64 |
+### 1.8.1 运行控制命令（真实动作，空载）
 
-定时器（配置 1 s）：3 次回调，间隔 avg **1051.4 ms**，min 1048.7 / max 1054.1，标准差 **2.67 ms**。
+测试前确认设备空闲；加热/加压仅在模式 2（压力 + 双温）下有效，测试期间自动切到模式 2，结束后恢复原模式。
+
+| 接口 | 结果 | 实测耗时 | 说明 |
+|---|---|---|---|
+| setStartHeat(true/false) | PASS | 3.86 s | 开 → `flags.bit1=1` → 关 → 位清零 |
+| setPressing(true/false) | PASS | 2.31 s | 启动 → `flags.bit0=1` → 动作 0.8 s → 停止 → 位清零 |
+| setStart(true/false) | PASS | 10.83 s | 接受启动命令；完整流程含 3 s 启动延时与升温，10 s 内未出现状态位，停止后回到空闲 |
+| selectModelState(1↔2) | PASS | 1.50 s | 切换后读到目标模式，再恢复原模式 |
+| setDemolding(true/false) | N/A | 0.055 s | 固件未实现 `CMDID_SET_START_DEMOLD`(0x1523)，两次调用均失败 |
+
+### 1.9 性能
+
+全部 72 个接口的耗时分布见 [press_api_performance_report.md](press_api_performance_report.md)。普通命令的平均耗时（不含控制类）为 **56.62 ms**，控制类因包含状态轮询与动作等待耗时较长，属预期。
+
+典型命令：
+
+| 命令 | min | avg | p50 | max |
+|---|---|---|---|---|
+| getName | 44.99 | 54.56 | 47.54 | 95.45 |
+| getPressParameter | 45.85 | 49.60 | 47.08 | 61.73 |
+| getMachineState | 45.36 | 50.44 | 46.83 | 63.15 |
+| getPressDataJson | 62.41 | 93.28 | 94.26 | 108.67 |
+| getMixDataJson | 140.15 | 151.92 | 154.57 | 156.04 |
+| setMixStepParameter | 45.92 | 55.79 | 61.39 | 63.22 |
+| setPressDataJson | 109.14 | 140.03 | 154.12 | 156.84 |
+| setTempDataJson | 122.35 | 144.94 | 154.76 | 157.71 |
+| setMixDataJson | 217.10 | 249.05 | 264.36 | 265.68 |
+| isConnected / version | <0.001 | <0.001 | <0.001 | <0.001 |
+
+定时器（配置 1 s）：3 次回调，间隔 avg **1047.1 ms**，min 1040.8 / max 1053.3，标准差 **6.22 ms**。
 
 ---
 
-## 2. 错误点
+## 2. 遗留错误点
 
-### E1【固件 · 高】RT JSON 的 T1 字段为未初始化垃圾值
+### E1【固件 · 中】三温模式 flags 位组合使用错误变量
 
-- **现象**：`RealTimeData.m_CT1Step=34`、`m_T1Time=151661602 ms`，数值每次重启变化（上次为 577661287）。
-- **根因**：
-  - 设备当前 `mode=2`（`MODEL_STATR_P_TT`，压力+双温），该模式**不使用** `CT1Step`/`T1Time`
-  - `RTData::RTData()` 构造函数为空，未初始化任何成员（`auto_hot_press/src/data/rtdata.cpp:15-18`）
-  - `toJsonString()` **无条件**序列化 `CT1Step`、`T1Time`（同文件 181、190 行）
-- **交叉证据**：同一时刻二进制接口 `getMachineState` 给出 `t1Step=0`、`t1Remain=0ms`（该模式不打包这两个字段），与 JSON 的垃圾值矛盾，证明问题在 JSON 输出侧而非 SDK 解析。
-- **影响**：上位机若按 JSON 显示辅助温控，会显示 42 小时倒计时等异常数据。
-- **建议**：构造函数零初始化全部成员；`toJsonString()` 按 `ModelState` 分支输出字段（与 `getRtData()` 保持一致）。
-
-### E2【固件 · 中】`m_FlowChange` 从未赋值却随二进制帧下发
-
-- **现象**：`getMachineState` 的 `flow=34`，而同帧其余字段均正常。
-- **根因**：`RTData::getRtData()` 末尾无条件 `out.push_back(m_FlowChange)`（`rtdata.cpp:74`），但全工程仅在 `setFlowChange()` 中写入该成员，**没有任何调用点**，且构造函数未初始化 → 栈/堆残留值（34）。
-- **影响**：上位机收到的“流量变化”字节无意义；若未来用于控制判断会引入随机行为。
-- **建议**：构造函数初始化为 0；或该字段未实现前不写入帧（需同步修改上位机长度解析）。
-
-### E3【固件 · 中】三温模式 flags 位组合使用错误变量
-
-- **位置**：`auto_hot_press/src/data/rtdata.cpp:36`
+- **位置**：`auto_hot_press/src/data/rtdata.cpp`（`getRtData()` 组帧处）
   ```cpp
   out.push_back((m_IsPStart&0x01)|((m_IsTStart<<1)&0x02)|((m_IsTStart<<2)&0x04));
   ```
-- **问题**：bit2 表示 `IsT1Start`，此处却用 `m_IsTStart` 移位，导致 `mode=3`（P_T_T）下辅助加热状态永远与主加热相同。
-- **说明**：本机 `mode=2`，该分支未执行，属静态审查发现；上位机 `MachineState.m_Flags` 按 bit2→IsT1Start 解析，语义将错误。
+- **问题**：bit2 表示 `IsT1Start`，此处仍用 `m_IsTStart` 移位；`mode=3`（P_T_T）下辅助加热状态会与主加热相同。
+- **现状**：本机 `mode=2`，该分支不执行，属静态审查发现；本轮回归未触发。
 - **建议**：改为 `((m_IsT1Start<<2)&0x04)`。
 
-### E4【SDK · 中】`DateTimeInfo.m_Year` 文档与协议不符，存在误用风险
+### E2【SDK · 中】`DateTimeInfo.m_Year` 文档与协议不符，存在误用风险
 
-- **文档**：`press/include/press/presstype.h:254` 注释为“Year (full value, e.g. 2026) / 年（完整数值）”。
-- **实际**：协议与固件均使用 `tm_year` 偏移值（`auto_hot_press/src/datetime/datetime.cpp:124` 直接发送 `tm_year`，本机为 126），SDK `getDateTime()` 也原样存储（`pressprivate.cpp:1470`），测试程序需 `+1900` 才显示 2026。
+- **文档**：`press/include/press/presstype.h` 注释为“Year (full value, e.g. 2026) / 年（完整数值）”。
+- **实际**：协议与固件均使用 `tm_year` 偏移值（本机为 126），SDK `getDateTime()` 原样存储、`setDateTime()` 原样下发，测试程序需 `+1900` 才显示 2026。
 - **风险**：调用方按注释传入 `2026` 调用 `setDateTime()`，会被截断为 234，设备年份变为 2134。
-- **建议**：修正注释为 tm_year（1900 偏移），或在 SDK 内统一转换为完整年份并同步 `setDateTime()`。
+- **建议**：修正注释为 tm_year（1900 偏移），或在 SDK 内统一转换并同步 `getDateTime()`/`setDateTime()`。
 
-### E5【SDK · 中】`m_MaxMin` 字段语义注释错误
+### E3【SDK · 中】`m_MaxMin` 字段语义注释错误
 
-- **文档**：`presstype.h:119`（ReadOnlyData）与 `:213`（PressParameter）注释为“Max - Min difference / 最大最小压力差”。
-- **实际**：固件该值为“自动补压值”，用于 `AfterValue = SetP - m_Max_Min`（`oneflowLogic.cc:633`、`twoflowLogic.cc:766`），界面标签为 `AutomaticPressure`（`setLogic.cc:124`），默认值 0.3。
+- **文档**：`presstype.h` 中 `ReadOnlyData::m_Max_Min`、`PressParameter::m_MaxMin` 注释为“Max - Min difference / 最大最小压力差”。
+- **实际**：固件该值为“自动补压值”，用于 `AfterValue = SetP - m_Max_Min`，界面标签为 `AutomaticPressure`，默认值 0.3。
 - **反证**：本次读数 `MaxP=30.0`、`MinP=0.5`，若为差值应为 29.5，实测 0.3。
-- **影响**：调用方按“差值”理解会误算保压值。
 - **建议**：注释改为“自动补压值 / auto repress offset（AfterValue = SetP - value）”。
 
-### E6【SDK · 设计】直接调用 get 接口会重复触发回调
+### E4【SDK · 设计】直接调用 get 接口会重复触发回调
 
-- **现象**：基准测试中调用 5 次 `getReadOnlyData` 产生 5 条 `onReadOnlyData` 回调；调用 5 次 `getRealTimeData` 产生 5 条 `onRealTimeData`（内容完全相同）。
-- **根因**：`PressPrivate::getReadOnlyData()`/`getRealTimeData()` 成功与失败路径都会主动调用 `iface->onReadOnlyData()` / `onRealTimeData()`（`pressprivate.cpp:162`、`:253`）。
+- **现象**：基准测试中调用 5 次 `getReadOnlyDataJson` 产生 5 条 `onReadOnlyData`；调用 5 次 `getTempDataJson` 产生 5 条 `onTempData`（内容完全相同）。
+- **根因**：`PressPrivate::get*Json()` 在成功与失败路径都会主动调用 `iface->on*()`。
 - **影响**：同时启用定时器和界面轮询时，UI 会对同一份数据更新两次；错误也会重复上报。
 - **建议**：明确二选一语义（定时器模式 or 主动拉取模式），或提供开关抑制主动调用的回调。
 
-### E7【SDK/设备 · 性能与数据质量，非功能缺陷】
+### E5【SDK/设备 · 性能与数据质量，非功能缺陷】
 
-1. **固定 46 ms 往返地板**：所有小命令 min≈45.5 ms，其中 SDK 轮询粒度 10 ms、串口传输约 2.6 ms，其余约 33–38 ms 为固件命令处理周期。
-2. **1 Hz 定时采集与用户命令争用**：max 列出现 92–109 ms 的翻倍尖峰，与定时器周期吻合。
-3. **定时器实际周期 1051 ms 而非 1000 ms**：采用“等满周期再发请求”的固定延迟模型，漂移 = 请求耗时；抖动仅 2.67 ms。
-4. **JSON 类受带宽限制**：TD 494 B≈93 ms、MD 1077 B≈154 ms，与 115200 波特率理论传输时间（43/94 ms）吻合。
-5. **原始数据未钳位**：`downT≈-16~-19`、压力空闲时可达 `-3.048`，为传感器零漂/未接探头的真实值；`ReadOnlyData` 名称为空是因固件 `init()` 置空、`getName` 另有语言默认值，属设计差异而非缺陷。
+1. **固定 46 ms 往返地板**：所有小命令 min≈45.8 ms，其中 SDK 轮询粒度 10 ms、串口传输约 2.6 ms，其余约 33–38 ms 为固件命令处理周期。
+2. **1 Hz 定时采集与用户命令争用**：max 列出现 62–140 ms 的尖峰，与定时器周期吻合。
+3. **定时器实际周期 1047.1 ms 而非 1000 ms**：采用“等满周期再发请求”的固定延迟模型，漂移 = 请求耗时；抖动 6.22 ms。
+4. **JSON 类受带宽限制**：TD 494 B≈93 ms、MD 1077 B≈152 ms，与 115200 波特率理论传输时间（43/94 ms）吻合。
+5. **原始数据未钳位**：压力/温度通道存在零漂（本机停止时 `PValue≈2.5`、`MoldPressure≈33.2`），属传感器真实输出而非缺陷；`ReadOnlyData` 名称为空是因固件 `init()` 置空、`getName` 另有语言默认值。
+
+### E7【固件 · 中】`setDemolding` 无实现
+
+- **现象**：`setDemolding(true)` 与 `setDemolding(false)` 均返回 false（`Command mismatch`），耗时约 55 ms。
+- **根因**：固件未实现 `CMDID_SET_START_DEMOLD`(0x1523)，`receive.cpp` 与 `mainLogic.cc` 中均无对应处理分支。
+- **影响**：脱模命令不可用；加压/加热/全部启动均正常。
+- **建议**：补充 0x1523 处理分支（脱模按钮切换 + 状态回显），或在协议文档中明确该命令暂不支持。
 
 ---
 
-## 3. 处理优先级建议
+## 3. 已修复并验证
+
+### F1【固件 · 已修复】RT 数据成员未初始化（T1 垃圾值）
+
+- **原问题**：`IsT1Start=-425159449`、`CT1Step=151661602`、`T1Time=151661602`，每次重启数值变化。
+- **修复**：`RTData::RTData()` 零初始化全部成员。
+- **验证**：本轮 `IsT1Start=0`、`CT1Step=0`、`T1Time=0`，与二进制 `t1Step=0`/`t1Remain=0ms` 一致。
+
+### F2【固件 · 已修复】`m_FlowChange` 未初始化
+
+- **原问题**：RT JSON 与二进制帧均输出 `FlowChange=34` 等残留值。
+- **修复**：构造函数零初始化，并在 JSON 读写中补充 `FlowChange` 字段。
+- **验证**：本轮 RT JSON `FlowChange=0`，`getMachineState` 的 `flow=0`。
+
+### F3【固件+SDK · 已修复】混合段参数写命令长度 off-by-one
+
+- **原问题**：`MIX_INDEX_STEP_PARAMETER_BOOL(size)` 为 `size == 23`，实际布局为 24 字节；`MixData::setStepIndexData()` 在 `size == 23` 时越界读取 `pData[20..23]`，导致 `setMixStepParameter(0)` 返回 `Command mismatch`。
+- **修复**：固件宏与 `setStepIndexData()` 长度校验改为 24；SDK `press/src/typeprivate.h` 宏同步改为 24。
+- **验证**：本轮读回写 PASS，写回值 setP=1.000 after=1.000 upTemp=25.000 downTemp=25.000 kTime=600（温度值经固件钳位到 `MinT`=25）。
+
+### F4【固件 · 已修复】PD/TD/MD 的 JSON 写命令未剥离压缩标志字节
+
+- **原问题**：SDK 按协议在 payload 首字节写压缩标志，固件 PD/TD/MD 的 SET_JSON 分支把整段数据（含标志字节）交给 `setJsonByteArray`，JSON 解析失败，`setPressDataJson` / `setTempDataJson` / `setMixDataJson` 全部返回 `Command mismatch`。
+- **修复**：[receive.cpp](file:///e:/code/work/press_project/auto_hot_press/src/interface/receive.cpp) 三处与 ROD 对齐——`isCompress = data[0]`，`setJsonByteArray(data+1, size-1, isCompress)`，回读同样带上 `isCompress`。
+- **验证**：本轮三次写回全部 PASS（3/3），耗时 PD 140.0 ms、TD 144.9 ms、MD 249.0 ms；失败数由 3 降为 0。
+
+---
+
+## 4. 处理优先级建议
 
 | 优先级 | 事项 | 归属 |
 |---|---|---|
-| P0 | E1 T1 字段未初始化导致 JSON 垃圾值 | 固件 |
-| P1 | E4 年份契约错误（误用会写错设备时间） | SDK 文档/实现 |
-| P1 | E5 自动补压值语义注释错误 | SDK 文档 |
-| P2 | E2 FlowChange 未初始化、E3 三温 flags 位错误 | 固件 |
-| P2 | E6 回调重复上报 | SDK 设计 |
-| P3 | E7 波特率提升 / 定时器固定速率 / 轮询粒度优化 | SDK + 固件 |
+| P1 | E7 `setDemolding` 无实现（0x1523） | 固件 |
+| P1 | E2 年份契约错误（误用会写错设备时间） | SDK 文档/实现 |
+| P1 | E3 自动补压值语义注释错误 | SDK 文档 |
+| P2 | E1 三温 flags 位错误（mode=3 时显现） | 固件 |
+| P2 | E4 回调重复上报 | SDK 设计 |
+| P3 | E5 波特率提升 / 定时器固定速率 / 轮询粒度优化 | SDK + 固件 |
 
-> 本次仅做只读查询与“读出-写回”验证，未改变设备配置。
+> 本轮包含真实控制动作（加热、加压、全部启动、模式切换），均在空载且设备空闲的前提下执行，结束后已恢复原工作模式并确认回到空闲；参数写入仍全部为“读出-写回”。
