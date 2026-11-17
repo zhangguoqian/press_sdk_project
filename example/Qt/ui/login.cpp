@@ -11,7 +11,6 @@
 #include "ui_login.h"
 #include <QStringList>
 #include "zgq.h"
-#include "typeprivate.h"
 
 Login::Login(QWidget* parent) :
     QDialog(parent), ui(new Ui::Login)

@@ -6,6 +6,7 @@
 
 #include "port/portbase.h"
 #include "tool/jsondata.h"
+#include "typeprivate.h"
 #include "press.hpp"
 #include <memory>
 #include <vector>

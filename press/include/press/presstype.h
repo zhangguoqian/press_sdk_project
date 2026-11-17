@@ -23,58 +23,15 @@
  *      在定义 QT_CORE_LIB 时提供 QDebug 重载
  *
  *  External dependencies / 外部依赖:
- *    - typeprivate.h / 命令 ID 定义
- *    - <stdint.h>, <cstddef>
+ *    - <cstdint>
  *****************************************************************************/
 
 #ifndef PRESS_SDK_PROJECT_PRESSTYPE_H
 #define PRESS_SDK_PROJECT_PRESSTYPE_H
 
-#include "typeprivate.h"
 #include <cstdint>
 
 #define MAX_PStep 30
-
-
-/******************************************************************************
- * Public Command Constants / 公开命令常量
- *****************************************************************************/
-
-//! Read the device version / 读取版本信息
-#define GET_VERSION CMDID_VERSION
-
-//! Read the machine model / 读取机器型号
-#define GET_MACHINE_TYPE CMDID_MACHINE_TYPE
-
-//! Read all read-only parameters (JSON) / 读取全部只读参数(Json格式)
-#define GET_ROD_JSON CMDID_ROD_JSON
-
-//! Read all pressure parameters (JSON) / 读取全部压力参数(Json格式)
-#define GET_PD_JSON CMDID_PD_JSON
-
-//! Write all pressure parameters (JSON) / 写入全部压力参数(Json格式)
-#define SET_PD_JSON SET_CMD(CMDID_PD_JSON)
-
-//! Read all temperature parameters (JSON) / 读取全部温度参数(Json格式)
-#define GET_TD_JSON CMDID_TD_JSON
-
-//! Write all temperature parameters (JSON) / 写入全部温度参数(Json格式)
-#define SET_TD_JSON SET_CMD(CMDID_TD_JSON)
-
-//! Read all mixed-mode parameters (JSON) / 读取全部混合模式参数(Json格式)
-#define GET_MD_JSON CMDID_MD_JSON
-
-//! Write all mixed-mode parameters (JSON) / 写入全部混合模式参数(Json格式)
-#define SET_MD_JSON SET_CMD(CMDID_MD_JSON)
-
-//! Read all real-time state (JSON) / 读取全部实时状态 (Json 格式)
-#define GET_RT_JSON CMDID_GET_CURRENT_STATE_JSON
-
-//! Start or stop pressing / 启动或停止加压
-#define SET_PRESS CMDID_SET_START_PRESS
-
-//! Start or stop demolding / 启动或停止脱模
-#define SET_DEMOLD CMDID_SET_START_DEMOLD
 
 
 /******************************************************************************

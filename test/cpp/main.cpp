@@ -20,7 +20,6 @@
  *****************************************************************************/
 
 #include "press.hpp"
-#include "typeprivate.h"
 
 #include <algorithm>
 #include <atomic>

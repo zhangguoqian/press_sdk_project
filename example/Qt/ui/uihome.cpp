@@ -48,7 +48,6 @@
 #include "admin/controldialog.h"
 #include "chartview/presschartview.h"
 #include "steplist/steptablewidget.h"
-#include "typeprivate.h"
 #include "zgq.h"
 
 namespace {

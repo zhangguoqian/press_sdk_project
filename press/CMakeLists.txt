@@ -50,12 +50,6 @@ target_include_directories(press
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/press>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/press>
-        # typeprivate.h lives in src/ but is pulled in by the public presstype.h;
-        # build-tree consumers resolve it via this path. Install-tree consumers get
-        # it via install(FILES ... src/typeprivate.h) below.
-        # typeprivate.h 位于 src/，但被公共头 presstype.h 引用：
-        # 构建树消费方经此路径解析；安装树消费方经下方 install(FILES) 发布。
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -110,14 +104,6 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/press/
 )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/press/version.h"
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/press
-)
-
-# typeprivate.h moved to src/ but presstype.h (public, installed) includes it,
-# so it must still ship in the install include dir for downstream compilation.
-# typeprivate.h 已移至 src/，但公共头 presstype.h（随包安装）引用它，
-# 因此仍需随安装包发布，保证下游编译不中断。
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/typeprivate.h"
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/press
 )
 
