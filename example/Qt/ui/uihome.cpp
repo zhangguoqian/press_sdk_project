@@ -836,18 +836,24 @@ void UiHome::initConnect()
 
 void UiHome::loadDeviceData()
 {
-    if (!epMachine->getReadOnlyDataJson(m_ReadOnlyData))
+    std::string json;
+    if (!epMachine->getReadOnlyDataJson(json))
     {
         QMessageBox::warning(this, QStringLiteral("提示"), QStringLiteral("获取设备参数失败!"));
     }
     else
     {
+        m_ReadOnlyData = DataInterface::parseReadOnlyData(json);
         m_pChartView->setRange(0, m_ReadOnlyData.m_MaxPLimit);
     }
 
-    if (!epMachine->getPressDataJson(m_PressData))
+    if (!epMachine->getPressDataJson(json))
     {
         QMessageBox::warning(this, QStringLiteral("提示"), QStringLiteral("获取设备配置失败!"));
+    }
+    else
+    {
+        m_PressData = DataInterface::parsePressData(json);
     }
 
     // 回填流程设置控件 / fill process setting widgets
@@ -1370,7 +1376,7 @@ void UiHome::slotCellValueChanged(int row, int column, double value)
 
 bool UiHome::writePressData()
 {
-    if (!epMachine->setPressDataJson(m_PressData))
+    if (!epMachine->setPressDataJson(DataInterface::serializePressData(m_PressData)))
     {
         qDebug() << Q_FUNC_INFO << "setPressDataJson failed:" << epMachine->getLastErrorInfo();
         return false;

@@ -7,6 +7,7 @@
 #include <QDateTime>
 #include <QtZlib/zlib.h>
 #include "ui_controldialog.h"
+#include "datainterface.h"
 #include "zgq.h"
 
 int decompressData(uint8_t* dst, ulong* dstLen,const uint8_t* src, ulong srcLen) {
@@ -48,11 +49,12 @@ void ControlDialog::slotGetRodData()
 {
     if (epMachine->isRunning())
     {
-        ReadOnlyData readOnlyData;
-        if (epMachine->getReadOnlyDataJson(readOnlyData))
+        std::string json;
+        if (epMachine->getReadOnlyDataJson(json))
         {
+            ReadOnlyData readOnlyData = DataInterface::parseReadOnlyData(json);
             qDebug() << readOnlyData;
-            _show_text_log(QString::fromStdString(toJsonString(readOnlyData)));
+            _show_text_log(QString::fromStdString(json));
         }else
         {
             _show_error_log(epMachine->getLastErrorInfo(), 0);
@@ -62,11 +64,12 @@ void ControlDialog::slotGetRodData()
 
 void ControlDialog::slotGetPdData()
 {
-    PressData pressData;
-    if (epMachine->getPressDataJson(pressData))
+    std::string json;
+    if (epMachine->getPressDataJson(json))
     {
+        PressData pressData = DataInterface::parsePressData(json);
         qDebug() << pressData;
-        _show_text_log(QString::fromStdString(toJsonString(pressData)));
+        _show_text_log(QString::fromStdString(json));
     }else
     {
         _show_error_log(epMachine->getLastErrorInfo(), 0);
@@ -76,11 +79,12 @@ void ControlDialog::slotGetPdData()
 void ControlDialog::slotGetRtData()
 {
 
-    RealTimeData realTimeData;
-    if (epMachine->getRealTimeDataJson(realTimeData))
+    std::string json;
+    if (epMachine->getRealTimeDataJson(json))
     {
+        RealTimeData realTimeData = DataInterface::parseRealTimeData(json);
         qDebug() << realTimeData;
-        _show_text_log(QString::fromStdString(toJsonString(realTimeData)));
+        _show_text_log(QString::fromStdString(json));
     }else
     {
         _show_error_log(epMachine->getLastErrorInfo(), 0);
@@ -162,17 +166,19 @@ void ControlDialog::slotDemolding(bool isDemolding)
 
 void ControlDialog::slotSetPressData()
 {
+    std::string json;
     PressData pressData;
-    if (epMachine->getPressDataJson(pressData))
+    if (epMachine->getPressDataJson(json))
     {
+        pressData = DataInterface::parsePressData(json);
         qDebug() << pressData;
-        _show_text_log(QString::fromStdString(toJsonString(pressData)));
+        _show_text_log(QString::fromStdString(json));
     }else
     {
         _show_error_log(epMachine->getLastErrorInfo(), 0);
     }
     pressData.m_PStep = 1;
-    if (epMachine->setPressDataJson(pressData))
+    if (epMachine->setPressDataJson(DataInterface::serializePressData(pressData)))
     {
         _show_text_log("set press data success");
     }else
