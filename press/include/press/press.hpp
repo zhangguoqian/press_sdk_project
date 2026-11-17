@@ -34,6 +34,7 @@
 #ifndef PRESS_SDK_PROJECT_PRESS_HPP
 #define PRESS_SDK_PROJECT_PRESS_HPP
 
+#include <cstdint>
 #ifndef PRESS_EXPORT
     #if defined(_WIN32) || defined(__CYGWIN__)
         #ifdef PRESS_BUILDING_LIBRARY
@@ -265,7 +266,7 @@ public:
 
 
     /**************************************************************************
-     * Device info & parameters / 设备信息与参数块
+     * read-only data exchange / 只读数据接口
      *************************************************************************/
 
     //! Read device name (CMDID_NAME). language: 0=Chinese, 2=English.
@@ -293,12 +294,141 @@ public:
     //! 读取其他信息块，成功后同步缓存到 ReadOnlyData。
     bool getOtherInfo(OtherInfo& info);
 
+    /**************************************************************************
+     * press data exchange / 压力数据段参数接口
+     *************************************************************************/
+    
+    //! Read pressure step count (CMDID_PRESS_STEP, 1 byte).
+    //! 读取压力段数量。
+    bool getPressStepCount(uint8_t& step);
+
+    //! Write pressure step count (CMDID_PRESS_STEP with SET bit).
+    //! 写入压力段数量。
+    bool setPressStepCount(uint8_t step);
+
+    //! Read pressure calibration value (CMDID_PRESS_CALIBRATE, 4-byte float).
+    //! 读取压力校准值。
+    bool getCalibrationValue(float& value);
+
+    //! Write pressure calibration value / 写入压力校准值。
+    bool setCalibrationValue(float value);
+
+    //! Read mold type (CMDID_MOLD_TYPE, 1 byte).
+    //! 读取模具类型。
+    bool getModeType(uint8_t& type);
+
+    //! Write mold type / 写入模具类型。
+    bool setModeType(uint8_t type);
+
+    //! Read circular mold diameter (CMDID_CIRCLE_D, 4-byte float).
+    //! 读取圆形容器直径。
+    bool getCircle(float& diameter);
+
+    //! Write circular mold diameter / 写入圆形容器直径。
+    bool setCircle(float diameter);
+
+    //! Read rectangular mold A/B dimensions (CMDID_RECT_AB, two floats).
+    //! 读取矩形容器 A/B 尺寸。
+    bool getRectangle(float& a, float& b);
+
+    //! Write rectangular mold A/B dimensions / 写入矩形容器 A/B 尺寸。
+    bool setRectangle(float a, float b);
+
+    //! Read air (exhaust) time (CMDID_AIR_TIME, 1 byte, seconds).
+    //! 读取排气时间（秒）。
+    bool getAirTime(uint8_t& time);
+
+    //! Write air (exhaust) time / 写入排气时间（秒）。
+    bool setAirTime(uint8_t time);
+
+    //! Read the target pressure of one pressure step (CMDID_INDEX_PRESS).
+    //! 读取指定压力段的设定压力。
+    bool getPressValueIndex(uint8_t index, float& value);
+
+    //! Write the target pressure of one pressure step / 写入指定压力段的设定压力。
+    bool setPressValueIndex(uint8_t index, float value);
+
+    //! Read the hold pressure of one pressure step (CMDID_INDEX_AFTER).
+    //! 读取指定压力段的保压值。
+    bool getAfterValueIndex(uint8_t index, float& value);
+
+    //! Write the hold pressure of one pressure step / 写入指定压力段的保压值。
+    bool setAfterValueIndex(uint8_t index, float value);
+
+    //! Read the keep-pressure time of one pressure step (CMDID_INDEX_KPTIME, int32 ms).
+    //! 读取指定压力段的保压时间（毫秒）。
+    bool getKeepPressTime(uint8_t index, int32_t& time);
+
+    //! Write the keep-pressure time of one pressure step / 写入指定压力段的保压时间（毫秒）。
+    bool setKeepPressTime(uint8_t index, int32_t time);
+
     //! Read one pressure step parameter (CMDID_INDEX_PSTEP_PARAMETER, index + 12 bytes).
     //! 读取压力段参数（索引 + 12 字节）。
     bool getPressStepParameter(uint8_t index, PressStepParameter& param);
 
     //! Write one pressure step parameter / 写入压力段参数。
     bool setPressStepParameter(uint8_t index, const PressStepParameter& param);
+
+    /**************************************************************************
+     * temp data exchange / 温度数据段参数接口
+    *************************************************************************/
+
+    //! Read temperature step count (CMDID_TEMP_STEP, 1 byte).
+    //! 读取温度段数量。    
+    bool getTempStepCount(uint8_t& step);
+
+    //! Write temperature step count (CMDID_TEMP_STEP with SET bit).
+    //! 写入温度段数量。
+    bool setTempStepCount(uint8_t step);
+
+    //! Read temperature speed mold (CMDID_SPEED_MOLD, 1 byte).
+    //! 读取温度速度模式。
+    bool getTempSpeedMold(uint8_t& mold);
+
+    //! Write temperature speed mold (CMDID_SPEED_MOLD with SET bit).
+    //! 写入温度速度模式。
+    bool setTempSpeedMold(uint8_t mold);
+
+    //! Read temperature value of one step (CMDID_INDEX_TEMP, index + 4-byte float).
+    //! 读取指定温度段的温度值。
+    bool getStartTempIndex(uint8_t index, float& value);
+    
+    //! Write temperature value of one step (CMDID_INDEX_TEMP with SET bit).
+    //! 写入指定温度段的温度值。
+    bool setTempIndex(uint8_t index, float value);
+
+    //! Read speed value of one step (CMDID_INDEX_SPEED, index + 4-byte float).
+    //! 读取指定温度段的速度值。
+    bool getTempSpeedIndex(uint8_t index, float& value);
+    
+    //! Write speed value of one step (CMDID_INDEX_SPEED with SET bit).
+    //! 写入指定温度段的速度值。
+    bool setTempSpeedIndex(uint8_t index, float value);
+
+    //! Read keep-temperature time of one temperature step (CMDID_INDEX_KTTIME, int32 ms).
+    //! 读取指定温度段的保温时间（毫秒）。
+    bool getKeepTempTime(uint8_t index, int32_t& time);
+    
+    //! Write keep-temperature time of one temperature step (CMDID_INDEX_KTTIME with SET bit).
+    //! 写入指定温度段的保温时间（毫秒）。
+    bool setKeepTempTime(uint8_t index, int32_t time);
+
+    //! Read max water value (CMDID_WATER_UP, 4-byte float).
+    //! 读取最大水冷。
+    bool getMaxWaterValue(float& value);
+    
+    //! Write max water value (CMDID_WATER_UP with SET bit).
+    //! 写入最大水冷。
+    bool setMaxWaterValue(float value);
+
+    //! Read min water value (CMDID_WATER_DOWN, 4-byte float).
+    //! 读取最小水冷。
+    bool getMinWaterValue(float& value);
+    
+    //! Write min water value (CMDID_WATER_DOWN with SET bit).
+    //! 写入最小水冷。
+    bool setMinWaterValue(float value);
+    
 
     //! Read one temperature step parameter (CMDID_INDEX_TSTEP_PARAMETER, index + 12 bytes).
     //! 读取温度段参数（索引 + 12 字节）。

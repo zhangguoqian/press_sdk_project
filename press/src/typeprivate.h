@@ -193,7 +193,7 @@ enum MIX_CMDID {
 #define MIX_INDEX_ISHEAT_DOWN_BOOL(size)        (size == 2)
 #define MIX_INDEX_TEMP_DOWN_BOOL(size)          (size == 5)
 #define MIX_INDEX_KTIME_BOOL(size)              (size == 5)
-#define MIX_INDEX_STEP_PARAMETER_BOOL(size)     (size == 23)
+#define MIX_INDEX_STEP_PARAMETER_BOOL(size)     (size == 24)
 
 
 /******************************************************************************
@@ -244,49 +244,5 @@ enum STATE_CMDID {
 //! Extract category field (bit11..8) from a command ID
 //! 从命令 ID 中提取类别字段 (bit11..8)
 #define CMID_TYPE(CMDID)  ((CMDID & 0x0F00) >> 8)
-
-
-/******************************************************************************
- * Convenience Command Aliases / 便捷命令别名
- *
- *  协议层内部使用的简写常量，等价于对应的 CMDID_* 命令 ID。
- *  Internal shorthand constants equivalent to the CMDID_* command IDs.
- *****************************************************************************/
-
-//! Read the device version / 读取版本信息
-#define GET_VERSION CMDID_VERSION
-
-//! Read the machine model / 读取机器型号
-#define GET_MACHINE_TYPE CMDID_MACHINE_TYPE
-
-//! Read all read-only parameters (JSON) / 读取全部只读参数(Json格式)
-#define GET_ROD_JSON CMDID_ROD_JSON
-
-//! Read all pressure parameters (JSON) / 读取全部压力参数(Json格式)
-#define GET_PD_JSON CMDID_PD_JSON
-
-//! Write all pressure parameters (JSON) / 写入全部压力参数(Json格式)
-#define SET_PD_JSON SET_CMD(CMDID_PD_JSON)
-
-//! Read all temperature parameters (JSON) / 读取全部温度参数(Json格式)
-#define GET_TD_JSON CMDID_TD_JSON
-
-//! Write all temperature parameters (JSON) / 写入全部温度参数(Json格式)
-#define SET_TD_JSON SET_CMD(CMDID_TD_JSON)
-
-//! Read all mixed-mode parameters (JSON) / 读取全部混合模式参数(Json格式)
-#define GET_MD_JSON CMDID_MD_JSON
-
-//! Write all mixed-mode parameters (JSON) / 写入全部混合模式参数(Json格式)
-#define SET_MD_JSON SET_CMD(CMDID_MD_JSON)
-
-//! Read all real-time state (JSON) / 读取全部实时状态 (Json 格式)
-#define GET_RT_JSON CMDID_GET_CURRENT_STATE_JSON
-
-//! Start or stop pressing / 启动或停止加压
-#define SET_PRESS CMDID_SET_START_PRESS
-
-//! Start or stop demolding / 启动或停止脱模
-#define SET_DEMOLD CMDID_SET_START_DEMOLD
 
 #endif /* PRESS_SDK_PROJECT_MTYPE_H */

@@ -898,7 +898,7 @@ bool PressPrivate::getStringValue(uint16_t command, uint8_t arg, std::string& te
 
 bool PressPrivate::getName(std::string& name, uint8_t language)
 {
-    if (!getStringValue(CMDID_NAME, language, name))
+    if (!getStringValue(GET_NAME_V, language, name))
     {
         return false;
     }
@@ -948,16 +948,16 @@ bool PressPrivate::getMachineType(std::string& type)
 bool PressPrivate::getPressParameter(PressParameter& param)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_PRESS_PARAMETER, {0x00}, responseListData))
+    if (!_requestCommand(GET_PRESS_PARAMETER_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_PRESS_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_PRESS_PARAMETER_V, responseListData);
         return false;
     }
     // 固件实际组包为 21 字节（readonlydata.cpp getPressParameterData 含 OutType）
     if (responseListData.size() != 21)
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_PRESS_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_PRESS_PARAMETER_V, responseListData);
         return false;
     }
     param.m_MaxPLimit = _readHostFloat(responseListData, 0);
@@ -987,15 +987,15 @@ bool PressPrivate::getPressParameter(PressParameter& param)
 bool PressPrivate::getTempParameter(TempParameter& param)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_TEMP_PARAMETER, {0x00}, responseListData))
+    if (!_requestCommand(GET_TEMP_PARAMETER_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_TEMP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_TEMP_PARAMETER_V, responseListData);
         return false;
     }
     if (!TEMP_PARAMETER_TYPE_BOOL(responseListData.size()))
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_TEMP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_TEMP_PARAMETER_V, responseListData);
         return false;
     }
     param.m_MaxTLimit = _readHostFloat(responseListData, 0);
@@ -1019,15 +1019,15 @@ bool PressPrivate::getTempParameter(TempParameter& param)
 bool PressPrivate::getOtherInfo(OtherInfo& info)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_OTHER_INFO, {0x00}, responseListData))
+    if (!_requestCommand(GET_OTHER_INFO_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_OTHER_INFO, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_OTHER_INFO_V, responseListData);
         return false;
     }
     if (!OTHER_INFO_TYPE_BOOL(responseListData.size()))
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_OTHER_INFO, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_OTHER_INFO_V, responseListData);
         return false;
     }
     info.m_Screenshot = responseListData[0];
@@ -1046,20 +1046,614 @@ bool PressPrivate::getOtherInfo(OtherInfo& info)
     return true;
 }
 
+// ==================== 压力参数命令（单值/索引） ====================
+
+bool PressPrivate::getPressStepCount(uint8_t& step)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_PRESS_STEP_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_PRESS_STEP_V, responseListData);
+        return false;
+    }
+    if (!PRESS_STEP_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_PRESS_STEP_V, responseListData);
+        return false;
+    }
+    step = responseListData[0];
+    return true;
+}
+
+bool PressPrivate::setPressStepCount(uint8_t step)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_PRESS_STEP_V, {step}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_PRESS_STEP_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != step)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_PRESS_STEP_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getCalibrationValue(float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_PRESS_CALIBRATE_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_PRESS_CALIBRATE_V, responseListData);
+        return false;
+    }
+    if (!PRESS_CALIBRATE_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_PRESS_CALIBRATE_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 0);
+    return true;
+}
+
+bool PressPrivate::setCalibrationValue(float value)
+{
+    std::vector<uint8_t> requestListData;
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_PRESS_CALIBRATE_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_PRESS_CALIBRATE_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 4)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_PRESS_CALIBRATE_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getModeType(uint8_t& type)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MOLD_TYPE_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    if (!MOLD_TYPE_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    type = responseListData[0];
+    return true;
+}
+
+bool PressPrivate::setModeType(uint8_t type)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MOLD_TYPE_V, {type}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != type)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getCircle(float& diameter)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_CIRCLE_D_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    if (!CIRCLE_D_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    diameter = _readHostFloat(responseListData, 0);
+    return true;
+}
+
+bool PressPrivate::setCircle(float diameter)
+{
+    std::vector<uint8_t> requestListData;
+    _appendHostFloat(requestListData, diameter);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_CIRCLE_D_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 4)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getRectangle(float& a, float& b)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_RECT_AB_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_RECT_AB_V, responseListData);
+        return false;
+    }
+    if (!RECT_AB_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_RECT_AB_V, responseListData);
+        return false;
+    }
+    a = _readHostFloat(responseListData, 0);
+    b = _readHostFloat(responseListData, 4);
+    return true;
+}
+
+bool PressPrivate::setRectangle(float a, float b)
+{
+    std::vector<uint8_t> requestListData;
+    _appendHostFloat(requestListData, a);
+    _appendHostFloat(requestListData, b);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_RECT_AB_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_RECT_AB_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 8)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_RECT_AB_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getAirTime(uint8_t& time)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_AIR_TIME_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_AIR_TIME_V, responseListData);
+        return false;
+    }
+    if (!AIR_TIME_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_AIR_TIME_V, responseListData);
+        return false;
+    }
+    time = responseListData[0];
+    return true;
+}
+
+bool PressPrivate::setAirTime(uint8_t time)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_AIR_TIME_V, {time}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_AIR_TIME_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != time)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_AIR_TIME_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getPressValueIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_INDEX_PRESS_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    if (!INDEX_PRESS_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setPressValueIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_INDEX_PRESS_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getAfterValueIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_INDEX_AFTER_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    if (!INDEX_AFTER_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setAfterValueIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_INDEX_AFTER_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getKeepPressTime(uint8_t index, int32_t& time)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_INDEX_KPTIME_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_KPTIME_V, responseListData);
+        return false;
+    }
+    if (!INDEX_KPTIME_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_KPTIME_V, responseListData);
+        return false;
+    }
+    time = _readHostInt32(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setKeepPressTime(uint8_t index, int32_t time)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostInt32(requestListData, time);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_INDEX_KPTIME_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_KPTIME_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_KPTIME_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+// ==================== 温度参数命令（单值/索引） ====================
+
+bool PressPrivate::getTempStepCount(uint8_t& step)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_TEMP_STEP_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_TEMP_STEP_V, responseListData);
+        return false;
+    }
+    if (!TEMP_STEP_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_TEMP_STEP_V, responseListData);
+        return false;
+    }
+    step = responseListData[0];
+    return true;
+}
+
+bool PressPrivate::setTempStepCount(uint8_t step)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_TEMP_STEP_V, {step}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_TEMP_STEP_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != step)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_TEMP_STEP_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getTempSpeedMold(uint8_t& mold)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_SPEED_MOLD_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_SPEED_MOLD_V, responseListData);
+        return false;
+    }
+    if (!SPEED_MOLD_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_SPEED_MOLD_V, responseListData);
+        return false;
+    }
+    mold = responseListData[0];
+    return true;
+}
+
+bool PressPrivate::setTempSpeedMold(uint8_t mold)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_SPEED_MOLD_V, {mold}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_SPEED_MOLD_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != mold)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_SPEED_MOLD_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getStartTempIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_INDEX_TEMP_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_TEMP_V, responseListData);
+        return false;
+    }
+    if (!INDEX_TEMP_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_TEMP_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setTempIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_INDEX_TEMP_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_TEMP_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_TEMP_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getTempSpeedIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_INDEX_SPEED_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_SPEED_V, responseListData);
+        return false;
+    }
+    if (!INDEX_SPEED_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_SPEED_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setTempSpeedIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_INDEX_SPEED_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_SPEED_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_SPEED_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getKeepTempTime(uint8_t index, int32_t& time)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_INDEX_KTTIME_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_KTTIME_V, responseListData);
+        return false;
+    }
+    if (!INDEX_KTTIME_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_KTTIME_V, responseListData);
+        return false;
+    }
+    time = _readHostInt32(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setKeepTempTime(uint8_t index, int32_t time)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostInt32(requestListData, time);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_INDEX_KTTIME_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_KTTIME_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_KTTIME_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMaxWaterValue(float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_WATER_UP_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_WATER_UP_V, responseListData);
+        return false;
+    }
+    if (!WATER_UP_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_WATER_UP_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 0);
+    return true;
+}
+
+bool PressPrivate::setMaxWaterValue(float value)
+{
+    std::vector<uint8_t> requestListData;
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_WATER_UP_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_WATER_UP_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 4)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_WATER_UP_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMinWaterValue(float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_WATER_DOWN_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_WATER_DOWN_V, responseListData);
+        return false;
+    }
+    if (!WATER_DOWN_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_WATER_DOWN_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 0);
+    return true;
+}
+
+bool PressPrivate::setMinWaterValue(float value)
+{
+    std::vector<uint8_t> requestListData;
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_WATER_DOWN_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_WATER_DOWN_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 4)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_WATER_DOWN_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
 // ==================== 段参数命令 ====================
 
 bool PressPrivate::getPressStepParameter(uint8_t index, PressStepParameter& param)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_INDEX_PSTEP_PARAMETER, {index}, responseListData))
+    if (!_requestCommand(GET_INDEX_PSTEP_PARAMETER_V, {index}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_INDEX_PSTEP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_PSTEP_PARAMETER_V, responseListData);
         return false;
     }
     if (!INDEX_PSTEP_PARAMETER_BOOL(responseListData.size()) || responseListData[0] != index)
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_INDEX_PSTEP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_PSTEP_PARAMETER_V, responseListData);
         return false;
     }
     param.m_SetPValue = _readHostFloat(responseListData, 1);
@@ -1076,15 +1670,15 @@ bool PressPrivate::setPressStepParameter(uint8_t index, const PressStepParameter
     _appendHostFloat(requestListData, param.m_AfterValue);
     _appendHostInt32(requestListData, static_cast<int32_t>(param.m_KPTime));
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(CMDID_INDEX_PSTEP_PARAMETER), requestListData, responseListData))
+    if (!_requestCommand(SET_INDEX_PSTEP_PARAMETER_V, requestListData, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_INDEX_PSTEP_PARAMETER), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_PSTEP_PARAMETER_V, responseListData);
         return false;
     }
     if (responseListData.size() != 13 || responseListData[0] != index)
     {
         _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_INDEX_PSTEP_PARAMETER), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_PSTEP_PARAMETER_V, responseListData);
         return false;
     }
     return true;
@@ -1093,15 +1687,15 @@ bool PressPrivate::setPressStepParameter(uint8_t index, const PressStepParameter
 bool PressPrivate::getTempStepParameter(uint8_t index, TempStepParameter& param)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_INDEX_TSTEP_PARAMETER, {index}, responseListData))
+    if (!_requestCommand(GET_INDEX_TSTEP_PARAMETER_V, {index}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_INDEX_TSTEP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_TSTEP_PARAMETER_V, responseListData);
         return false;
     }
     if (!INDEX_TSTEP_PARAMETER_BOOL(responseListData.size()) || responseListData[0] != index)
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_INDEX_TSTEP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_INDEX_TSTEP_PARAMETER_V, responseListData);
         return false;
     }
     param.m_TempValue = _readHostFloat(responseListData, 1);
@@ -1118,15 +1712,15 @@ bool PressPrivate::setTempStepParameter(uint8_t index, const TempStepParameter& 
     _appendHostFloat(requestListData, param.m_SpeedValue);
     _appendHostInt32(requestListData, static_cast<int32_t>(param.m_KTTime));
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(CMDID_INDEX_TSTEP_PARAMETER), requestListData, responseListData))
+    if (!_requestCommand(SET_INDEX_TSTEP_PARAMETER_V, requestListData, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_INDEX_TSTEP_PARAMETER), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_TSTEP_PARAMETER_V, responseListData);
         return false;
     }
     if (responseListData.size() != 13 || responseListData[0] != index)
     {
         _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_INDEX_TSTEP_PARAMETER), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_INDEX_TSTEP_PARAMETER_V, responseListData);
         return false;
     }
     return true;
@@ -1135,16 +1729,16 @@ bool PressPrivate::setTempStepParameter(uint8_t index, const TempStepParameter& 
 bool PressPrivate::getMixStepParameter(uint8_t index, MixStepParameter& param)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_MIX_INDEX_STEP_PARAMETER, {index}, responseListData))
+    if (!_requestCommand(GET_MIX_INDEX_STEP_PARAMETER_V, {index}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_MIX_INDEX_STEP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_STEP_PARAMETER_V, responseListData);
         return false;
     }
     // 实际布局为 24 字节（index + 23），下位机校验宏 23 疑似 off-by-one，按实际布局解析
     if (responseListData.size() != 24 || responseListData[0] != index)
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_MIX_INDEX_STEP_PARAMETER, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_STEP_PARAMETER_V, responseListData);
         return false;
     }
     param.m_IsPress = responseListData[1];
@@ -1171,15 +1765,15 @@ bool PressPrivate::setMixStepParameter(uint8_t index, const MixStepParameter& pa
     _appendHostFloat(requestListData, param.m_DownTemp);
     _appendHostInt32(requestListData, static_cast<int32_t>(param.m_KTime));
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(CMDID_MIX_INDEX_STEP_PARAMETER), requestListData, responseListData))
+    if (!_requestCommand(SET_MIX_INDEX_STEP_PARAMETER_V, requestListData, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_MIX_INDEX_STEP_PARAMETER), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_STEP_PARAMETER_V, responseListData);
         return false;
     }
     if (responseListData.size() != 24 || responseListData[0] != index)
     {
         _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_MIX_INDEX_STEP_PARAMETER), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_STEP_PARAMETER_V, responseListData);
         return false;
     }
     return true;
@@ -1190,15 +1784,15 @@ bool PressPrivate::setMixStepParameter(uint8_t index, const MixStepParameter& pa
 bool PressPrivate::getDateTime(DateTimeInfo& dateTime)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_DATE_TIME, {0x00}, responseListData))
+    if (!_requestCommand(GET_DATE_TIME_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_DATE_TIME, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_DATE_TIME_V, responseListData);
         return false;
     }
     if (!DATE_TIME_BOOL(responseListData.size()))
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_DATE_TIME, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_DATE_TIME_V, responseListData);
         return false;
     }
     // 布局: [秒][分][时][日][月][年]
@@ -1219,15 +1813,15 @@ bool PressPrivate::setDateTime(const DateTimeInfo& dateTime)
         dateTime.m_Day, dateTime.m_Month, dateTime.m_Year
     };
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(CMDID_DATE_TIME), requestListData, responseListData))
+    if (!_requestCommand(SET_DATE_TIME_V, requestListData, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_DATE_TIME), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_DATE_TIME_V, responseListData);
         return false;
     }
     if (responseListData.size() != 6)
     {
         _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_DATE_TIME), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_DATE_TIME_V, responseListData);
         return false;
     }
     return true;
@@ -1236,15 +1830,15 @@ bool PressPrivate::setDateTime(const DateTimeInfo& dateTime)
 bool PressPrivate::getBrightness(uint8_t& brightness)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_BRIGHTNESS, {0x00}, responseListData))
+    if (!_requestCommand(GET_BRIGHTNESS_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BRIGHTNESS, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_BRIGHTNESS_V, responseListData);
         return false;
     }
     if (!GET_BOOL(responseListData.size()))
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BRIGHTNESS, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_BRIGHTNESS_V, responseListData);
         return false;
     }
     brightness = responseListData[0];
@@ -1254,16 +1848,16 @@ bool PressPrivate::getBrightness(uint8_t& brightness)
 bool PressPrivate::setBrightness(uint8_t brightness)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(CMDID_BRIGHTNESS), {brightness}, responseListData))
+    if (!_requestCommand(SET_BRIGHTNESS_V, {brightness}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BRIGHTNESS), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_BRIGHTNESS_V, responseListData);
         return false;
     }
     // 参数类写命令：回显校验
     if (responseListData.size() != 1 || responseListData[0] != brightness)
     {
         _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BRIGHTNESS), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_BRIGHTNESS_V, responseListData);
         return false;
     }
     return true;
@@ -1272,15 +1866,15 @@ bool PressPrivate::setBrightness(uint8_t brightness)
 bool PressPrivate::getButtonSound(bool& enabled)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_BUTTON_SOUND, {0x00}, responseListData))
+    if (!_requestCommand(GET_BUTTON_SOUND_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BUTTON_SOUND, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_BUTTON_SOUND_V, responseListData);
         return false;
     }
     if (!GET_BOOL(responseListData.size()))
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_BUTTON_SOUND, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_BUTTON_SOUND_V, responseListData);
         return false;
     }
     enabled = (responseListData[0] != 0);
@@ -1291,15 +1885,15 @@ bool PressPrivate::setButtonSound(bool enabled)
 {
     const uint8_t value = enabled ? 1 : 0;
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(CMDID_BUTTON_SOUND), {value}, responseListData))
+    if (!_requestCommand(SET_BUTTON_SOUND_V, {value}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BUTTON_SOUND), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_BUTTON_SOUND_V, responseListData);
         return false;
     }
     if (responseListData.size() != 1 || responseListData[0] != value)
     {
         _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_BUTTON_SOUND), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_BUTTON_SOUND_V, responseListData);
         return false;
     }
     return true;
@@ -1308,15 +1902,15 @@ bool PressPrivate::setButtonSound(bool enabled)
 bool PressPrivate::getLanguage(uint8_t& language)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_LANGUAGE, {0x00}, responseListData))
+    if (!_requestCommand(GET_LANGUAGE_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_LANGUAGE, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_LANGUAGE_V, responseListData);
         return false;
     }
     if (!GET_BOOL(responseListData.size()))
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_LANGUAGE, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_LANGUAGE_V, responseListData);
         return false;
     }
     language = responseListData[0];
@@ -1326,15 +1920,15 @@ bool PressPrivate::getLanguage(uint8_t& language)
 bool PressPrivate::setLanguage(uint8_t language)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_CMD(CMDID_LANGUAGE), {language}, responseListData))
+    if (!_requestCommand(SET_LANGUAGE_V, {language}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_LANGUAGE), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_LANGUAGE_V, responseListData);
         return false;
     }
     if (responseListData.size() != 1 || responseListData[0] != language)
     {
         _setError(MachineError::UnknownError);
-        if (auto iface = _safeGetInterface()) iface->onError(SET_CMD(CMDID_LANGUAGE), responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_LANGUAGE_V, responseListData);
         return false;
     }
     return true;
@@ -1345,9 +1939,9 @@ bool PressPrivate::setLanguage(uint8_t language)
 bool PressPrivate::getMachineState(MachineState& state)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(CMDID_GET_CURRENT_STATE, {0x00}, responseListData))
+    if (!_requestCommand(GET_CURRENT_STATE_V, {0x00}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_GET_CURRENT_STATE, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_CURRENT_STATE_V, responseListData);
         return false;
     }
     // 下位机 RTData::getRtData 二进制布局（字段数依模式分支），见 MachineState 说明。
@@ -1363,7 +1957,7 @@ bool PressPrivate::getMachineState(MachineState& state)
     else
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(CMDID_GET_CURRENT_STATE, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_CURRENT_STATE_V, responseListData);
         return false;
     }
     state = MachineState{};
@@ -1400,7 +1994,7 @@ bool PressPrivate::getMachineState(MachineState& state)
 bool PressPrivate::setStartHeat(bool isHeating)
 {
     std::vector<uint8_t> responseListData;
-    uint16_t command = CMDID_SET_START_HEAT;
+    uint16_t command = SET_START_HEAT_V;
     if (!_requestCommand(command, {static_cast<uint8_t>(isHeating)}, responseListData))
     {
         if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
@@ -1412,7 +2006,7 @@ bool PressPrivate::setStartHeat(bool isHeating)
 bool PressPrivate::setStart(bool isStart)
 {
     std::vector<uint8_t> responseListData;
-    uint16_t command = CMDID_SET_START;
+    uint16_t command = SET_START_V;
     if (!_requestCommand(command, {static_cast<uint8_t>(isStart)}, responseListData))
     {
         if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
@@ -1424,7 +2018,7 @@ bool PressPrivate::setStart(bool isStart)
 bool PressPrivate::selectModelState(uint8_t model)
 {
     std::vector<uint8_t> responseListData;
-    uint16_t command = CMDID_SELECT_MODEL_STATE;
+    uint16_t command = SELECT_MODEL_STATE_V;
     if (!_requestCommand(command, {model}, responseListData))
     {
         if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
@@ -1437,13 +2031,14 @@ bool PressPrivate::selectModelState(uint8_t model)
 
 bool PressPrivate::getTempDataJson(std::string& json, bool isCompressed)
 {
+    json.clear();
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(GET_TD_JSON, {static_cast<uint8_t>(isCompressed)}, responseListData))
+    if (!_requestCommand(GET_TD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto iface = _safeGetInterface())
         {
             iface->onTempData(static_cast<int>(m_LastError.load()), std::string());
-            iface->onError(GET_TD_JSON, responseListData);
+            iface->onError(GET_TD_JSON_V, responseListData);
         }
         return false;
     }
@@ -1453,7 +2048,7 @@ bool PressPrivate::getTempDataJson(std::string& json, bool isCompressed)
         if (auto iface = _safeGetInterface())
         {
             iface->onTempData(static_cast<int>(m_LastError.load()), std::string());
-            iface->onError(GET_TD_JSON, responseListData);
+            iface->onError(GET_TD_JSON_V, responseListData);
         }
         return false;
     }
@@ -1472,24 +2067,25 @@ bool PressPrivate::setTempDataJson(const std::string& json, bool isCompressed)
     requestListData.push_back(static_cast<uint8_t>(isCompressed));
     requestListData.insert(requestListData.end(), json.begin(), json.end());
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_TD_JSON, requestListData, responseListData))
+    if (!_requestCommand(SET_TD_JSON_V, requestListData, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_TD_JSON, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_TD_JSON_V, responseListData);
         return false;
     }
     // 下位机写成功后回显 JSON，非空即成功
-    return _handleSetResponse(SET_TD_JSON, responseListData);
+    return _handleSetResponse(SET_TD_JSON_V, responseListData);
 }
 
 bool PressPrivate::getMixDataJson(std::string& json, bool isCompressed)
 {
+    json.clear();
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(GET_MD_JSON, {static_cast<uint8_t>(isCompressed)}, responseListData))
+    if (!_requestCommand(GET_MD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto iface = _safeGetInterface())
         {
             iface->onMixData(static_cast<int>(m_LastError.load()), std::string());
-            iface->onError(GET_MD_JSON, responseListData);
+            iface->onError(GET_MD_JSON_V, responseListData);
         }
         return false;
     }
@@ -1499,7 +2095,7 @@ bool PressPrivate::getMixDataJson(std::string& json, bool isCompressed)
         if (auto iface = _safeGetInterface())
         {
             iface->onMixData(static_cast<int>(m_LastError.load()), std::string());
-            iface->onError(GET_MD_JSON, responseListData);
+            iface->onError(GET_MD_JSON_V, responseListData);
         }
         return false;
     }
@@ -1518,11 +2114,11 @@ bool PressPrivate::setMixDataJson(const std::string& json, bool isCompressed)
     requestListData.push_back(static_cast<uint8_t>(isCompressed));
     requestListData.insert(requestListData.end(), json.begin(), json.end());
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(SET_MD_JSON, requestListData, responseListData))
+    if (!_requestCommand(SET_MD_JSON_V, requestListData, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(SET_MD_JSON, responseListData);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MD_JSON_V, responseListData);
         return false;
     }
     // 下位机写成功后回显 JSON，非空即成功
-    return _handleSetResponse(SET_MD_JSON, responseListData);
+    return _handleSetResponse(SET_MD_JSON_V, responseListData);
 }

@@ -17,15 +17,77 @@
 #include <condition_variable>
 #include <atomic>
 
-static constexpr uint16_t GET_VERSION_V      = GET_VERSION;
-static constexpr uint16_t GET_MACHINE_TYPE_V = GET_MACHINE_TYPE;
-static constexpr uint16_t GET_SERIAL_NUMBER_V = CMDID_SERIAL_NUMBER;
-static constexpr uint16_t GET_ROD_JSON_V     = GET_ROD_JSON;
-static constexpr uint16_t GET_PD_JSON_V      = GET_PD_JSON;
-static constexpr uint16_t SET_PD_JSON_V      = SET_PD_JSON;
-static constexpr uint16_t GET_RT_JSON_V      = GET_RT_JSON;
-static constexpr uint16_t SET_PRESS_V        = SET_PRESS;
-static constexpr uint16_t SET_DEMOLD_V       = SET_DEMOLD;
+// ==================== 命令 ID 常量（static constexpr） ====================
+// 读取命令 / read commands
+static constexpr uint16_t GET_VERSION_V                  = CMDID_VERSION;
+static constexpr uint16_t GET_NAME_V                     = CMDID_NAME;
+static constexpr uint16_t GET_MACHINE_TYPE_V             = CMDID_MACHINE_TYPE;
+static constexpr uint16_t GET_SERIAL_NUMBER_V            = CMDID_SERIAL_NUMBER;
+static constexpr uint16_t GET_PRESS_PARAMETER_V          = CMDID_PRESS_PARAMETER;
+static constexpr uint16_t GET_TEMP_PARAMETER_V           = CMDID_TEMP_PARAMETER;
+static constexpr uint16_t GET_OTHER_INFO_V               = CMDID_OTHER_INFO;
+static constexpr uint16_t GET_TEMP_STEP_V                = CMDID_TEMP_STEP;
+static constexpr uint16_t GET_SPEED_MOLD_V               = CMDID_SPEED_MOLD;
+static constexpr uint16_t GET_INDEX_TEMP_V               = CMDID_INDEX_TEMP;
+static constexpr uint16_t GET_INDEX_SPEED_V              = CMDID_INDEX_SPEED;
+static constexpr uint16_t GET_INDEX_KTTIME_V             = CMDID_INDEX_KTTIME;
+static constexpr uint16_t GET_WATER_UP_V                 = CMDID_WATER_UP;
+static constexpr uint16_t GET_WATER_DOWN_V               = CMDID_WATER_DOWN;
+static constexpr uint16_t GET_PRESS_STEP_V               = CMDID_PRESS_STEP;
+static constexpr uint16_t GET_PRESS_CALIBRATE_V          = CMDID_PRESS_CALIBRATE;
+static constexpr uint16_t GET_MOLD_TYPE_V                = CMDID_MOLD_TYPE;
+static constexpr uint16_t GET_CIRCLE_D_V                 = CMDID_CIRCLE_D;
+static constexpr uint16_t GET_RECT_AB_V                  = CMDID_RECT_AB;
+static constexpr uint16_t GET_AIR_TIME_V                 = CMDID_AIR_TIME;
+static constexpr uint16_t GET_INDEX_PRESS_V              = CMDID_INDEX_PRESS;
+static constexpr uint16_t GET_INDEX_AFTER_V              = CMDID_INDEX_AFTER;
+static constexpr uint16_t GET_INDEX_KPTIME_V             = CMDID_INDEX_KPTIME;
+static constexpr uint16_t GET_INDEX_PSTEP_PARAMETER_V    = CMDID_INDEX_PSTEP_PARAMETER;
+static constexpr uint16_t GET_INDEX_TSTEP_PARAMETER_V    = CMDID_INDEX_TSTEP_PARAMETER;
+static constexpr uint16_t GET_MIX_INDEX_STEP_PARAMETER_V = CMDID_MIX_INDEX_STEP_PARAMETER;
+static constexpr uint16_t GET_DATE_TIME_V                = CMDID_DATE_TIME;
+static constexpr uint16_t GET_BRIGHTNESS_V               = CMDID_BRIGHTNESS;
+static constexpr uint16_t GET_BUTTON_SOUND_V             = CMDID_BUTTON_SOUND;
+static constexpr uint16_t GET_LANGUAGE_V                 = CMDID_LANGUAGE;
+static constexpr uint16_t GET_CURRENT_STATE_V            = CMDID_GET_CURRENT_STATE;
+static constexpr uint16_t GET_ROD_JSON_V                 = CMDID_ROD_JSON;
+static constexpr uint16_t GET_PD_JSON_V                  = CMDID_PD_JSON;
+static constexpr uint16_t GET_TD_JSON_V                  = CMDID_TD_JSON;
+static constexpr uint16_t GET_MD_JSON_V                  = CMDID_MD_JSON;
+static constexpr uint16_t GET_RT_JSON_V                  = CMDID_GET_CURRENT_STATE_JSON;
+
+// 写入/控制命令 / write & control commands
+static constexpr uint16_t SET_PRESS_V                    = CMDID_SET_START_PRESS;
+static constexpr uint16_t SET_DEMOLD_V                   = CMDID_SET_START_DEMOLD;
+static constexpr uint16_t SET_START_HEAT_V               = CMDID_SET_START_HEAT;
+static constexpr uint16_t SET_START_V                    = CMDID_SET_START;
+static constexpr uint16_t SELECT_MODEL_STATE_V           = CMDID_SELECT_MODEL_STATE;
+static constexpr uint16_t SET_PRESS_STEP_V               = SET_CMD(CMDID_PRESS_STEP);
+static constexpr uint16_t SET_PRESS_CALIBRATE_V          = SET_CMD(CMDID_PRESS_CALIBRATE);
+static constexpr uint16_t SET_MOLD_TYPE_V                = SET_CMD(CMDID_MOLD_TYPE);
+static constexpr uint16_t SET_CIRCLE_D_V                 = SET_CMD(CMDID_CIRCLE_D);
+static constexpr uint16_t SET_RECT_AB_V                  = SET_CMD(CMDID_RECT_AB);
+static constexpr uint16_t SET_AIR_TIME_V                 = SET_CMD(CMDID_AIR_TIME);
+static constexpr uint16_t SET_INDEX_PRESS_V              = SET_CMD(CMDID_INDEX_PRESS);
+static constexpr uint16_t SET_INDEX_AFTER_V              = SET_CMD(CMDID_INDEX_AFTER);
+static constexpr uint16_t SET_INDEX_KPTIME_V             = SET_CMD(CMDID_INDEX_KPTIME);
+static constexpr uint16_t SET_TEMP_STEP_V                = SET_CMD(CMDID_TEMP_STEP);
+static constexpr uint16_t SET_SPEED_MOLD_V               = SET_CMD(CMDID_SPEED_MOLD);
+static constexpr uint16_t SET_INDEX_TEMP_V               = SET_CMD(CMDID_INDEX_TEMP);
+static constexpr uint16_t SET_INDEX_SPEED_V              = SET_CMD(CMDID_INDEX_SPEED);
+static constexpr uint16_t SET_INDEX_KTTIME_V             = SET_CMD(CMDID_INDEX_KTTIME);
+static constexpr uint16_t SET_WATER_UP_V                 = SET_CMD(CMDID_WATER_UP);
+static constexpr uint16_t SET_WATER_DOWN_V               = SET_CMD(CMDID_WATER_DOWN);
+static constexpr uint16_t SET_INDEX_PSTEP_PARAMETER_V    = SET_CMD(CMDID_INDEX_PSTEP_PARAMETER);
+static constexpr uint16_t SET_INDEX_TSTEP_PARAMETER_V    = SET_CMD(CMDID_INDEX_TSTEP_PARAMETER);
+static constexpr uint16_t SET_MIX_INDEX_STEP_PARAMETER_V = SET_CMD(CMDID_MIX_INDEX_STEP_PARAMETER);
+static constexpr uint16_t SET_DATE_TIME_V                = SET_CMD(CMDID_DATE_TIME);
+static constexpr uint16_t SET_BRIGHTNESS_V               = SET_CMD(CMDID_BRIGHTNESS);
+static constexpr uint16_t SET_BUTTON_SOUND_V             = SET_CMD(CMDID_BUTTON_SOUND);
+static constexpr uint16_t SET_LANGUAGE_V                 = SET_CMD(CMDID_LANGUAGE);
+static constexpr uint16_t SET_PD_JSON_V                  = SET_CMD(CMDID_PD_JSON);
+static constexpr uint16_t SET_TD_JSON_V                  = SET_CMD(CMDID_TD_JSON);
+static constexpr uint16_t SET_MD_JSON_V                  = SET_CMD(CMDID_MD_JSON);
 
 //! 实时数据定时采集连续失败上报阈值
 static constexpr int TIMER_FAIL_REPORT_THRESHOLD = 3;
@@ -88,6 +150,42 @@ public:
     bool getPressParameter(PressParameter& param);                  //!< CMDID_PRESS_PARAMETER
     bool getTempParameter(TempParameter& param);                   //!< CMDID_TEMP_PARAMETER
     bool getOtherInfo(OtherInfo& info);                             //!< CMDID_OTHER_INFO
+
+    // ==================== 压力参数命令（单值/索引） ====================
+    bool getPressStepCount(uint8_t& step);                          //!< CMDID_PRESS_STEP
+    bool setPressStepCount(uint8_t step);
+    bool getCalibrationValue(float& value);                         //!< CMDID_PRESS_CALIBRATE
+    bool setCalibrationValue(float value);
+    bool getModeType(uint8_t& type);                                //!< CMDID_MOLD_TYPE
+    bool setModeType(uint8_t type);
+    bool getCircle(float& diameter);                                //!< CMDID_CIRCLE_D
+    bool setCircle(float diameter);
+    bool getRectangle(float& a, float& b);                          //!< CMDID_RECT_AB
+    bool setRectangle(float a, float b);
+    bool getAirTime(uint8_t& time);                                 //!< CMDID_AIR_TIME
+    bool setAirTime(uint8_t time);
+    bool getPressValueIndex(uint8_t index, float& value);           //!< CMDID_INDEX_PRESS
+    bool setPressValueIndex(uint8_t index, float value);
+    bool getAfterValueIndex(uint8_t index, float& value);           //!< CMDID_INDEX_AFTER
+    bool setAfterValueIndex(uint8_t index, float value);
+    bool getKeepPressTime(uint8_t index, int32_t& time);            //!< CMDID_INDEX_KPTIME（毫秒）
+    bool setKeepPressTime(uint8_t index, int32_t time);
+
+    // ==================== 温度参数命令（单值/索引） ====================
+    bool getTempStepCount(uint8_t& step);                           //!< CMDID_TEMP_STEP
+    bool setTempStepCount(uint8_t step);
+    bool getTempSpeedMold(uint8_t& mold);                           //!< CMDID_SPEED_MOLD
+    bool setTempSpeedMold(uint8_t mold);
+    bool getStartTempIndex(uint8_t index, float& value);            //!< CMDID_INDEX_TEMP
+    bool setTempIndex(uint8_t index, float value);
+    bool getTempSpeedIndex(uint8_t index, float& value);            //!< CMDID_INDEX_SPEED
+    bool setTempSpeedIndex(uint8_t index, float value);
+    bool getKeepTempTime(uint8_t index, int32_t& time);             //!< CMDID_INDEX_KTTIME（毫秒）
+    bool setKeepTempTime(uint8_t index, int32_t time);
+    bool getMaxWaterValue(float& value);                            //!< CMDID_WATER_UP
+    bool setMaxWaterValue(float value);
+    bool getMinWaterValue(float& value);                            //!< CMDID_WATER_DOWN
+    bool setMinWaterValue(float value);
 
     // ==================== 段参数命令 ====================
     bool getPressStepParameter(uint8_t index, PressStepParameter& param);   //!< 0x010A
