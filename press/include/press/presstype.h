@@ -44,6 +44,13 @@ enum PressPortType
     TcpSocketPortType, //!< TCP socket / TCP 套接字
 };
 
+enum AppType
+{
+    AUTO_HOT_PRESS = 0x01,
+    AUTO_PRESS = 0x02,
+    AUTO_HOT = 0x03,
+    MANUAL_PRESS = 0x04,
+};
 
 /******************************************************************************
  * ReadOnlyData — Immutable device information / 只读设备信息
@@ -154,7 +161,7 @@ struct RealTimeData
 
 struct VersionInfo
 {
-    uint8_t m_AppNo;
+    AppType m_AppNo;
     uint8_t m_Major;
     uint8_t m_Minor;
     uint8_t m_Patch;
