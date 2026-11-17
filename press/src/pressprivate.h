@@ -70,10 +70,10 @@ public:
     bool isConnected() const;
     uint64_t getMachineRegisterNo() const;
 
-    bool getReadOnlyDataJson(ReadOnlyData& data, bool isCompressed = false);
-    bool getPressDataJson(PressData& data, bool isCompressed = false);
-    bool setPressDataJson(const PressData& data, bool isCompressed = false);
-    bool getRealTimeDataJson(RealTimeData& data, bool isCompressed = false);
+    bool getReadOnlyDataJson(std::string& json, bool isCompressed = false);
+    bool getPressDataJson(std::string& json, bool isCompressed = false);
+    bool setPressDataJson(const std::string& json, bool isCompressed = false);
+    bool getRealTimeDataJson(std::string& json, bool isCompressed = false);
     bool getVersionInfo(VersionInfo& versionInfo);
     bool getSerialNumber(std::string& serialNumber);
     bool setPressing(bool isPressing);
@@ -114,14 +114,14 @@ public:
     bool selectModelState(uint8_t model);                           //!< CMDID_SELECT_MODEL_STATE（1/2）
 
     // ==================== JSON 批量命令（字符串形式）====================
-    //! 读取全部温度参数 JSON（仅支持未压缩；下位机响应总是未压缩）
-    bool getTempDataJson(std::string& json);
+    //! 读取全部温度参数 JSON
+    bool getTempDataJson(std::string& json, bool isCompressed = false);
     //! 写入全部温度参数 JSON
-    bool setTempDataJson(const std::string& json);
-    //! 读取全部混合模式参数 JSON（仅支持未压缩）
-    bool getMixDataJson(std::string& json);
+    bool setTempDataJson(const std::string& json, bool isCompressed = false);
+    //! 读取全部混合模式参数 JSON
+    bool getMixDataJson(std::string& json, bool isCompressed = false);
     //! 写入全部混合模式参数 JSON
-    bool setMixDataJson(const std::string& json);
+    bool setMixDataJson(const std::string& json, bool isCompressed = false);
 
     //! 设置单次请求超时（毫秒），0 恢复默认 300ms，上限 60000ms
     void setRequestTimeoutMs(std::uint32_t ms);

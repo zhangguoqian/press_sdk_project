@@ -118,32 +118,50 @@ public final class PressSdk implements AutoCloseable {
      */
     public interface DataCallbacks {
         /**
-         * Called when read-only device information is decoded asynchronously.
-         * 只读设备信息异步解码完成时触发。
+         * Called when read-only device information (ROD JSON) is fetched asynchronously.
+         * 只读设备信息（ROD JSON）异步获取完成时触发。
          *
          * @param errorCode   0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
          * @param registerNo  Device hardware register number. / 设备硬件注册号
-         * @param readOnlyData Decoded read-only data snapshot. / 解码后的只读数据快照
+         * @param json        Raw ROD JSON payload; empty on failure. / 原始 ROD JSON 数据，失败时为空字符串
          */
-        default void onReadOnlyData(int errorCode, long registerNo, ReadOnlyData readOnlyData) {}
+        default void onReadOnlyData(int errorCode, long registerNo, String json) {}
 
         /**
-         * Called when the native SDK pushes a new real-time machine state.
-         * 底层 SDK 推送新的实时机器状态时触发。
-         *
-         * @param errorCode    0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
-         * @param realTimeData Decoded real-time state snapshot. / 解码后的实时状态快照
-         */
-        default void onRealTimeData(int errorCode, RealTimeData realTimeData) {}
-
-        /**
-         * Called when pressure configuration data is decoded asynchronously.
-         * 压力配置数据异步解码完成时触发。
+         * Called when the native SDK pushes a new real-time machine state (RT JSON).
+         * 底层 SDK 推送新的实时机器状态（RT JSON）时触发。
          *
          * @param errorCode 0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
-         * @param pressData Decoded pressure configuration snapshot. / 解码后的压力配置快照
+         * @param json      Raw RT JSON payload; empty on failure. / 原始 RT JSON 数据，失败时为空字符串
          */
-        default void onPressData(int errorCode, PressData pressData) {}
+        default void onRealTimeData(int errorCode, String json) {}
+
+        /**
+         * Called when pressure configuration data (PD JSON) is fetched asynchronously.
+         * 压力配置数据（PD JSON）异步获取完成时触发。
+         *
+         * @param errorCode 0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
+         * @param json      Raw PD JSON payload; empty on failure. / 原始 PD JSON 数据，失败时为空字符串
+         */
+        default void onPressData(int errorCode, String json) {}
+
+        /**
+         * Called when temperature data (TD JSON) is fetched asynchronously.
+         * 温度数据（TD JSON）异步获取完成时触发。
+         *
+         * @param errorCode 0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
+         * @param json      Raw TD JSON payload; empty on failure. / 原始 TD JSON 数据，失败时为空字符串
+         */
+        default void onTempData(int errorCode, String json) {}
+
+        /**
+         * Called when mix data (MD JSON) is fetched asynchronously.
+         * 混合数据（MD JSON）异步获取完成时触发。
+         *
+         * @param errorCode 0 means success; non-zero means an error occurred. / 0 成功，非 0 表示出错
+         * @param json      Raw MD JSON payload; empty on failure. / 原始 MD JSON 数据，失败时为空字符串
+         */
+        default void onMixData(int errorCode, String json) {}
 
         /**
          * Called when the native SDK receives an error response from the device.
@@ -342,36 +360,31 @@ public final class PressSdk implements AutoCloseable {
         return press_is_running(this.handle) != 0;
     }
 
-    public boolean getReadOnlyDataJson(ReadOnlyData data, boolean isCompressed) {
+    /** Read read-only data as ROD JSON; null on failure. / 以 ROD JSON 读取只读数据，失败返回 null。 */
+    public String getReadOnlyDataJson(boolean isCompressed) {
         ensureOpen();
-        if (data == null) {
-            throw new IllegalArgumentException("data must not be null.");
-        }
-        return press_get_read_only_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_get_read_only_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
-    public boolean getPressDataJson(PressData data, boolean isCompressed) {
+    /** Read pressure parameters as PD JSON; null on failure. / 以 PD JSON 读取压力参数，失败返回 null。 */
+    public String getPressDataJson(boolean isCompressed) {
         ensureOpen();
-        if (data == null) {
-            throw new IllegalArgumentException("data must not be null.");
-        }
-        return press_get_press_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_get_press_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
-    public boolean setPressDataJson(PressData data, boolean isCompressed) {
+    /** Write pressure parameters from PD JSON. / 以 PD JSON 写入压力参数。 */
+    public boolean setPressDataJson(String json, boolean isCompressed) {
         ensureOpen();
-        if (data == null) {
-            throw new IllegalArgumentException("data must not be null.");
+        if (json == null) {
+            throw new IllegalArgumentException("json must not be null.");
         }
-        return press_set_press_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_set_press_data_json(this.handle, json, isCompressed ? 1 : 0) != 0;
     }
 
-    public boolean getRealTimeDataJson(RealTimeData data, boolean isCompressed) {
+    /** Read live machine state as RT JSON; null on failure. / 以 RT JSON 读取实时状态，失败返回 null。 */
+    public String getRealTimeDataJson(boolean isCompressed) {
         ensureOpen();
-        if (data == null) {
-            throw new IllegalArgumentException("data must not be null.");
-        }
-        return press_get_real_time_data_json(this.handle, data, isCompressed ? 1 : 0) != 0;
+        return press_get_real_time_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
     public boolean setPressing(boolean isPressing) {
@@ -464,10 +477,10 @@ public final class PressSdk implements AutoCloseable {
     public static native void press_run(long handle);
     public static native void press_stop(long handle);
     public static native int press_is_running(long handle);
-    public static native int press_get_read_only_data_json(long handle, ReadOnlyData data, int isCompressed);
-    public static native int press_get_press_data_json(long handle, PressData data, int isCompressed);
-    public static native int press_set_press_data_json(long handle, PressData data, int isCompressed);
-    public static native int press_get_real_time_data_json(long handle, RealTimeData data, int isCompressed);
+    public static native String press_get_read_only_data_json(long handle, int isCompressed);
+    public static native String press_get_press_data_json(long handle, int isCompressed);
+    public static native int press_set_press_data_json(long handle, String json, int isCompressed);
+    public static native String press_get_real_time_data_json(long handle, int isCompressed);
     public static native int press_set_pressing(long handle, int isPressing);
     public static native int press_set_demolding(long handle, int isDemolding);
     public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks, int intervalSeconds);

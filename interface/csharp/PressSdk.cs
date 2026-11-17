@@ -87,13 +87,13 @@ namespace PressSdk.Interop
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void PressCReadOnlyDataCallback(IntPtr userData, int errorCode, ulong registerNo, ref ReadOnlyData readOnlyData);
+    public delegate void PressCReadOnlyDataCallback(IntPtr userData, int errorCode, ulong registerNo, IntPtr json);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void PressCRealTimeDataCallback(IntPtr userData, int errorCode, ref RealTimeData realTimeData);
+    public delegate void PressCRealTimeDataCallback(IntPtr userData, int errorCode, IntPtr json);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void PressCPressDataCallback(IntPtr userData, int errorCode, ref PressData pressData);
+    public delegate void PressCPressDataCallback(IntPtr userData, int errorCode, IntPtr json);
 
     /// <summary>
     /// Error callback. The native layer reports the raw response pointer and its size using size_t;
@@ -101,6 +101,12 @@ namespace PressSdk.Interop
     /// </summary>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate void PressCErrorCallback(IntPtr userData, ushort cmdCode, IntPtr response, UIntPtr responseLen);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void PressCTempDataCallback(IntPtr userData, int errorCode, IntPtr json);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate void PressCMixDataCallback(IntPtr userData, int errorCode, IntPtr json);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct PressCDataCallbacks
@@ -110,6 +116,8 @@ namespace PressSdk.Interop
         public IntPtr onRealTimeData;
         public IntPtr onPressData;
         public IntPtr onError;
+        public IntPtr onTempData;
+        public IntPtr onMixData;
     }
 
     /// <summary>
@@ -134,6 +142,8 @@ namespace PressSdk.Interop
         private PressCReadOnlyDataCallback? _onReadOnlyDataCallback;
         private PressCRealTimeDataCallback? _onRealTimeDataCallback;
         private PressCPressDataCallback? _onPressDataCallback;
+        private PressCTempDataCallback? _onTempDataCallback;
+        private PressCMixDataCallback? _onMixDataCallback;
         private PressCErrorCallback? _onErrorCallback;
 
         static PressSdk()
@@ -257,16 +267,16 @@ namespace PressSdk.Interop
         private static extern int NativeIsRunning(IntPtr handle);
 
         [DllImport("press", EntryPoint = "cpress_get_read_only_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern int NativeGetReadOnlyDataJson(IntPtr handle, out ReadOnlyData data, int isCompressed);
+        private static extern IntPtr NativeGetReadOnlyDataJson(IntPtr handle, int isCompressed);
 
         [DllImport("press", EntryPoint = "cpress_get_press_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern int NativeGetPressDataJson(IntPtr handle, out PressData data, int isCompressed);
+        private static extern IntPtr NativeGetPressDataJson(IntPtr handle, int isCompressed);
 
         [DllImport("press", EntryPoint = "cpress_set_press_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern int NativeSetPressDataJson(IntPtr handle, ref PressData data, int isCompressed);
+        private static extern int NativeSetPressDataJson(IntPtr handle, string json, int isCompressed);
 
         [DllImport("press", EntryPoint = "cpress_get_real_time_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern int NativeGetRealTimeDataJson(IntPtr handle, out RealTimeData data, int isCompressed);
+        private static extern IntPtr NativeGetRealTimeDataJson(IntPtr handle, int isCompressed);
 
         [DllImport("press", EntryPoint = "cpress_set_pressing", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeSetPressing(IntPtr handle, int isPressing);
@@ -338,24 +348,46 @@ namespace PressSdk.Interop
             return NativeIsRunning(_handle) != 0;
         }
 
-        public bool GetReadOnlyDataJson(out ReadOnlyData data, bool isCompressed = false)
+        /// <summary>Read ROD JSON; returns null on failure. / 读取 ROD JSON，失败返回 null。</summary>
+        public string? GetReadOnlyDataJson(bool isCompressed = false)
         {
-            return NativeGetReadOnlyDataJson(_handle, out data, isCompressed ? 1 : 0) != 0;
+            return PtrToUtf8(NativeGetReadOnlyDataJson(_handle, isCompressed ? 1 : 0));
         }
 
-        public bool GetPressDataJson(out PressData data, bool isCompressed = false)
+        /// <summary>Read PD JSON; returns null on failure. / 读取 PD JSON，失败返回 null。</summary>
+        public string? GetPressDataJson(bool isCompressed = false)
         {
-            return NativeGetPressDataJson(_handle, out data, isCompressed ? 1 : 0) != 0;
+            return PtrToUtf8(NativeGetPressDataJson(_handle, isCompressed ? 1 : 0));
         }
 
-        public bool SetPressDataJson(ref PressData data, bool isCompressed = false)
+        /// <summary>Write PD JSON. / 写入 PD JSON。</summary>
+        public bool SetPressDataJson(string json, bool isCompressed = false)
         {
-            return NativeSetPressDataJson(_handle, ref data, isCompressed ? 1 : 0) != 0;
+            return NativeSetPressDataJson(_handle, json, isCompressed ? 1 : 0) != 0;
         }
 
-        public bool GetRealTimeDataJson(out RealTimeData data, bool isCompressed = false)
+        /// <summary>Read RT JSON; returns null on failure. / 读取 RT JSON，失败返回 null。</summary>
+        public string? GetRealTimeDataJson(bool isCompressed = false)
         {
-            return NativeGetRealTimeDataJson(_handle, out data, isCompressed ? 1 : 0) != 0;
+            return PtrToUtf8(NativeGetRealTimeDataJson(_handle, isCompressed ? 1 : 0));
+        }
+
+        private static string? PtrToUtf8(IntPtr ptr)
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                return null;
+            }
+
+            int length = 0;
+            while (Marshal.ReadByte(ptr, length) != 0)
+            {
+                ++length;
+            }
+
+            byte[] buffer = new byte[length];
+            Marshal.Copy(ptr, buffer, 0, length);
+            return System.Text.Encoding.UTF8.GetString(buffer);
         }
 
         public bool SetPressing(bool isPressing)
@@ -372,6 +404,8 @@ namespace PressSdk.Interop
             PressCReadOnlyDataCallback? onReadOnlyData = null,
             PressCRealTimeDataCallback? onRealTimeData = null,
             PressCPressDataCallback? onPressData = null,
+            PressCTempDataCallback? onTempData = null,
+            PressCMixDataCallback? onMixData = null,
             PressCErrorCallback? onError = null,
             IntPtr? userData = null)
         {
@@ -385,6 +419,8 @@ namespace PressSdk.Interop
                 _onReadOnlyDataCallback = onReadOnlyData;
                 _onRealTimeDataCallback = onRealTimeData;
                 _onPressDataCallback = onPressData;
+                _onTempDataCallback = onTempData;
+                _onMixDataCallback = onMixData;
                 _onErrorCallback = onError;
 
                 var state = new PressCDataCallbacks
@@ -393,6 +429,8 @@ namespace PressSdk.Interop
                     onReadOnlyData = onReadOnlyData == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(onReadOnlyData),
                     onRealTimeData = onRealTimeData == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(onRealTimeData),
                     onPressData = onPressData == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(onPressData),
+                    onTempData = onTempData == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(onTempData),
+                    onMixData = onMixData == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(onMixData),
                     onError = onError == null ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(onError),
                 };
 

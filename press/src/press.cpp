@@ -53,9 +53,9 @@ bool Press::isRunning() const
     return mpPrivate->isRunning();
 }
 
-bool Press::getReadOnlyDataJson(ReadOnlyData& data, bool isCompressed)
+bool Press::getReadOnlyDataJson(std::string& json, bool isCompressed)
 {
-    return mpPrivate->getReadOnlyDataJson(data, isCompressed);
+    return mpPrivate->getReadOnlyDataJson(json, isCompressed);
 }
 
 bool Press::getSerialNumber(std::string& serialNumber)
@@ -70,19 +70,19 @@ void Press::setRequestTimeout(unsigned int ms)
 
 
 
-bool Press::getPressDataJson(PressData& data, bool isCompressed)
+bool Press::getPressDataJson(std::string& json, bool isCompressed)
 {
-    return mpPrivate->getPressDataJson(data, isCompressed);
+    return mpPrivate->getPressDataJson(json, isCompressed);
 }
 
-bool Press::setPressDataJson(const PressData& data, bool isCompressed)
+bool Press::setPressDataJson(const std::string& json, bool isCompressed)
 {
-    return mpPrivate->setPressDataJson(data, isCompressed);
+    return mpPrivate->setPressDataJson(json, isCompressed);
 }
 
-bool Press::getRealTimeDataJson(RealTimeData& data, bool isCompressed)
+bool Press::getRealTimeDataJson(std::string& json, bool isCompressed)
 {
-    return mpPrivate->getRealTimeDataJson(data, isCompressed);
+    return mpPrivate->getRealTimeDataJson(json, isCompressed);
 }
 
 bool Press::setPressing(bool isPressing)
@@ -218,24 +218,24 @@ bool Press::selectModelState(uint8_t model)
 
 // ==================== JSON 批量命令（字符串形式） ====================
 
-bool Press::getTempDataJson(std::string& json)
+bool Press::getTempDataJson(std::string& json, bool isCompressed)
 {
-    return mpPrivate->getTempDataJson(json);
+    return mpPrivate->getTempDataJson(json, isCompressed);
 }
 
-bool Press::setTempDataJson(const std::string& json)
+bool Press::setTempDataJson(const std::string& json, bool isCompressed)
 {
-    return mpPrivate->setTempDataJson(json);
+    return mpPrivate->setTempDataJson(json, isCompressed);
 }
 
-bool Press::getMixDataJson(std::string& json)
+bool Press::getMixDataJson(std::string& json, bool isCompressed)
 {
-    return mpPrivate->getMixDataJson(json);
+    return mpPrivate->getMixDataJson(json, isCompressed);
 }
 
-bool Press::setMixDataJson(const std::string& json)
+bool Press::setMixDataJson(const std::string& json, bool isCompressed)
 {
-    return mpPrivate->setMixDataJson(json);
+    return mpPrivate->setMixDataJson(json, isCompressed);
 }
 
 void Press::registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds)

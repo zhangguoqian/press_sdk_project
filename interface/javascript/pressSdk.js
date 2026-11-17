@@ -98,10 +98,10 @@ const pressLib = ffi.Library(resolveLibraryPath(), {
   cpress_is_running: ['int', ['void*']],
 
   // Data read/write / 数据读写
-  cpress_get_read_only_data_json: ['int', ['void*', 'pointer', 'int']],
-  cpress_get_press_data_json: ['int', ['void*', 'pointer', 'int']],
-  cpress_set_press_data_json: ['int', ['void*', 'pointer', 'int']],
-  cpress_get_real_time_data_json: ['int', ['void*', 'pointer', 'int']],
+  cpress_get_read_only_data_json: ['string', ['void*', 'int']],
+  cpress_get_press_data_json: ['string', ['void*', 'int']],
+  cpress_set_press_data_json: ['int', ['void*', 'string', 'int']],
+  cpress_get_real_time_data_json: ['string', ['void*', 'int']],
   cpress_set_pressing: ['int', ['void*', 'int']],
   cpress_set_demolding: ['int', ['void*', 'int']],
 
@@ -180,6 +180,8 @@ const PressCDataCallbacks = StructType({
   onRealTimeData: 'pointer',
   onPressData: 'pointer',
   onError: 'pointer',
+  onTempData: 'pointer',
+  onMixData: 'pointer',
 });
 
 class PressSdk {
@@ -253,37 +255,31 @@ class PressSdk {
     return pressLib.cpress_is_running(this.handle) !== 0;
   }
 
-  // Read read-only data / 读取只读设备信息
+  // Read read-only data / 读取只读设备信息（返回 JSON 字符串）
   getReadOnlyDataJson(isCompressed = false) {
     this._assertHandle();
-    const data = new ReadOnlyData();
-    const result = pressLib.cpress_get_read_only_data_json(this.handle, data.ref(), isCompressed ? 1 : 0);
-    return result !== 0 ? data : null;
+    return pressLib.cpress_get_read_only_data_json(this.handle, isCompressed ? 1 : 0) || null;
   }
 
-  // Read pressure data / 读取压力参数
+  // Read pressure data / 读取压力参数（返回 JSON 字符串）
   getPressDataJson(isCompressed = false) {
     this._assertHandle();
-    const data = new PressData();
-    const result = pressLib.cpress_get_press_data_json(this.handle, data.ref(), isCompressed ? 1 : 0);
-    return result !== 0 ? data : null;
+    return pressLib.cpress_get_press_data_json(this.handle, isCompressed ? 1 : 0) || null;
   }
 
-  // Write pressure data / 写入压力参数
-  setPressDataJson(data, isCompressed = false) {
+  // Write pressure data from JSON / 以 JSON 字符串写入压力参数
+  setPressDataJson(json, isCompressed = false) {
     this._assertHandle();
-    if (!data || typeof data.ref !== 'function') {
-      throw new TypeError('PressData object is required / 需要传入 PressData 对象');
+    if (typeof json !== 'string') {
+      throw new TypeError('PD JSON string is required / 需要传入 PD JSON 字符串');
     }
-    return pressLib.cpress_set_press_data_json(this.handle, data.ref(), isCompressed ? 1 : 0) !== 0;
+    return pressLib.cpress_set_press_data_json(this.handle, json, isCompressed ? 1 : 0) !== 0;
   }
 
-  // Read real-time data / 读取实时状态
+  // Read real-time data / 读取实时状态（返回 JSON 字符串）
   getRealTimeDataJson(isCompressed = false) {
     this._assertHandle();
-    const data = new RealTimeData();
-    const result = pressLib.cpress_get_real_time_data_json(this.handle, data.ref(), isCompressed ? 1 : 0);
-    return result !== 0 ? data : null;
+    return pressLib.cpress_get_real_time_data_json(this.handle, isCompressed ? 1 : 0) || null;
   }
 
   // Start or stop pressing / 启动或停止加压
@@ -332,20 +328,28 @@ class PressSdk {
       table[fieldName] = wrapped;
     };
 
-    assignCallback('onReadOnlyData', callbacks.onReadOnlyData, ['pointer', 'int', 'uint64', 'pointer'], (userData, errorCode, registerNo, readOnlyData) => {
-      callbacks.onReadOnlyData(userData, errorCode, registerNo, readOnlyData);
+    assignCallback('onReadOnlyData', callbacks.onReadOnlyData, ['pointer', 'int', 'uint64', 'string'], (userData, errorCode, registerNo, json) => {
+      callbacks.onReadOnlyData(userData, errorCode, registerNo, json);
     });
 
-    assignCallback('onRealTimeData', callbacks.onRealTimeData, ['pointer', 'int', 'pointer'], (userData, errorCode, realTimeData) => {
-      callbacks.onRealTimeData(userData, errorCode, realTimeData);
+    assignCallback('onRealTimeData', callbacks.onRealTimeData, ['pointer', 'int', 'string'], (userData, errorCode, json) => {
+      callbacks.onRealTimeData(userData, errorCode, json);
     });
 
-    assignCallback('onPressData', callbacks.onPressData, ['pointer', 'int', 'pointer'], (userData, errorCode, pressData) => {
-      callbacks.onPressData(userData, errorCode, pressData);
+    assignCallback('onPressData', callbacks.onPressData, ['pointer', 'int', 'string'], (userData, errorCode, json) => {
+      callbacks.onPressData(userData, errorCode, json);
     });
 
     assignCallback('onError', callbacks.onError, ['pointer', 'ushort', 'pointer', 'size_t'], (userData, cmdCode, response, responseLen) => {
       callbacks.onError(userData, cmdCode, response, responseLen);
+    });
+
+    assignCallback('onTempData', callbacks.onTempData, ['pointer', 'int', 'string'], (userData, errorCode, json) => {
+      callbacks.onTempData(userData, errorCode, json);
+    });
+
+    assignCallback('onMixData', callbacks.onMixData, ['pointer', 'int', 'string'], (userData, errorCode, json) => {
+      callbacks.onMixData(userData, errorCode, json);
     });
 
     this._callbackRefs = callbackRefs;

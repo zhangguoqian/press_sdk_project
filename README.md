@@ -237,8 +237,7 @@ from press_sdk import PressSdk, PortType
 
 sdk = PressSdk()
 if sdk.connect("COM3", PortType.SerialPortType):
-    data = sdk.get_press_data_json()
-    print(data.m_PStep)
+    print(sdk.get_press_data_json())   # raw PD JSON string / PD JSON 字符串
 sdk.close()
 ```
 
@@ -255,8 +254,8 @@ const { PressSdk, PortType } = require('./interface/javascript/pressSdk');
 
 const sdk = new PressSdk();
 if (sdk.connect('COM3', PortType.SerialPortType)) {
-  const data = sdk.getPressDataJson();
-  console.log(data && data.m_PStep);
+  const data = JSON.parse(sdk.getPressDataJson());
+  console.log(data.PStep);
 }
 sdk.close();
 ```
@@ -272,10 +271,7 @@ Important:
 ```dart
 final sdk = PressSdk();
 if (sdk.connect('COM3', portType: PortType.serialPortType)) {
-  final data = sdk.getPressDataJson();
-  if (data != null) {
-    print(data.mPStep);
-  }
+  print(sdk.isConnected());
   sdk.close();
 }
 ```
@@ -299,29 +295,20 @@ if (!press.connect("COM3", SerialPortType)) {
     return 1;
 }
 
-ReadOnlyData rod;
-if (press.getReadOnlyDataJson(rod)) {
-    // use rod fields here
+std::string rodJson;
+if (press.getReadOnlyDataJson(rodJson)) {
+    // rodJson is the raw ROD JSON payload / rodJson 为原始 ROD JSON
 }
 
-PressData pd;
-if (press.getPressDataJson(pd)) {
-    pd.m_PStep = 3;
-    pd.m_SetPValue[0] = 10.0f;
-    pd.m_SetPValue[1] = 20.0f;
-    pd.m_SetPValue[2] = 30.0f;
-    pd.m_AfterValue[0] = 5.0f;
-    pd.m_AfterValue[1] = 10.0f;
-    pd.m_AfterValue[2] = 15.0f;
-    pd.m_KPTime[0] = 5000;
-    pd.m_KPTime[1] = 5000;
-    pd.m_KPTime[2] = 5000;
-    press.setPressDataJson(pd);
+std::string pdJson;
+if (press.getPressDataJson(pdJson)) {
+    // modify pdJson then write it back / 修改 pdJson 后整包写回
+    press.setPressDataJson(pdJson);
 }
 
-RealTimeData rt;
-if (press.getRealTimeDataJson(rt)) {
-    // rt.m_PressValue, rt.m_PressState, rt.m_CPStep, rt.m_PTime
+std::string rtJson;
+if (press.getRealTimeDataJson(rtJson)) {
+    // rtJson is the raw RT JSON payload / rtJson 为原始 RT JSON
 }
 
 press.disconnect();
@@ -330,16 +317,22 @@ press.disconnect();
 ### Register a callback handler
 
 ```cpp
-class MyHandler : public MachineDataInterface {
+class MyHandler : public PressDataInterface {
 public:
     void onReadOnlyData(int errorCode, uint64_t registerNo,
-                        const ReadOnlyData& readOnlyData) override {
+                        const std::string& json) override {
     }
 
-    void onRealTimeData(int errorCode, const RealTimeData& realTimeData) override {
+    void onRealTimeData(int errorCode, const std::string& json) override {
     }
 
-    void onPressData(int errorCode, const PressData& pressData) override {
+    void onPressData(int errorCode, const std::string& json) override {
+    }
+
+    void onTempData(int errorCode, const std::string& json) override {
+    }
+
+    void onMixData(int errorCode, const std::string& json) override {
     }
 
     void onError(uint16_t cmdCode, std::vector<uint8_t> response) override {
@@ -360,7 +353,7 @@ press.registerDataInterface(&handler);
 - ReadOnlyData: static device identity and parameter limits
 - PressData: multi-step pressure control configuration
 - RealTimeData: live machine operating state
-- MachineDataInterface: asynchronous callback interface defined in the main public header
+- PressDataInterface: asynchronous callback interface defined in the main public header
 
 ### Main functions
 

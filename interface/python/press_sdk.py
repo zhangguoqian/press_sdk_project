@@ -172,6 +172,8 @@ class PressCDataCallbacks(ctypes.Structure):
         ("onRealTimeData", ctypes.c_void_p),
         ("onPressData", ctypes.c_void_p),
         ("onError", ctypes.c_void_p),
+        ("onTempData", ctypes.c_void_p),
+        ("onMixData", ctypes.c_void_p),
     ]
 
 
@@ -210,17 +212,17 @@ class PressSdk:
     _lib.cpress_is_running.argtypes = [ctypes.c_void_p]
     _lib.cpress_is_running.restype = ctypes.c_int
 
-    _lib.cpress_get_read_only_data_json.argtypes = [ctypes.c_void_p, ctypes.POINTER(ReadOnlyData), ctypes.c_int]
-    _lib.cpress_get_read_only_data_json.restype = ctypes.c_int
+    _lib.cpress_get_read_only_data_json.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    _lib.cpress_get_read_only_data_json.restype = ctypes.c_char_p
 
-    _lib.cpress_get_press_data_json.argtypes = [ctypes.c_void_p, ctypes.POINTER(PressData), ctypes.c_int]
-    _lib.cpress_get_press_data_json.restype = ctypes.c_int
+    _lib.cpress_get_press_data_json.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    _lib.cpress_get_press_data_json.restype = ctypes.c_char_p
 
-    _lib.cpress_set_press_data_json.argtypes = [ctypes.c_void_p, ctypes.POINTER(PressData), ctypes.c_int]
+    _lib.cpress_set_press_data_json.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
     _lib.cpress_set_press_data_json.restype = ctypes.c_int
 
-    _lib.cpress_get_real_time_data_json.argtypes = [ctypes.c_void_p, ctypes.POINTER(RealTimeData), ctypes.c_int]
-    _lib.cpress_get_real_time_data_json.restype = ctypes.c_int
+    _lib.cpress_get_real_time_data_json.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    _lib.cpress_get_real_time_data_json.restype = ctypes.c_char_p
 
     _lib.cpress_set_pressing.argtypes = [ctypes.c_void_p, ctypes.c_int]
     _lib.cpress_set_pressing.restype = ctypes.c_int
@@ -274,29 +276,27 @@ class PressSdk:
     def is_running(self) -> bool:
         return self._lib.cpress_is_running(self._handle) != 0
 
-    def get_read_only_data_json(self, is_compressed: bool = False) -> ReadOnlyData:
-        data = ReadOnlyData()
-        ok = self._lib.cpress_get_read_only_data_json(self._handle, ctypes.byref(data), 1 if is_compressed else 0)
-        if not ok:
+    def get_read_only_data_json(self, is_compressed: bool = False) -> str:
+        result = self._lib.cpress_get_read_only_data_json(self._handle, 1 if is_compressed else 0)
+        if result is None:
             raise RuntimeError(self.get_last_error_info())
-        return data
+        return result.decode("utf-8")
 
-    def get_press_data_json(self, is_compressed: bool = False) -> PressData:
-        data = PressData()
-        ok = self._lib.cpress_get_press_data_json(self._handle, ctypes.byref(data), 1 if is_compressed else 0)
-        if not ok:
+    def get_press_data_json(self, is_compressed: bool = False) -> str:
+        result = self._lib.cpress_get_press_data_json(self._handle, 1 if is_compressed else 0)
+        if result is None:
             raise RuntimeError(self.get_last_error_info())
-        return data
+        return result.decode("utf-8")
 
-    def set_press_data_json(self, data: PressData, is_compressed: bool = False) -> bool:
-        return self._lib.cpress_set_press_data_json(self._handle, ctypes.byref(data), 1 if is_compressed else 0) != 0
+    def set_press_data_json(self, json: str, is_compressed: bool = False) -> bool:
+        return self._lib.cpress_set_press_data_json(
+            self._handle, json.encode("utf-8"), 1 if is_compressed else 0) != 0
 
-    def get_real_time_data_json(self, is_compressed: bool = False) -> RealTimeData:
-        data = RealTimeData()
-        ok = self._lib.cpress_get_real_time_data_json(self._handle, ctypes.byref(data), 1 if is_compressed else 0)
-        if not ok:
+    def get_real_time_data_json(self, is_compressed: bool = False) -> str:
+        result = self._lib.cpress_get_real_time_data_json(self._handle, 1 if is_compressed else 0)
+        if result is None:
             raise RuntimeError(self.get_last_error_info())
-        return data
+        return result.decode("utf-8")
 
     def set_pressing(self, is_pressing: bool) -> bool:
         return self._lib.cpress_set_pressing(self._handle, 1 if is_pressing else 0) != 0

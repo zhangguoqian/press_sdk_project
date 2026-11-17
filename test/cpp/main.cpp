@@ -122,18 +122,28 @@ void printBenchTable()
 class TestCallback : public PressDataInterface
 {
 public:
-    void onReadOnlyData(int errorCode, uint64_t registerNo, const ReadOnlyData& data) override
+    void onReadOnlyData(int errorCode, uint64_t registerNo, const std::string& json) override
     {
-        std::printf("  [callback] onReadOnlyData: err=%d regNo=%llu type=%s\n",
-                    errorCode, static_cast<unsigned long long>(registerNo), data.m_Type);
+        std::printf("  [callback] onReadOnlyData: err=%d regNo=%llu bytes=%zu\n",
+                    errorCode, static_cast<unsigned long long>(registerNo), json.size());
     }
 
-    void onPressData(int errorCode, const PressData& data) override
+    void onPressData(int errorCode, const std::string& json) override
     {
-        std::printf("  [callback] onPressData: err=%d step=%u\n", errorCode, data.m_PStep);
+        std::printf("  [callback] onPressData: err=%d bytes=%zu\n", errorCode, json.size());
     }
 
-    void onRealTimeData(int errorCode, const RealTimeData& data) override
+    void onTempData(int errorCode, const std::string& json) override
+    {
+        std::printf("  [callback] onTempData: err=%d bytes=%zu\n", errorCode, json.size());
+    }
+
+    void onMixData(int errorCode, const std::string& json) override
+    {
+        std::printf("  [callback] onMixData: err=%d bytes=%zu\n", errorCode, json.size());
+    }
+
+    void onRealTimeData(int errorCode, const std::string& json) override
     {
         if (errorCode != 0)
         {
@@ -155,12 +165,7 @@ public:
             ++m_count;
         }
 
-        std::printf("  [callback] onRealTimeData: mode=%u P:%s T:%s pStep=%u tStep=%u press=%.3f upT=%.1f downT=%.1f remain=%ums\n",
-                    static_cast<unsigned>(data.m_ModelState),
-                    data.m_IsPStart ? "on" : "off",
-                    data.m_IsTStart ? "on" : "off",
-                    data.m_CPStep, data.m_CTStep,
-                    data.m_PressValue, data.m_TUpValue, data.m_TDownValue, data.m_PTime);
+        std::printf("  [callback] onRealTimeData: bytes=%zu\n", json.size());
     }
 
     void onError(uint16_t cmdCode, std::vector<uint8_t> /*response*/) override
@@ -241,53 +246,6 @@ void printHex(const char* label, const std::vector<uint8_t>& data)
         std::printf(" %02X", b);
     }
     std::printf("\n");
-}
-
-void printReadOnlyData(const ReadOnlyData& d)
-{
-    std::printf("  nameZH='%.64s'\n", d.m_NameZH);
-    std::printf("  nameEN='%.64s'\n", d.m_NameEN);
-    std::printf("  type='%.64s'  sn='%.64s'\n", d.m_Type, d.m_SerialNumber);
-    std::printf("  Screenshot=%u StartDelay=%u VersionType=%u IsHideLang=%u Remote=%u Network=%u FontZH=%u FontEN=%u\n",
-                d.m_Screenshot, d.m_StartDelay, d.m_VersionType, d.m_IsHideLang,
-                d.m_Remote, d.m_Network, d.m_FontZH, d.m_FontEN);
-    std::printf("  MaxPStep=%u MaxP=%.3f MinP=%.3f Max_Min=%.3f Diameter=%.3f PDecimal=%u PressDecimal=%u PModel=%u OutType=%u\n",
-                d.m_MaxPStep, d.m_MaxPLimit, d.m_MinPLimit, d.m_Max_Min, d.m_Diameter,
-                d.m_PDecimal, d.m_PressDecimal, d.m_PModel, d.m_OutType);
-    std::printf("  MaxTStep=%u MaxT=%.3f MinT=%.3f TDecimal=%u IsHasWater=%u IsHasSpeed=%u\n",
-                d.m_MaxTStep, d.m_MaxTLimit, d.m_MinTLimit,
-                d.m_TDecimal, d.m_IsHasWater, d.m_IsHasSpeed);
-}
-
-void printPressData(const PressData& d)
-{
-    std::printf("  PStep=%u Type=%u A=%.3f B=%.3f D=%.3f OuterD=%.3f InnerD=%.3f CheckValue=%.3f\n",
-                d.m_PStep, d.m_Type, d.m_A, d.m_B, d.m_D,
-                d.m_OuterD, d.m_InnerD, d.m_CheckValue);
-    std::printf("  Speed=%u DemoldValue=%.3f AirTime=%u\n",
-                d.m_Speed, d.m_DemoldValue, d.m_AirTime);
-    const unsigned n = (d.m_PStep < MAX_PStep) ? d.m_PStep : MAX_PStep;
-    for (unsigned i = 0; i < n; ++i)
-    {
-        std::printf("    step[%u]: setP=%.3f after=%.3f kpTime=%ums\n",
-                    i, d.m_SetPValue[i], d.m_AfterValue[i], d.m_KPTime[i]);
-    }
-    if (n == 0)
-    {
-        std::printf("    (no active step / 无有效步骤)\n");
-    }
-}
-
-void printRealTimeData(const RealTimeData& d)
-{
-    std::printf("  mode=%u pressState=%u pdChanged=%u cPStep=%u cTStep=%u cT1Step=%u\n",
-                d.m_ModelState, d.m_PressState, d.m_PdChanged,
-                d.m_CPStep, d.m_CTStep, d.m_CT1Step);
-    std::printf("  IsPStart=%u IsTStart=%u IsT1Start=%u IsAir=%u\n",
-                d.m_IsPStart, d.m_IsTStart, d.m_IsT1Start, d.m_IsAir);
-    std::printf("  press=%.3f moldPress=%.3f upT=%.1f downT=%.1f\n",
-                d.m_PressValue, d.m_MoldPressure, d.m_TUpValue, d.m_TDownValue);
-    std::printf("  PTime=%ums TTime=%ums T1Time=%ums\n", d.m_PTime, d.m_TTime, d.m_T1Time);
 }
 
 void usage()
@@ -419,28 +377,28 @@ int main(int argc, char* argv[])
 
     // ==================== 4. JSON 批量命令 ====================
     {
-        ReadOnlyData ro;
-        bool roOk = press.getReadOnlyDataJson(ro);
-        report("getReadOnlyDataJson(json)", roOk, press);
+        std::string roJson;
+        bool roOk = press.getReadOnlyDataJson(roJson);
+        report("getReadOnlyDataJson", roOk, press);
         if (roOk)
         {
-            printReadOnlyData(ro);
+            std::printf("  rod json (%zu bytes): %s\n", roJson.size(), roJson.c_str());
         }
 
-        PressData pd;
-        bool pdOk = press.getPressDataJson(pd);
-        report("getPressDataJson(json)", pdOk, press);
+        std::string pdJson;
+        bool pdOk = press.getPressDataJson(pdJson);
+        report("getPressDataJson", pdOk, press);
         if (pdOk)
         {
-            printPressData(pd);
+            std::printf("  pd json (%zu bytes): %s\n", pdJson.size(), pdJson.c_str());
         }
 
-        RealTimeData rt;
-        bool rtOk = press.getRealTimeDataJson(rt);
-        report("getRealTimeDataJson(json)", rtOk, press);
+        std::string rtJson;
+        bool rtOk = press.getRealTimeDataJson(rtJson);
+        report("getRealTimeDataJson", rtOk, press);
         if (rtOk)
         {
-            printRealTimeData(rt);
+            std::printf("  rt json (%zu bytes): %s\n", rtJson.size(), rtJson.c_str());
         }
 
         std::string tempJson;
@@ -569,13 +527,13 @@ int main(int argc, char* argv[])
             MachineState s{};
             return press.getMachineState(s);
         });
-        bench("getReadOnlyDataJson(JSON)", 5, [&] {
-            ReadOnlyData d{};
-            return press.getReadOnlyDataJson(d);
+        bench("getReadOnlyDataJson", 5, [&] {
+            std::string j;
+            return press.getReadOnlyDataJson(j);
         });
-        bench("getRealTimeDataJson(JSON)", 5, [&] {
-            RealTimeData d{};
-            return press.getRealTimeDataJson(d);
+        bench("getRealTimeDataJson", 5, [&] {
+            std::string j;
+            return press.getRealTimeDataJson(j);
         });
         bench("getTempDataJson", 5, [&] {
             std::string j;

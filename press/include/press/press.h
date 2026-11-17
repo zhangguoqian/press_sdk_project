@@ -57,26 +57,40 @@ typedef struct CPressContext CPressContext;
 //! @param userData      Caller-provided context / 调用方提供的上下文
 //! @param errorCode     Result code; 0 means success / 结果码；0 表示成功
 //! @param registerNo    Device register number / 设备注册号
-//! @param readOnlyData  Decoded read-only data / 解码后的只读数据
+//! @param json          Raw ROD JSON payload, empty on failure / 原始 ROD JSON 数据，失败时为空字符串
 //! @note This callback may be invoked on the SDK worker thread. If the caller
 //!       needs UI updates, it should marshal the callback onto the UI thread.
 //!       该回调可能在 SDK 工作线程中触发；如果调用方需要更新 UI，应该自行
 //!       将回调切到 UI 线程处理。
-typedef void (*PressCReadOnlyDataCallback)(void *userData, int errorCode, uint64_t registerNo, const ReadOnlyData *readOnlyData);
+typedef void (*PressCReadOnlyDataCallback)(void *userData, int errorCode, uint64_t registerNo, const char *json);
 
 //! Real-time data callback prototype / 实时数据回调原型
 //! @param userData      Caller-provided context / 调用方提供的上下文
 //! @param errorCode     Result code; 0 means success / 结果码；0 表示成功
-//! @param realTimeData  Decoded real-time machine state / 解码后的实时机器状态
+//! @param json          Raw RT JSON payload, empty on failure / 原始 RT JSON 数据，失败时为空字符串
 //! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
-typedef void (*PressCRealTimeDataCallback)(void* userData, int errorCode, const RealTimeData* realTimeData);
+typedef void (*PressCRealTimeDataCallback)(void* userData, int errorCode, const char *json);
 
 //! Pressure data callback prototype / 压力参数回调原型
 //! @param userData      Caller-provided context / 调用方提供的上下文
 //! @param errorCode     Result code; 0 means success / 结果码；0 表示成功
-//! @param pressData     Decoded pressure configuration / 解码后的压力配置
+//! @param json          Raw PD JSON payload, empty on failure / 原始 PD JSON 数据，失败时为空字符串
 //! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
-typedef void (*PressCPressDataCallback)(void* userData, int errorCode, const PressData* pressData);
+typedef void (*PressCPressDataCallback)(void* userData, int errorCode, const char *json);
+
+//! Temperature data callback prototype (TD JSON) / 温度数据回调原型（TD JSON）
+//! @param userData   Caller-provided context / 调用方提供的上下文
+//! @param errorCode  Result code; 0 means success / 结果码；0 表示成功
+//! @param json       Raw TD JSON payload, empty string on failure / 原始 TD JSON 数据，失败时为空字符串
+//! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
+typedef void (*PressCTempDataCallback)(void* userData, int errorCode, const char* json);
+
+//! Mix data callback prototype (MD JSON) / 混合数据回调原型（MD JSON）
+//! @param userData   Caller-provided context / 调用方提供的上下文
+//! @param errorCode  Result code; 0 means success / 结果码；0 表示成功
+//! @param json       Raw MD JSON payload, empty string on failure / 原始 MD JSON 数据，失败时为空字符串
+//! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
+typedef void (*PressCMixDataCallback)(void* userData, int errorCode, const char* json);
 
 //! Error callback prototype / 错误回调原型
 //! @param userData      Caller-provided context / 调用方提供的上下文
@@ -100,6 +114,8 @@ typedef struct CPressDataCallbacks
     PressCRealTimeDataCallback onRealTimeData;
     PressCPressDataCallback onPressData;
     PressCErrorCallback onError;
+    PressCTempDataCallback onTempData;
+    PressCMixDataCallback onMixData;
 } CPressDataCallbacks;
 
 //! Create a new Press SDK handle / 创建新的 Press SDK 句柄
@@ -154,14 +170,15 @@ PRESS_C_EXPORT void cpress_stop(CPressContext* handle);
 //! @return 1 if running, 0 otherwise / 运行中返回 1，否则返回 0
 PRESS_C_EXPORT int cpress_is_running(const CPressContext* handle);
 
-//! Read the read-only device information / 读取只读设备信息
+//! Read the read-only device information as raw JSON / 以原始 JSON 读取只读设备信息
 //! @param handle       Active context / 有效的上下文
-//! @param data         Output buffer / 输出缓冲区
 //! @param isCompressed Whether the request should use compressed JSON mode.
-//!                    0 = false, non-zero = true. / 是否使用压缩 JSON 模式。
-//!                    0 表示 false，非 0 表示 true。
-//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
-PRESS_C_EXPORT int cpress_get_read_only_data_json(CPressContext* handle, ReadOnlyData* data, int isCompressed);
+//!                     0 = false, non-zero = true. / 是否使用压缩 JSON 模式。
+//! @return Pointer to an internal buffer valid until the next call on the same
+//!         handle, or NULL on failure. The caller must copy the data if it
+//!         needs to keep it. / 指向内部缓冲区的指针，在下一次对同一句柄调用前
+//!         有效；失败返回 NULL。如需保留数据请自行拷贝。
+PRESS_C_EXPORT const char* cpress_get_read_only_data_json(CPressContext* handle, int isCompressed);
 
 //! Read the device serial number (CMDID_SERIAL_NUMBER 0x0003) / 读取设备序列号
 //! On success the value is also cached into ReadOnlyData.m_SerialNumber.
@@ -178,17 +195,21 @@ PRESS_C_EXPORT int cpress_get_serial_number(CPressContext* handle, char* buf, si
 //!           0 恢复默认，上限 60000ms。TCP 弱网环境可适当调大。
 PRESS_C_EXPORT void cpress_set_request_timeout(CPressContext* handle, unsigned int ms);
 
-//! Read pressure configuration / 读取压力参数
+//! Read pressure configuration as raw JSON / 以原始 JSON 读取压力参数
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_get_press_data_json(CPressContext* handle, PressData* data, int isCompressed);
+//! @return Internal JSON buffer or NULL on failure / 内部 JSON 缓冲区，失败返回 NULL
+PRESS_C_EXPORT const char* cpress_get_press_data_json(CPressContext* handle, int isCompressed);
 
-//! Write pressure configuration / 写入压力参数
+//! Write pressure configuration from raw JSON / 以原始 JSON 写入压力参数
+//! @param json         NUL-terminated PD JSON payload / 以 NUL 结尾的 PD JSON 数据
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_set_press_data_json(CPressContext* handle, const PressData* data, int isCompressed);
+//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
+PRESS_C_EXPORT int cpress_set_press_data_json(CPressContext* handle, const char* json, int isCompressed);
 
-//! Read live machine state / 读取实时机器状态
+//! Read live machine state as raw JSON / 以原始 JSON 读取实时机器状态
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
-PRESS_C_EXPORT int cpress_get_real_time_data_json(CPressContext* handle, RealTimeData* data, int isCompressed);
+//! @return Internal JSON buffer or NULL on failure / 内部 JSON 缓冲区，失败返回 NULL
+PRESS_C_EXPORT const char* cpress_get_real_time_data_json(CPressContext* handle, int isCompressed);
 
 //! Start or stop the pressing action only / 启动或停止单独的加压动作
 //! @param isPressing   0 = stop, non-zero = start / 0 表示停止，非 0 表示启动

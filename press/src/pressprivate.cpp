@@ -126,131 +126,105 @@ uint64_t PressPrivate::getMachineRegisterNo() const
     return m_RegisterNo;
 }
 
-bool PressPrivate::getReadOnlyDataJson(ReadOnlyData& data, bool isCompressed)
+bool PressPrivate::getReadOnlyDataJson(std::string& json, bool isCompressed)
 {
+    json.clear();
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_ROD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto iface = _safeGetInterface())
         {
-            iface->onReadOnlyData(static_cast<int>(m_LastError.load()), m_RegisterNo.load(), ReadOnlyData{});
+            iface->onReadOnlyData(static_cast<int>(m_LastError.load()), m_RegisterNo.load(), std::string());
         }
         return false;
     }
-    // 解析与拷贝需加锁：定时线程与用户线程可能同时访问 m_JsonData
-    int jsonErr = 0;
+    if (responseListData.empty())
     {
-        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
-        jsonErr = m_JsonData.jsonToReadOnlyData(responseListData);
-        if (0 == jsonErr)
-        {
-            data = m_JsonData.getReadOnlyData();
-        }
-    }
-    if (0 != jsonErr)
-    {
-        std::cerr << "jsonToReadOnlyData failed at field code: " << jsonErr << std::endl;
-        _setError(MachineError::JsonParseFailed);
+        _setError(MachineError::ResponseTooShort);
         if (auto iface = _safeGetInterface())
         {
-            iface->onReadOnlyData(static_cast<int>(MachineError::JsonParseFailed), m_RegisterNo.load(), ReadOnlyData{});
+            iface->onReadOnlyData(static_cast<int>(m_LastError.load()), m_RegisterNo.load(), std::string());
         }
         return false;
     }
+    json.assign(responseListData.begin(), responseListData.end());
     if (auto iface = _safeGetInterface())
     {
-        iface->onReadOnlyData(0, m_RegisterNo.load(), data);
+        iface->onReadOnlyData(0, m_RegisterNo.load(), json);
     }
     return true;
 }
 
-bool PressPrivate::getPressDataJson(PressData& data, bool isCompressed)
+bool PressPrivate::getPressDataJson(std::string& json, bool isCompressed)
 {
+    json.clear();
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_PD_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto iface = _safeGetInterface())
         {
-            iface->onPressData(static_cast<int>(m_LastError.load()), PressData{});
+            iface->onPressData(static_cast<int>(m_LastError.load()), std::string());
         }
         return false;
     }
-    // 解析与拷贝需加锁：定时线程与用户线程可能同时访问 m_JsonData
-    int jsonErr = 0;
+    if (responseListData.empty())
     {
-        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
-        jsonErr = m_JsonData.jsonToPressData(responseListData);
-        if (0 == jsonErr)
-        {
-            data = m_JsonData.getPressData();
-        }
-    }
-    if (0 != jsonErr)
-    {
-        std::cerr << "jsonToPressData failed at field code: " << jsonErr << std::endl;
-        _setError(MachineError::JsonParseFailed);
+        _setError(MachineError::ResponseTooShort);
         if (auto iface = _safeGetInterface())
         {
-            iface->onPressData(static_cast<int>(MachineError::JsonParseFailed), PressData{});
+            iface->onPressData(static_cast<int>(m_LastError.load()), std::string());
         }
         return false;
     }
+    json.assign(responseListData.begin(), responseListData.end());
     if (auto iface = _safeGetInterface())
     {
-        iface->onPressData(0, data);
+        iface->onPressData(0, json);
     }
     return true;
 }
 
-bool PressPrivate::setPressDataJson(const PressData& data, bool isCompressed)
+bool PressPrivate::setPressDataJson(const std::string& json, bool isCompressed)
 {
+    // payload: [压缩标志][JSON 字节...]
+    std::vector<uint8_t> requestListData;
+    requestListData.emplace_back(static_cast<uint8_t>(isCompressed));
+    requestListData.insert(requestListData.end(), json.begin(), json.end());
     std::vector<uint8_t> responseListData;
-    std::vector<uint8_t> commandListData;
-    commandListData.emplace_back(static_cast<uint8_t>(isCompressed));
-    std::vector<uint8_t> tempDataList = toFrameData(data);
-    commandListData.insert(commandListData.end(), tempDataList.begin(), tempDataList.end());
-    if (!_requestCommand(SET_PD_JSON_V, commandListData, responseListData))
+    if (!_requestCommand(SET_PD_JSON_V, requestListData, responseListData))
     {
         if (auto iface = _safeGetInterface()) iface->onError(SET_PD_JSON_V, responseListData);
         return false;
     }
+    // 下位机写成功后回显 JSON，非空即成功
     return _handleSetResponse(SET_PD_JSON_V, responseListData);
 }
 
-bool PressPrivate::getRealTimeDataJson(RealTimeData& data, bool isCompressed)
+bool PressPrivate::getRealTimeDataJson(std::string& json, bool isCompressed)
 {
+    json.clear();
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_RT_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
         if (auto iface = _safeGetInterface())
         {
-            iface->onRealTimeData(static_cast<int>(m_LastError.load()), RealTimeData{});
+            iface->onRealTimeData(static_cast<int>(m_LastError.load()), std::string());
         }
         return false;
     }
-    // 解析与拷贝需加锁：定时线程与用户线程可能同时访问 m_JsonData
-    int jsonErr = 0;
+    if (responseListData.empty())
     {
-        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
-        jsonErr = m_JsonData.jsonToRealTimeData(responseListData);
-        if (0 == jsonErr)
-        {
-            data = m_JsonData.getRealTimeData();
-        }
-    }
-    if (0 != jsonErr)
-    {
-        std::cerr << "jsonToRealTimeData failed at field code: " << jsonErr << std::endl;
-        _setError(MachineError::JsonParseFailed);
+        _setError(MachineError::ResponseTooShort);
         if (auto iface = _safeGetInterface())
         {
-            iface->onRealTimeData(static_cast<int>(MachineError::JsonParseFailed), RealTimeData{});
+            iface->onRealTimeData(static_cast<int>(m_LastError.load()), std::string());
         }
         return false;
     }
+    json.assign(responseListData.begin(), responseListData.end());
     if (auto iface = _safeGetInterface())
     {
-        iface->onRealTimeData(0, data);
+        iface->onRealTimeData(0, json);
     }
     return true;
 }
@@ -270,7 +244,7 @@ bool PressPrivate::getVersionInfo(VersionInfo& versionInfo)
         if (auto iface = _safeGetInterface()) iface->onError(GET_VERSION_V, responseListData);
         return false;
     }
-    versionInfo.m_AppNo = responseListData[0];
+    versionInfo.m_AppNo = static_cast<AppType>(responseListData[0]);
     versionInfo.m_Major = responseListData[1];
     versionInfo.m_Minor = responseListData[2];
     versionInfo.m_Patch = responseListData[3];
@@ -834,8 +808,8 @@ void PressPrivate::_startRealTimeTimer(int intervalSeconds)
                 break;
             }
 
-            RealTimeData realTimeData;
-            if (getRealTimeDataJson(realTimeData))
+            std::string realTimeJson;
+            if (getRealTimeDataJson(realTimeJson))
             {
                 m_TimerConsecutiveFailures.store(0);
             }
@@ -1461,29 +1435,41 @@ bool PressPrivate::selectModelState(uint8_t model)
 
 // ==================== JSON 批量命令（字符串形式） ====================
 
-bool PressPrivate::getTempDataJson(std::string& json)
+bool PressPrivate::getTempDataJson(std::string& json, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(GET_TD_JSON, {0x00}, responseListData))
+    if (!_requestCommand(GET_TD_JSON, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(GET_TD_JSON, responseListData);
+        if (auto iface = _safeGetInterface())
+        {
+            iface->onTempData(static_cast<int>(m_LastError.load()), std::string());
+            iface->onError(GET_TD_JSON, responseListData);
+        }
         return false;
     }
     if (responseListData.empty())
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(GET_TD_JSON, responseListData);
+        if (auto iface = _safeGetInterface())
+        {
+            iface->onTempData(static_cast<int>(m_LastError.load()), std::string());
+            iface->onError(GET_TD_JSON, responseListData);
+        }
         return false;
     }
     json.assign(responseListData.begin(), responseListData.end());
+    if (auto iface = _safeGetInterface())
+    {
+        iface->onTempData(0, json);
+    }
     return true;
 }
 
-bool PressPrivate::setTempDataJson(const std::string& json)
+bool PressPrivate::setTempDataJson(const std::string& json, bool isCompressed)
 {
-    // payload: [压缩标志 0x00][JSON 字节...]（仅未压缩）
+    // payload: [压缩标志][JSON 字节...]
     std::vector<uint8_t> requestListData;
-    requestListData.push_back(0x00);
+    requestListData.push_back(static_cast<uint8_t>(isCompressed));
     requestListData.insert(requestListData.end(), json.begin(), json.end());
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(SET_TD_JSON, requestListData, responseListData))
@@ -1495,29 +1481,41 @@ bool PressPrivate::setTempDataJson(const std::string& json)
     return _handleSetResponse(SET_TD_JSON, responseListData);
 }
 
-bool PressPrivate::getMixDataJson(std::string& json)
+bool PressPrivate::getMixDataJson(std::string& json, bool isCompressed)
 {
     std::vector<uint8_t> responseListData;
-    if (!_requestCommand(GET_MD_JSON, {0x00}, responseListData))
+    if (!_requestCommand(GET_MD_JSON, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
-        if (auto iface = _safeGetInterface()) iface->onError(GET_MD_JSON, responseListData);
+        if (auto iface = _safeGetInterface())
+        {
+            iface->onMixData(static_cast<int>(m_LastError.load()), std::string());
+            iface->onError(GET_MD_JSON, responseListData);
+        }
         return false;
     }
     if (responseListData.empty())
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface()) iface->onError(GET_MD_JSON, responseListData);
+        if (auto iface = _safeGetInterface())
+        {
+            iface->onMixData(static_cast<int>(m_LastError.load()), std::string());
+            iface->onError(GET_MD_JSON, responseListData);
+        }
         return false;
     }
     json.assign(responseListData.begin(), responseListData.end());
+    if (auto iface = _safeGetInterface())
+    {
+        iface->onMixData(0, json);
+    }
     return true;
 }
 
-bool PressPrivate::setMixDataJson(const std::string& json)
+bool PressPrivate::setMixDataJson(const std::string& json, bool isCompressed)
 {
-    // payload: [压缩标志 0x00][JSON 字节...]（仅未压缩）
+    // payload: [压缩标志][JSON 字节...]
     std::vector<uint8_t> requestListData;
-    requestListData.push_back(0x00);
+    requestListData.push_back(static_cast<uint8_t>(isCompressed));
     requestListData.insert(requestListData.end(), json.begin(), json.end());
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(SET_MD_JSON, requestListData, responseListData))

@@ -20,36 +20,58 @@ public:
 
     void onReadOnlyData(int errorCode,
                         uint64_t registerNo,
-                        const ReadOnlyData& readOnlyData) override
+                        const std::string& json) override
     {
         if (m_callbacks.onReadOnlyData != nullptr)
         {
             m_callbacks.onReadOnlyData(m_callbacks.userData,
                                       errorCode,
                                       registerNo,
-                                      &readOnlyData);
+                                      json.c_str());
         }
     }
 
     void onRealTimeData(int errorCode,
-                        const RealTimeData& realTimeData) override
+                        const std::string& json) override
     {
         if (m_callbacks.onRealTimeData != nullptr)
         {
             m_callbacks.onRealTimeData(m_callbacks.userData,
                                       errorCode,
-                                      &realTimeData);
+                                      json.c_str());
         }
     }
 
     void onPressData(int errorCode,
-                     const PressData& pressData) override
+                     const std::string& json) override
     {
         if (m_callbacks.onPressData != nullptr)
         {
             m_callbacks.onPressData(m_callbacks.userData,
                                    errorCode,
-                                   &pressData);
+                                   json.c_str());
+        }
+    }
+
+    void onTempData(int errorCode,
+                    const std::string& json) override
+    {
+        if (m_callbacks.onTempData != nullptr)
+        {
+            m_callbacks.onTempData(m_callbacks.userData,
+                                   errorCode,
+                                   json.c_str());
+        }
+    }
+
+    void onMixData(int errorCode,
+                   const std::string& json) override
+    {
+        if (m_callbacks.onMixData != nullptr)
+        {
+            m_callbacks.onMixData(m_callbacks.userData,
+                                  errorCode,
+                                  json.c_str());
         }
     }
 
@@ -76,6 +98,9 @@ struct CPressContext
     std::unique_ptr<Press> impl;
     std::unique_ptr<CMachineDataAdapter> callbackAdapter;
     CPressDataCallbacks callbacks;
+    //! 最近一次 JSON 查询结果，返回指针在该缓冲区中保持有效，
+    //! 直到同一上下文的下一次 GET 调用（单线程使用假设）。
+    std::string lastJson;
 };
 
 PRESS_C_EXPORT CPressContext* cpress_create(void)
@@ -180,52 +205,64 @@ PRESS_C_EXPORT int cpress_is_running(const CPressContext* handle)
     return handle->impl->isRunning() ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_read_only_data_json(CPressContext* handle,
-                                            ReadOnlyData* data,
-                                            int isCompressed)
+PRESS_C_EXPORT const char* cpress_get_read_only_data_json(CPressContext* handle,
+                                                          int isCompressed)
 {
-    if (handle == nullptr || handle->impl == nullptr || data == nullptr)
+    if (handle == nullptr || handle->impl == nullptr)
     {
-        return 0;
+        return nullptr;
     }
 
-    return handle->impl->getReadOnlyDataJson(*data, isCompressed != 0) ? 1 : 0;
+    handle->lastJson.clear();
+    if (!handle->impl->getReadOnlyDataJson(handle->lastJson, isCompressed != 0))
+    {
+        return nullptr;
+    }
+    return handle->lastJson.c_str();
 }
 
-PRESS_C_EXPORT int cpress_get_press_data_json(CPressContext* handle,
-                                        PressData* data,
-                                        int isCompressed)
+PRESS_C_EXPORT const char* cpress_get_press_data_json(CPressContext* handle,
+                                                      int isCompressed)
 {
-    if (handle == nullptr || handle->impl == nullptr || data == nullptr)
+    if (handle == nullptr || handle->impl == nullptr)
     {
-        return 0;
+        return nullptr;
     }
 
-    return handle->impl->getPressDataJson(*data, isCompressed != 0) ? 1 : 0;
+    handle->lastJson.clear();
+    if (!handle->impl->getPressDataJson(handle->lastJson, isCompressed != 0))
+    {
+        return nullptr;
+    }
+    return handle->lastJson.c_str();
 }
 
 PRESS_C_EXPORT int cpress_set_press_data_json(CPressContext* handle,
-                                        const PressData* data,
-                                        int isCompressed)
+                                              const char* json,
+                                              int isCompressed)
 {
-    if (handle == nullptr || handle->impl == nullptr || data == nullptr)
+    if (handle == nullptr || handle->impl == nullptr || json == nullptr)
     {
         return 0;
     }
 
-    return handle->impl->setPressDataJson(*data, isCompressed != 0) ? 1 : 0;
+    return handle->impl->setPressDataJson(json, isCompressed != 0) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_real_time_data_json(CPressContext* handle,
-                                           RealTimeData* data,
-                                           int isCompressed)
+PRESS_C_EXPORT const char* cpress_get_real_time_data_json(CPressContext* handle,
+                                                          int isCompressed)
 {
-    if (handle == nullptr || handle->impl == nullptr || data == nullptr)
+    if (handle == nullptr || handle->impl == nullptr)
     {
-        return 0;
+        return nullptr;
     }
 
-    return handle->impl->getRealTimeDataJson(*data, isCompressed != 0) ? 1 : 0;
+    handle->lastJson.clear();
+    if (!handle->impl->getRealTimeDataJson(handle->lastJson, isCompressed != 0))
+    {
+        return nullptr;
+    }
+    return handle->lastJson.c_str();
 }
 
 PRESS_C_EXPORT int cpress_get_serial_number(CPressContext* handle, char* buf, size_t bufSize)
