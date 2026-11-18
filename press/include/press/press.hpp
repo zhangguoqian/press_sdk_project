@@ -115,11 +115,28 @@ public:
  *  本库的主要入口类。Press 管理通信端口（串口或 TCP）、运行内部调度线程，
  *  提供同步 API 读写机器状态，并通过 PressDataInterface 支持异步回调。
  *
+ *  Return & index conventions / 返回与索引约定:
+ *    - Every bool method returns true on success and false on failure; call
+ *      getLastErrorInfo() to obtain a readable reason after a failure.
+ *    - Output parameters (json / structs) are only meaningful when the method
+ *      returns true.
+ *    - Step indices are 0-based and must be smaller than the current step count.
+ *    - 所有 bool 接口成功返回 true、失败返回 false；失败后可通过
+ *      getLastErrorInfo() 获取可读原因。
+ *    - 输出参数（json / 结构体）仅在接口返回 true 时有效。
+ *    - 段索引从 0 开始，且必须小于当前段数。
+ *
  *  Thread safety / 线程安全:
+ *    - All public methods are thread-safe and may be called from any thread.
+ *    - Timer callbacks (intervalSeconds > 0) run on the SDK timer thread;
+ *      callbacks caused by a synchronous get*Json call run on the calling
+ *      thread. Move time-consuming work to another thread if needed.
+ *    - Lifecycle methods such as disconnect()/stop()/unregisterDataInterface()
+ *      may be called from a callback, but the Press object itself must not be
+ *      destroyed inside a callback.
  *    - 所有公共方法都是线程安全的，可从任意线程调用。
- *    - 定时采集（intervalSeconds > 0）触发的 onRealTimeData / onError 在 SDK
- *      定时线程中执行；主动调用 get*Json 接口触发的对应回调在调用方线程中
- *      同步执行，耗时操作应移交给其他线程处理。
+ *    - 定时采集（intervalSeconds > 0）触发的回调在 SDK 定时线程执行；主动调用
+ *      get*Json 触发的回调在调用方线程同步执行，耗时操作应移交给其他线程。
  *    - 回调中可安全调用 disconnect()/stop()/unregisterDataInterface() 等生命周期
  *      接口；但不要在回调中析构 Press 对象本身。
  *****************************************************************************/
@@ -204,40 +221,66 @@ public:
 
     //! Register an asynchronous data callback interface.
     //! Only one interface may be registered at a time; a second call replaces
-    //! the previous one (unregistering is not required first).
-    //! @param dataInterface   Non-owning pointer to the implementation.
+    //! the previous one (calling unregister first is optional).
+    //! @param dataInterface   Non-owning pointer. The caller must keep the
+    //!                        object alive until unregisterDataInterface()
+    //!                        returns, and must not destroy it while another
+    //!                        thread is inside a synchronous get*Json call.
     //! @param intervalSeconds Periodic RealTimeData polling interval in
-    //!                        seconds. When > 0, a timer thread is started
-    //!                        that fetches RealTimeData every intervalSeconds
-    //!                        seconds and reports it via onRealTimeData().
-    //!                        When <= 0, no timer is started.
+    //!                        seconds. When > 0, a timer thread fetches
+    //!                        RealTimeData every intervalSeconds seconds and
+    //!                        reports it via onRealTimeData(). When <= 0, no
+    //!                        timer is started.
     //! 注册异步数据回调接口。同一时间只能注册一个，重复注册将覆盖旧的。
-    //! @param intervalSeconds 定时获取 RealTimeData 的周期，单位秒。
-    //!                        大于 0 时启动定时线程，循环获取 RealTimeData
-    //!                        并通过 onRealTimeData() 上报；小于等于 0 时不启动。
+    //! @param dataInterface   非拥有指针。调用方必须保证对象在
+    //!                        unregisterDataInterface() 返回前存活，且不得在其
+    //!                        他线程执行同步 get*Json 期间析构该对象。
+    //! @param intervalSeconds 定时获取 RealTimeData 的周期（秒）。
+    //!                        大于 0 时启动定时线程并通过 onRealTimeData()
+    //!                        上报；小于等于 0 时不启动定时采集。
     void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 1);
 
     //! Register a callback interface with shared ownership.
     //! The SDK keeps a shared_ptr, so callbacks already in flight can safely
     //! finish after unregistration.
-    //! 以共享所有权方式注册回调接口：SDK 持有 shared_ptr，注销后仍在途的回调可安全执行。
+    //! @param dataInterface   Shared callback object; ownership is shared with
+    //!                        the SDK while registered.
+    //! @param intervalSeconds Same semantics as registerDataInterface().
+    //! 以共享所有权方式注册回调接口：SDK 持有 shared_ptr，注销后仍在途的
+    //! 回调可安全执行。
+    //! @param dataInterface   共享回调对象；注册期间与 SDK 共享所有权。
+    //! @param intervalSeconds 与 registerDataInterface() 相同。
     void registerDataInterfaceOwned(std::shared_ptr<PressDataInterface> dataInterface, int intervalSeconds = 1);
 
     //! Unregister the previously registered callback interface.
-    //! 注销之前注册的回调接口。
+    //! Stops the timer thread and waits for the current timer callback to finish.
+    //! 注销之前注册的回调接口；会停止定时线程并等待当前定时回调结束。
     void unregisterDataInterface();
 
 
     /**************************************************************************
      * JSON data exchange / JSON 数据接口
      *
-     *  以下 get/set 方法直接以 JSON 字符串与设备交换数据。
-     *  isCompressed = true 时请求设备返回压缩后的 JSON 批量数据。
-     *  All get/set methods exchange raw JSON strings with the device.
+     *  These methods exchange raw JSON strings with the device. Payload codes:
+     *    ROD = read-only device info, PD = pressure profile,
+     *    RT  = live machine state,      TD = temperature profile,
+     *    MD  = mixed-mode profile.
+     *  isCompressed selects the device-side compressed JSON format for bulk
+     *  data; both get and set forward the flag to the firmware.
+     *  以下 get/set 方法直接以原始 JSON 字符串与设备交换数据：
+     *    ROD = 只读设备信息，PD = 压力参数，RT = 实时状态，
+     *    TD = 温度参数，MD = 混合模式参数。
+     *  isCompressed 选择设备端压缩 JSON 格式，读写时都会把该标志传给固件。
      *
-     *  回调语义：主动调用 getReadOnlyDataJson / getPressDataJson / getTempDataJson /
-     *  getMixDataJson 会同步触发对应 on* 回调；getRealTimeDataJson 在定时采集
-     *  未启用时同样触发，启用定时采集后由定时线程统一上报，避免重复。
+     *  Callback semantics / 回调语义:
+     *    - getReadOnlyDataJson / getPressDataJson / getTempDataJson /
+     *      getMixDataJson trigger the matching on* callback synchronously.
+     *    - getRealTimeDataJson triggers onRealTimeData only when periodic
+     *      polling is disabled; with polling enabled, the timer reports it to
+     *      avoid duplicate delivery.
+     *    - 主动调用 ROD/PD/TD/MD 的 get 接口会同步触发对应回调；
+     *      getRealTimeDataJson 在未启用定时采集时触发回调，启用后由定时线程
+     *      统一上报，避免同一份实时数据重复上报。
      *************************************************************************/
 
     //! Read static (read-only) device information as ROD JSON.
@@ -248,48 +291,67 @@ public:
 
     //! Read pressure control parameters as PD JSON.
     //! @param json         [out] Raw PD JSON on success; empty on failure.
-    //! 读取压力控制参数（PD JSON）。
+    //! @param isCompressed [in]  Request compressed JSON payload.
+    //! @return true on success / 读取压力控制参数（PD JSON）。
     bool getPressDataJson(std::string& json, bool isCompressed = false);
 
     //! Write pressure control parameters from PD JSON.
-    //! @param json         [in]  Raw PD JSON payload.
-    //! 写入压力控制参数（PD JSON）。
+    //! @param json         [in]  Raw PD JSON payload, NUL not required.
+    //! @param isCompressed [in]  Use the compressed JSON format.
+    //! @return true on success / 写入压力控制参数（PD JSON）。
     bool setPressDataJson(const std::string& json, bool isCompressed = false);
 
     //! Read live real-time machine state as RT JSON.
     //! @param json         [out] Raw RT JSON on success; empty on failure.
-    //! 读取实时机器状态（RT JSON）。
-    //! 注意：当定时采集已启用（intervalSeconds > 0）时，主动调用本接口不再触发
-    //! onRealTimeData 回调，避免同一份数据被定时器与主动拉取重复上报。
+    //! @param isCompressed [in]  Request compressed JSON payload.
+    //! @return true on success / 读取实时机器状态（RT JSON）。
+    //! @note With periodic polling enabled (intervalSeconds > 0), this call
+    //!       does not trigger onRealTimeData; the timer reports it instead.
+    //!       启用定时采集后，本接口不再触发 onRealTimeData，由定时器统一上报。
     bool getRealTimeDataJson(std::string& json, bool isCompressed = false);
 
     //! Read all temperature parameters as TD JSON.
-    //! 读取全部温度参数（TD JSON）。
+    //! @param json         [out] Raw TD JSON on success; empty on failure.
+    //! @param isCompressed [in]  Request compressed JSON payload.
+    //! @return true on success / 读取全部温度参数（TD JSON）。
     bool getTempDataJson(std::string& json, bool isCompressed = false);
 
     //! Write all temperature parameters from TD JSON.
-    //! 写入全部温度参数（TD JSON）。
+    //! @param json         [in]  Raw TD JSON payload.
+    //! @param isCompressed [in]  Use the compressed JSON format.
+    //! @return true on success / 写入全部温度参数（TD JSON）。
     bool setTempDataJson(const std::string& json, bool isCompressed = false);
 
     //! Read all mixed-mode parameters as MD JSON.
-    //! 读取全部混合模式参数（MD JSON）。
+    //! @param json         [out] Raw MD JSON on success; empty on failure.
+    //! @param isCompressed [in]  Request compressed JSON payload.
+    //! @return true on success / 读取全部混合模式参数（MD JSON）。
     bool getMixDataJson(std::string& json, bool isCompressed = false);
 
     //! Write all mixed-mode parameters from MD JSON.
-    //! 写入全部混合模式参数（MD JSON）。
+    //! @param json         [in]  Raw MD JSON payload.
+    //! @param isCompressed [in]  Use the compressed JSON format.
+    //! @return true on success / 写入全部混合模式参数（MD JSON）。
     bool setMixDataJson(const std::string& json, bool isCompressed = false);
 
 
     /**************************************************************************
-     * read-only data exchange / 只读数据接口
+     * Read-only data exchange / 只读数据接口
+     *
+     *  These commands read device identity and limits. Successful results are
+     *  also cached inside the SDK for internal use.
+     *  以下命令读取设备身份与限制信息，成功结果同时缓存在 SDK 内部。
      *************************************************************************/
 
-    //! Read device name (CMDID_NAME). language: 0=Chinese, 2=English.
-    //! 读取设备名称。成功后缓存到 ReadOnlyData.m_NameZH / m_NameEN。
+    //! Read the device name (CMDID_NAME).
+    //! @param name     [out] UTF-8 device name on success.
+    //! @param language Language selector: 0 = Chinese, 2 = English.
+    //! @return true on success / 读取设备名称；language: 0 中文，2 英文。
     bool getName(std::string& name, uint8_t language = 0);
 
-    //! Read machine type string (CMDID_MACHINE_TYPE). Cached to ReadOnlyData.m_Type.
-    //! 读取机型字符串，成功后缓存到 ReadOnlyData.m_Type。
+    //! Read the machine type string (CMDID_MACHINE_TYPE).
+    //! @param type [out] Machine model string on success.
+    //! @return true on success / 读取机型字符串。
     bool getMachineType(std::string& type);
 
     //! Read the device serial number (CMDID_SERIAL_NUMBER 0x0003).
@@ -298,19 +360,30 @@ public:
     bool getSerialNumber(std::string& serialNumber);
 
     //! Read the pressure parameter block (CMDID_PRESS_PARAMETER, 21 bytes).
-    //! 读取压力参数块，成功后同步缓存到 ReadOnlyData。
+    //! @param param [out] Parsed pressure limits and display options.
+    //! @return true on success / 读取压力参数块（21 字节）。
     bool getPressParameter(PressParameter& param);
 
     //! Read the temperature parameter block (CMDID_TEMP_PARAMETER, 12 bytes).
-    //! 读取温度参数块，成功后同步缓存到 ReadOnlyData。
+    //! @param param [out] Parsed temperature limits and options.
+    //! @return true on success / 读取温度参数块（12 字节）。
     bool getTempParameter(TempParameter& param);
 
-    //! Read misc info block (CMDID_OTHER_INFO, 5 bytes). Cached to ReadOnlyData.
-    //! 读取其他信息块，成功后同步缓存到 ReadOnlyData。
+    //! Read the miscellaneous info block (CMDID_OTHER_INFO, 5 bytes).
+    //! @param info [out] Parsed screenshot/delay/language/remote/version flags.
+    //! @return true on success / 读取其他信息块（5 字节）。
     bool getOtherInfo(OtherInfo& info);
 
     /**************************************************************************
-     * press data exchange / 压力数据段参数接口
+     * Press data exchange / 压力数据段参数接口
+     *
+     *  All indexed getters/setters return true on success and false on failure.
+     *  `index` is 0-based and must be smaller than getPressStepCount().
+     *  Arrays in PressData use MAX_PStep entries; only the first m_PStep entries
+     *  are meaningful to the device.
+     *  所有索引读写接口成功返回 true、失败返回 false；index 从 0 开始且必须
+     *  小于 getPressStepCount()。PressData 中数组长度固定为 MAX_PStep，设备
+     *  仅使用前 m_PStep 项。
      *************************************************************************/
     
     //! Read pressure step count (CMDID_PRESS_STEP, 1 byte).
@@ -385,7 +458,12 @@ public:
     bool setPressStepParameter(uint8_t index, const PressStepParameter& param);
 
     /**************************************************************************
-     * temp data exchange / 温度数据段参数接口
+     * Temperature data exchange / 温度数据段参数接口
+     *
+     *  Same conventions as the pressure section: 0-based indices, bool result,
+     *  and step counts bounded by getTempStepCount().
+     *  约定与压力段接口一致：索引从 0 开始、返回 bool，段数上限由
+     *  getTempStepCount() 给出。
     *************************************************************************/
 
     //! Read temperature step count (CMDID_TEMP_STEP, 1 byte).
@@ -453,7 +531,12 @@ public:
 
     
     /**************************************************************************
-     * mix data exchange / 混合模式数据段参数接口
+     * Mixed-mode data exchange / 混合模式数据段参数接口
+     *
+     *  Same conventions as the pressure section: 0-based indices, bool result,
+     *  and step counts bounded by getMixStepCount().
+     *  约定与压力段接口一致：索引从 0 开始、返回 bool，段数上限由
+     *  getMixStepCount() 给出。
     *************************************************************************/
     
     //! Read mixed-mode step count (CMDID_MIX_STEP, 1 byte).
@@ -480,11 +563,14 @@ public:
     bool setMixRectangle(float a,float b);
 
     //! Read mixed-mode circle diameter (CMDID_MIX_CIRCLE_D, float32).
+    //! @param diameter [out] Circle diameter on success.
     //! 读取混合模式圆形容器直径。
-    bool getMixCircle(float& radius);
+    bool getMixCircle(float& diameter);
 
-    //! Write mixed-mode circle diameter / 写入混合模式圆形容器直径。
-    bool setMixCircle(float radius);
+    //! Write mixed-mode circle diameter.
+    //! @param diameter Circle diameter to write.
+    //! 写入混合模式圆形容器直径。
+    bool setMixCircle(float diameter);
 
     //! Read per-step is-press flag (CMDID_MIX_INDEX_ISPRESS, index + 1 byte).
     //! 读取指定段是否加压。
@@ -543,10 +629,11 @@ public:
     bool setMixKeepTime(uint8_t index, int32_t time);
     
     //! Read one mixed-mode step parameter (CMDID_MIX_INDEX_STEP_PARAMETER).
-    //! Note: firmware length check macro is 23 while the actual layout is 24
-    //! bytes (index + 23); if firmware rejects the write, fix the macro there.
-    //! 读取混合模式段参数。注意：下位机校验宏为 23 而实际布局为 24 字节，
-    //! 疑似固件 off-by-one；如写入被拒需修正固件宏。
+    //! The payload is 24 bytes (index + 23). Older firmware validated 23 bytes
+    //! and rejected writes; upgrade the firmware if a write fails with a length
+    //! error.
+    //! 读取混合模式段参数。帧布局为 24 字节（index + 23）；旧固件按 23 字节
+    //! 校验会拒绝写入，如遇长度错误请升级固件。
     bool getMixStepParameter(uint8_t index, MixStepParameter& param);
 
     //! Write one mixed-mode step parameter / 写入混合模式段参数。
@@ -557,11 +644,15 @@ public:
      * System commands / 系统命令
      *************************************************************************/
 
-    //! Read device date & time (CMDID_DATE_TIME). 读取设备日期时间。
+    //! Read device date and time (CMDID_DATE_TIME).
+    //! @param dateTime [out] Parsed fields; m_Year is tm_year (year - 1900).
+    //! @return true on success / 读取设备日期时间；m_Year 为 tm_year。
     bool getDateTime(DateTimeInfo& dateTime);
 
-    //! Write device date & time. Layout [sec][min][hour][day][month][year].
-    //! 写入设备日期时间，布局 [秒][分][时][日][月][年]。
+    //! Write device date and time.
+    //! Layout: [sec][min][hour][day][month][year], all uint8.
+    //! @param dateTime Fields to write; m_Year must be tm_year (year - 1900).
+    //! @return true on success / 写入设备日期时间，m_Year 使用 tm_year。
     bool setDateTime(const DateTimeInfo& dateTime);
 
     //! Read screen brightness (CMDID_BRIGHTNESS). 读取屏幕亮度。
@@ -606,13 +697,19 @@ public:
     //! 注意：当前固件尚未实现 CMDID_SET_START_DEMOLD (0x1523)，调用会返回失败/超时。
     bool setDemolding(bool isDemolding);
 
-    //! Start or stop heating (CMDID_SET_START_HEAT). 启动或停止加热。
+    //! Start or stop heating (CMDID_SET_START_HEAT).
+    //! @param isHeating true to start heating, false to stop.
+    //! @return true on success / 启动或停止加热。
     bool setStartHeat(bool isHeating);
 
-    //! Start or stop everything (CMDID_SET_START). 启动或停止全部（加压+加热）。
+    //! Start or stop the whole process (CMDID_SET_START, pressing + heating).
+    //! @param isStart true to start, false to stop.
+    //! @return true on success / 启动或停止全部流程（加压 + 加热）。
     bool setStart(bool isStart);
 
-    //! Select work mode (CMDID_SELECT_MODEL_STATE, value 1/2). 选择工作模式。
+    //! Select the work mode (CMDID_SELECT_MODEL_STATE).
+    //! @param model Mode value understood by the firmware (typically 1 or 2).
+    //! @return true on success / 选择工作模式；model 取值由固件定义（通常为 1/2）。
     bool selectModelState(uint8_t model);
 
 
@@ -620,16 +717,17 @@ public:
      * Static utilities / 静态工具
      *************************************************************************/
 
-    //! Enumerate available serial ports on the current system.
-    //! Returns COM-style list on Windows, /dev/tty* style on Linux/macOS.
-    //! TCP endpoints cannot be enumerated; use connect() with "host:port" directly.
-    //! @return Vector of port name strings.
-    //! 枚举当前系统可用的串口。
+    //! Enumerate the serial ports available on the current system.
+    //! Returns COM-style names on Windows and /dev/tty* names on Linux/macOS.
+    //! TCP endpoints are not enumerated; pass "host:port" to connect() directly.
+    //! @return Vector of port name strings; empty if none are found.
+    //! 枚举当前系统可用的串口：Windows 返回 COM 名称，Linux/macOS 返回
+    //! /dev/tty* 名称；TCP 端点不参与枚举，直接使用 connect("host:port")。
     static std::vector<std::string> getPortList();
 
-    //! Get current SDK version string.
-    //! 获取当前 SDK 的版本号。
-    //! @return Version string.
+    //! Get the SDK version string.
+    //! @return Version string such as "1.0.0".
+    //! 获取当前 SDK 版本号，例如 "1.0.0"。
     static std::string version();
 
 private:
@@ -647,19 +745,33 @@ private:
 
 
 /******************************************************************************
- * Free-function serialization utilities / 自由函数序列化工具体
+ * Free-function serialization utilities / 自由函数序列化工具
+ *
+ *  These helpers are stateless and do not access the device. They are useful
+ *  for logging, persisting parameters, or building payloads before calling
+ *  the corresponding setter.
+ *  以下函数无状态、不访问设备，可用于日志、参数持久化，或在调用 setter 前
+ *  自行构造载荷。
  *****************************************************************************/
 
-//! Serialize ReadOnlyData to JSON string / 将 ReadOnlyData 序列化为 JSON 字符串
+//! Serialize ReadOnlyData to a JSON string.
+//! @return JSON text using the SDK's field names.
+//! 将 ReadOnlyData 序列化为 JSON 字符串。
 PRESS_EXPORT std::string toJsonString(const ReadOnlyData& data);
 
-//! Serialize PressData to JSON string / 将 PressData 序列化为 JSON 字符串
+//! Serialize PressData to a JSON string.
+//! @return JSON text suitable for setPressDataJson().
+//! 将 PressData 序列化为 JSON 字符串，可直接用于 setPressDataJson()。
 PRESS_EXPORT std::string toJsonString(const PressData& data);
 
-//! Serialize RealTimeData to JSON string / 将 RealTimeData 序列化为 JSON 字符串
+//! Serialize RealTimeData to a JSON string.
+//! @return JSON text using the SDK's field names.
+//! 将 RealTimeData 序列化为 JSON 字符串。
 PRESS_EXPORT std::string toJsonString(const RealTimeData& data);
 
-//! Serialize PressData to frame data (wire format) / 将 PressData 序列化为帧数据 (传输格式)
+//! Serialize PressData to a byte payload (UTF-8 JSON bytes).
+//! @return JSON bytes without the frame header or checksum.
+//! 将 PressData 序列化为字节载荷（UTF-8 JSON），不含帧头与校验和。
 PRESS_EXPORT std::vector<uint8_t> toFrameData(const PressData& data);
 
 

@@ -15,6 +15,27 @@
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * High-level Java wrapper around the native Press SDK.
+ * Press SDK 的 Java 高层封装。
+ *
+ * <p><b>Lifecycle / 生命周期</b>: create an instance with {@link #PressSdk()},
+ * call {@link #connect(String, int)}, then use the get/set methods. Always close
+ * the instance (try-with-resources) so the native handle and worker threads are
+ * released. / 通过构造函数创建实例，调用 connect() 后使用读写接口；请使用
+ * try-with-resources 或显式 close() 释放原生句柄与后台线程。</p>
+ *
+ * <p><b>Threading / 线程模型</b>: timer-driven callbacks run on the SDK timer
+ * thread; callbacks caused by a synchronous get*Json call run on the calling
+ * thread. Dispatch UI updates to your UI thread. / 定时采集回调在 SDK 定时线程
+ * 执行，主动 get*Json 触发的回调在调用线程执行；UI 更新请自行切换线程。</p>
+ *
+ * <p><b>Data formats / 数据格式</b>: JSON methods exchange UTF-8 JSON strings
+ * (ROD / PD / RT / TD / MD). The nested data classes expose the commonly used
+ * fields; use the JSON methods when full firmware fidelity is required.
+ * / JSON 接口使用 UTF-8 字符串（ROD / PD / RT / TD / MD）；嵌套数据类仅暴露
+ * 常用字段，需要完整字段时请使用 JSON 接口。</p>
+ */
 public final class PressSdk implements AutoCloseable {
     /**
      * Maximum number of pressure steps used by the SDK.
@@ -37,8 +58,12 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
-     * Read-only data structure returned by the native SDK.
-     * 设备只读信息结构体，映射自底层原生 ReadOnlyData。
+     * Commonly used fields of the native ReadOnlyData structure.
+     * 设备只读信息的常用字段子集（字段顺序与 native ReadOnlyData 对齐）。
+     *
+     * <p>Use {@link PressSdk#getReadOnlyDataJson(boolean)} when fields not
+     * exposed here are required. / 需要本类未暴露的字段时，请改用
+     * getReadOnlyDataJson()。</p>
      */
     public static final class ReadOnlyData {
         public String m_NameZH = "";
@@ -71,8 +96,14 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
-     * Pressure configuration structure used for write/read operations.
-     * 压力配置结构体，用于读写压力参数。
+     * Commonly used fields of the native PressData structure.
+     * 压力参数的常用字段子集（字段顺序与 native PressData 对齐）。
+     *
+     * <p>Arrays are fixed at {@link #MAX_P_STEP}; only the first
+     * {@code m_PStep} entries are meaningful. Use the PD JSON methods for full
+     * fidelity (for example, the firmware-added air-time field).
+     * / 数组长度固定为 MAX_P_STEP，仅前 m_PStep 项有效；需要完整字段（如
+     * 固件新增的排气时间）时请使用 PD JSON 接口。</p>
      */
     public static final class PressData {
         public byte m_PStep;
@@ -91,8 +122,12 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
-     * Runtime machine state returned by the device.
-     * 设备实时状态结构体。
+     * Commonly used fields of the native RealTimeData structure.
+     * 设备实时状态的常用字段子集（字段顺序与 native RealTimeData 对齐）。
+     *
+     * <p>Use {@link PressSdk#getRealTimeDataJson(boolean)} for the complete,
+     * firmware-aligned field set. / 需要完整字段时请使用
+     * getRealTimeDataJson()。</p>
      */
     public static final class RealTimeData {
         public byte m_ModelState;
@@ -107,9 +142,9 @@ public final class PressSdk implements AutoCloseable {
      * Callback interface for receiving asynchronous data push from the native SDK.
      * 用于接收底层 SDK 异步数据推送的回调接口。
      *
-     * <p>All four methods are default implementations that do nothing, so callers only
+     * <p>All callbacks are default implementations that do nothing, so callers only
      * need to override the callbacks they care about.</p>
-     * <p>四个方法都提供了空的 default 实现，调用方只需覆写自己关心的回调即可。</p>
+     * <p>所有回调都提供了空的 default 实现，调用方只需覆写自己关心的回调即可。</p>
      *
      * <p><b>Threading note / 线程说明</b>: Timer-driven callbacks run on a native SDK timer
      * thread, while callbacks caused by a synchronous get*Json call run on the calling thread.
@@ -175,11 +210,15 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
-     * 1) 问题：旧实现只在当前工作目录尝试加载动态库，很多情况下库并不在这里。
-     *    解决：优先扫描 java.library.path、常见 install/bin、build 产物目录，
-     *    同时保留 System.loadLibrary("press") 的回退。
-     * 2) 问题：旧实现没有对资源释放和空端口参数做保护。
-     *    解决：增加实例状态、close() 幂等化和参数校验。
+     * Resolved absolute path (or bare library name) of the native SDK library.
+     * 原生 SDK 库的解析结果（绝对路径或库名）。
+     *
+     * <p>The loader scans the working directory, {@code java.library.path},
+     * and common {@code install/bin} / {@code build} output folders, then falls
+     * back to {@code System.loadLibrary("press")}.</p>
+     * <p>加载器会依次扫描工作目录、{@code java.library.path} 以及常见的
+     * {@code install/bin} / {@code build} 产物目录，最后回退到
+     * {@code System.loadLibrary("press")}。</p>
      */
     private static final String NATIVE_LIBRARY_NAME = resolveNativeLibraryName();
 
@@ -300,12 +339,27 @@ public final class PressSdk implements AutoCloseable {
         }
     }
 
+    /**
+     * Open a serial or TCP connection and perform the version handshake.
+     * 打开串口或 TCP 连接，并执行版本握手。
+     *
+     * @param portName "COM3" style serial port, or "host:port" for TCP.
+     *                 / 串口名（如 "COM3"）或 TCP 地址（"host:port"）
+     * @param portType {@link PortType#SerialPortType} or
+     *                 {@link PortType#TcpSocketPortType} / 端口类型
+     * @return true on success; false on failure (see {@link #getLastErrorInfo()}).
+     *         / 成功返回 true，失败返回 false（可查询 getLastErrorInfo()）
+     */
     public boolean connect(String portName, int portType) {
         ensureOpen();
         validatePortName(portName);
         return press_connect(this.handle, portName, portType) != 0;
     }
 
+    /**
+     * Close the connection and stop the SDK worker/timer threads.
+     * 断开连接并停止 SDK 工作线程与定时线程。
+     */
     public void disconnect() {
         if (closed) {
             return;
@@ -331,49 +385,101 @@ public final class PressSdk implements AutoCloseable {
         }
     }
 
+    /**
+     * Query whether the port is currently connected.
+     * 查询当前是否已连接。
+     *
+     * @return true if connected / 已连接返回 true
+     */
     public boolean isConnected() {
         ensureOpen();
         return press_is_connected(this.handle) != 0;
     }
 
+    /**
+     * Get the device register number assigned during the handshake.
+     * 获取握手时分配的设备注册号。
+     *
+     * @return 64-bit register number; 0 before a successful connection.
+     *         / 64 位注册号；未成功连接时为 0
+     */
     public long getMachineRegisterNo() {
         ensureOpen();
         return press_get_machine_register_no(this.handle);
     }
 
+    /**
+     * Get the last human-readable error message for this handle.
+     * 获取当前句柄最后一条可读错误信息。
+     *
+     * @return Error text; never null / 错误文本，不会返回 null
+     */
     public String getLastErrorInfo() {
         ensureOpen();
         return press_get_last_error_info(this.handle);
     }
 
+    /**
+     * Start the SDK scheduler thread. Optional after a successful connect().
+     * 启动 SDK 调度线程；connect() 成功后会自动启动，通常无需调用。
+     */
     public void run() {
         ensureOpen();
         press_run(this.handle);
     }
 
+    /**
+     * Stop the SDK scheduler thread and disconnect from the device.
+     * 停止 SDK 调度线程并断开设备连接。
+     */
     public void stop() {
         ensureOpen();
         press_stop(this.handle);
     }
 
+    /**
+     * Query whether the SDK scheduler is running.
+     * 查询 SDK 调度线程是否正在运行。
+     *
+     * @return true if running / 运行中返回 true
+     */
     public boolean isRunning() {
         ensureOpen();
         return press_is_running(this.handle) != 0;
     }
 
-    /** Read read-only data as ROD JSON; null on failure. / 以 ROD JSON 读取只读数据，失败返回 null。 */
+    /**
+     * Read static device information as ROD JSON.
+     * 以 ROD JSON 读取设备静态信息。
+     *
+     * @param isCompressed request the compressed firmware JSON format / 是否请求压缩格式
+     * @return UTF-8 JSON, or null on failure / UTF-8 JSON，失败返回 null
+     */
     public String getReadOnlyDataJson(boolean isCompressed) {
         ensureOpen();
         return press_get_read_only_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
-    /** Read pressure parameters as PD JSON; null on failure. / 以 PD JSON 读取压力参数，失败返回 null。 */
+    /**
+     * Read the pressure profile as PD JSON.
+     * 以 PD JSON 读取压力参数。
+     *
+     * @param isCompressed request the compressed firmware JSON format / 是否请求压缩格式
+     * @return UTF-8 JSON, or null on failure / UTF-8 JSON，失败返回 null
+     */
     public String getPressDataJson(boolean isCompressed) {
         ensureOpen();
         return press_get_press_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
-    /** Write pressure parameters from PD JSON. / 以 PD JSON 写入压力参数。 */
+    /**
+     * Write the pressure profile from PD JSON.
+     * 以 PD JSON 写入压力参数。
+     *
+     * @param json         JSON payload; must not be null / JSON 数据，不能为 null
+     * @param isCompressed use the compressed firmware JSON format / 是否使用压缩格式
+     * @return true on success / 成功返回 true
+     */
     public boolean setPressDataJson(String json, boolean isCompressed) {
         ensureOpen();
         if (json == null) {
@@ -382,19 +488,42 @@ public final class PressSdk implements AutoCloseable {
         return press_set_press_data_json(this.handle, json, isCompressed ? 1 : 0) != 0;
     }
 
-    /** Read live machine state as RT JSON; null on failure. / 以 RT JSON 读取实时状态，失败返回 null。 */
+    /**
+     * Read the live machine state as RT JSON.
+     * 以 RT JSON 读取实时机器状态。
+     *
+     * <p>When periodic polling is enabled, this call does not trigger
+     * {@link DataCallbacks#onRealTimeData}; the timer reports it instead.</p>
+     * <p>启用定时采集后，本接口不再触发 onRealTimeData，由定时器统一上报。</p>
+     *
+     * @param isCompressed request the compressed firmware JSON format / 是否请求压缩格式
+     * @return UTF-8 JSON, or null on failure / UTF-8 JSON，失败返回 null
+     */
     public String getRealTimeDataJson(boolean isCompressed) {
         ensureOpen();
         return press_get_real_time_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
-    /** Read all temperature parameters as TD JSON; null on failure. / 以 TD JSON 读取全部温度参数，失败返回 null。 */
+    /**
+     * Read the complete temperature profile as TD JSON.
+     * 以 TD JSON 读取完整温度参数。
+     *
+     * @param isCompressed request the compressed firmware JSON format / 是否请求压缩格式
+     * @return UTF-8 JSON, or null on failure / UTF-8 JSON，失败返回 null
+     */
     public String getTempDataJson(boolean isCompressed) {
         ensureOpen();
         return press_get_temp_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
-    /** Write all temperature parameters from TD JSON. / 以 TD JSON 写入全部温度参数。 */
+    /**
+     * Write the complete temperature profile from TD JSON.
+     * 以 TD JSON 写入完整温度参数。
+     *
+     * @param json         JSON payload; must not be null / JSON 数据，不能为 null
+     * @param isCompressed use the compressed firmware JSON format / 是否使用压缩格式
+     * @return true on success / 成功返回 true
+     */
     public boolean setTempDataJson(String json, boolean isCompressed) {
         ensureOpen();
         if (json == null) {
@@ -403,13 +532,26 @@ public final class PressSdk implements AutoCloseable {
         return press_set_temp_data_json(this.handle, json, isCompressed ? 1 : 0) != 0;
     }
 
-    /** Read all mix-mode parameters as MD JSON; null on failure. / 以 MD JSON 读取全部混合模式参数，失败返回 null。 */
+    /**
+     * Read the complete mixed-mode profile as MD JSON.
+     * 以 MD JSON 读取完整混合模式参数。
+     *
+     * @param isCompressed request the compressed firmware JSON format / 是否请求压缩格式
+     * @return UTF-8 JSON, or null on failure / UTF-8 JSON，失败返回 null
+     */
     public String getMixDataJson(boolean isCompressed) {
         ensureOpen();
         return press_get_mix_data_json(this.handle, isCompressed ? 1 : 0);
     }
 
-    /** Write all mix-mode parameters from MD JSON. / 以 MD JSON 写入全部混合模式参数。 */
+    /**
+     * Write the complete mixed-mode profile from MD JSON.
+     * 以 MD JSON 写入完整混合模式参数。
+     *
+     * @param json         JSON payload; must not be null / JSON 数据，不能为 null
+     * @param isCompressed use the compressed firmware JSON format / 是否使用压缩格式
+     * @return true on success / 成功返回 true
+     */
     public boolean setMixDataJson(String json, boolean isCompressed) {
         ensureOpen();
         if (json == null) {
@@ -418,11 +560,29 @@ public final class PressSdk implements AutoCloseable {
         return press_set_mix_data_json(this.handle, json, isCompressed ? 1 : 0) != 0;
     }
 
+    /**
+     * Start or stop the pressing action only (CMDID_SET_PRESS).
+     * 单独启动或停止加压动作。
+     *
+     * @param isPressing true to start, false to stop / true 启动，false 停止
+     * @return true on success / 成功返回 true
+     */
     public boolean setPressing(boolean isPressing) {
         ensureOpen();
         return press_set_pressing(this.handle, isPressing ? 1 : 0) != 0;
     }
 
+    /**
+     * Start or stop the demolding action only (CMDID_SET_START_DEMOLD).
+     * 单独启动或停止脱模动作。
+     *
+     * <p>Current firmware does not implement command 0x1523, so this call
+     * currently fails or times out.</p>
+     * <p>当前固件尚未实现 0x1523，调用会失败或超时。</p>
+     *
+     * @param isDemolding true to start, false to stop / true 启动，false 停止
+     * @return true on success / 成功返回 true
+     */
     public boolean setDemolding(boolean isDemolding) {
         ensureOpen();
         return press_set_demolding(this.handle, isDemolding ? 1 : 0) != 0;
@@ -918,7 +1078,10 @@ public final class PressSdk implements AutoCloseable {
      * @param intervalSeconds periodic RealTimeData polling interval in seconds;
      *                        &lt;= 0 disables the timer / 实时数据定时采集周期（秒），
      *                        小于等于 0 时不启动定时采集
-     * <p><b>Threading note / 线程说明</b>: Callbacks are invoked on a native SDK worker thread.</p>
+     * <p><b>Threading note / 线程说明</b>: Timer-driven callbacks run on the SDK
+     * timer thread; callbacks caused by a synchronous get*Json call run on the
+     * calling thread. / 定时采集回调在 SDK 定时线程执行，主动 get*Json 触发的
+     * 回调在调用线程执行。</p>
      */
     public void registerDataCallbacks(DataCallbacks callbacks, int intervalSeconds) {
         ensureOpen();

@@ -2,11 +2,11 @@
  * press.h — C language wrapper for the Press SDK
  * press.h — Press SDK 的 C 语言封装接口
  *
- *  This header exposes the same functionality of the C++ Press class through a
- *  pure C API. It is intended for C projects or interop code that cannot use
+ *  This header exposes a stable subset of the C++ Press class through a pure
+ *  C API. It is intended for C projects and language bindings that cannot use
  *  C++ classes directly.
- *  该头文件通过纯 C 接口暴露 Press SDK 的同等功能，适合不能直接使用
- *  C++ 类的 C 项目或跨语言互操作代码。
+ *  该头文件通过纯 C 接口暴露 C++ Press 类的稳定子集，适合不能直接使用
+ *  C++ 类的 C 项目与语言绑定。
  *
  *  The API is intentionally simple: create a handle, connect to a port, call
  *  get/set operations, and optionally register callback handlers. All exported
@@ -21,6 +21,19 @@
  *      available only through the C++ API (press.hpp).
  *    - C 接口是 C++ 接口的稳定子集：JSON 覆盖 ROD / PD / RT / TD / MD 及常用
  *      单值命令；设备信息、机器状态、时间与显示设置等目前仅由 C++ 接口提供。
+ *
+ *  Conventions / 通用约定:
+ *    - `handle` must be a valid context returned by cpress_create(); NULL makes
+ *      getters return 0/NULL and setters no-op.
+ *    - All getter/setter functions returning int use 1 = success, 0 = failure.
+ *    - Index parameters are 0-based and must be smaller than the current step
+ *      count; indices are not validated against device limits by the C layer.
+ *    - After a failure, call cpress_get_last_error_info() for a readable reason.
+ *    - `handle` 必须是 cpress_create() 返回的有效上下文；传入 NULL 时读取接口
+ *      返回 0/NULL，写入接口为空操作。
+ *    - 所有返回 int 的读写接口均以 1 表示成功、0 表示失败。
+ *    - 索引参数从 0 开始，且必须小于当前段数；C 层不会按设备上限校验索引。
+ *    - 失败后可通过 cpress_get_last_error_info() 获取可读原因。
  *
  *  Threading model / 线程模型:
  *    - The underlying SDK remains internally thread-safe.
@@ -79,28 +92,36 @@ typedef void (*PressCReadOnlyDataCallback)(void *userData, int errorCode, uint64
 //! @param userData      Caller-provided context / 调用方提供的上下文
 //! @param errorCode     Result code; 0 means success / 结果码；0 表示成功
 //! @param json          Raw RT JSON payload, empty on failure / 原始 RT JSON 数据，失败时为空字符串
-//! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
+//! @note May run on the SDK timer thread (periodic polling) or on the thread
+//!       that called a synchronous get*Json function. / 可能在 SDK 定时线程
+//!       （定时采集）或调用 get*Json 的线程中执行。
 typedef void (*PressCRealTimeDataCallback)(void* userData, int errorCode, const char *json);
 
 //! Pressure data callback prototype / 压力参数回调原型
 //! @param userData      Caller-provided context / 调用方提供的上下文
 //! @param errorCode     Result code; 0 means success / 结果码；0 表示成功
 //! @param json          Raw PD JSON payload, empty on failure / 原始 PD JSON 数据，失败时为空字符串
-//! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
+//! @note May run on the SDK timer thread or on the calling thread; see the
+//!       threading model at the top of this file. / 可能在 SDK 定时线程或调用
+//!       线程中执行，详见文件顶部线程模型。
 typedef void (*PressCPressDataCallback)(void* userData, int errorCode, const char *json);
 
 //! Temperature data callback prototype (TD JSON) / 温度数据回调原型（TD JSON）
 //! @param userData   Caller-provided context / 调用方提供的上下文
 //! @param errorCode  Result code; 0 means success / 结果码；0 表示成功
 //! @param json       Raw TD JSON payload, empty string on failure / 原始 TD JSON 数据，失败时为空字符串
-//! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
+//! @note May run on the SDK timer thread or on the calling thread; see the
+//!       threading model at the top of this file. / 可能在 SDK 定时线程或调用
+//!       线程中执行，详见文件顶部线程模型。
 typedef void (*PressCTempDataCallback)(void* userData, int errorCode, const char* json);
 
 //! Mix data callback prototype (MD JSON) / 混合数据回调原型（MD JSON）
 //! @param userData   Caller-provided context / 调用方提供的上下文
 //! @param errorCode  Result code; 0 means success / 结果码；0 表示成功
 //! @param json       Raw MD JSON payload, empty string on failure / 原始 MD JSON 数据，失败时为空字符串
-//! @note This callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
+//! @note May run on the SDK timer thread or on the calling thread; see the
+//!       threading model at the top of this file. / 可能在 SDK 定时线程或调用
+//!       线程中执行，详见文件顶部线程模型。
 typedef void (*PressCMixDataCallback)(void* userData, int errorCode, const char* json);
 
 //! Error callback prototype / 错误回调原型
@@ -108,25 +129,30 @@ typedef void (*PressCMixDataCallback)(void* userData, int errorCode, const char*
 //! @param cmdCode       Command code that produced the error / 触发错误的命令码
 //! @param response      Raw response bytes / 原始响应字节数组
 //! @param responseLen   Length of response bytes / 响应字节长度
-//! @note The callback may be invoked on the SDK worker thread. / 该回调可能在 SDK 工作线程中触发。
+//! @note `response` is owned by the SDK and is only valid for the duration of
+//!       the callback; copy it if you need to keep it. May run on the timer
+//!       thread or on the calling thread. / `response` 由 SDK 持有，仅在回调
+//!       期间有效，如需保留请自行拷贝；可能在定时线程或调用线程执行。
 typedef void (*PressCErrorCallback)(void* userData, uint16_t cmdCode, const uint8_t* response, size_t responseLen);
 
 //! Callback registration structure / 回调注册结构体
 //! Set any callback pointer to NULL if it is not needed / 如不需要，任意回调指针可设为 NULL
-//! @note The callbacks are invoked on the SDK worker thread. The registered
-//!       structure is copied by value during registration, so the caller can
-//!       safely release its local copy after the function returns.
-//!       回调会在 SDK 工作线程中触发。注册时会按值复制该结构体，因此调用方
-//!       在函数返回后可安全释放其本地副本。
+//! @note The structure is copied by value during registration, so the caller
+//!       may release its local copy after the function returns. `userData` is
+//!       not copied and must stay valid until unregistration or context destroy.
+//!       Callbacks may run on the timer thread or on the calling thread.
+//!       注册时按值复制该结构体，函数返回后调用方可释放本地副本；`userData`
+//!       不会被复制，必须保持有效直到注销回调或销毁上下文。回调可能在定时
+//!       线程或调用线程执行。
 typedef struct CPressDataCallbacks
 {
-    void* userData;
-    PressCReadOnlyDataCallback onReadOnlyData;
-    PressCRealTimeDataCallback onRealTimeData;
-    PressCPressDataCallback onPressData;
-    PressCErrorCallback onError;
-    PressCTempDataCallback onTempData;
-    PressCMixDataCallback onMixData;
+    void* userData;                             //!< Forwarded to every callback / 原样传给每个回调
+    PressCReadOnlyDataCallback onReadOnlyData;  //!< ROD JSON / 只读设备信息
+    PressCRealTimeDataCallback onRealTimeData;  //!< RT JSON / 实时状态（定时采集）
+    PressCPressDataCallback onPressData;        //!< PD JSON / 压力参数
+    PressCErrorCallback onError;                //!< Error or unhandled response / 错误或未处理响应
+    PressCTempDataCallback onTempData;          //!< TD JSON / 温度参数
+    PressCMixDataCallback onMixData;            //!< MD JSON / 混合模式参数
 } CPressDataCallbacks;
 
 //! Create a new Press SDK handle / 创建新的 Press SDK 句柄
@@ -239,7 +265,11 @@ PRESS_C_EXPORT const char* cpress_get_mix_data_json(CPressContext* handle, int i
 PRESS_C_EXPORT int cpress_set_mix_data_json(CPressContext* handle, const char* json, int isCompressed);
 
 //! Start or stop the pressing action only / 启动或停止单独的加压动作
-//! @param isPressing   0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
+//! @param isPressing 0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
+//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
+//! @note The device reply must match the requested direction (0x00 stop,
+//!       0x01 start); a mismatched reply is reported as failure.
+//!       设备回执方向必须与请求一致（0x00 停止、0x01 启动），不一致按失败处理。
 PRESS_C_EXPORT int cpress_set_pressing(CPressContext* handle, int isPressing);
 
 /* ---------------------------------------------------------------------------
@@ -316,15 +346,19 @@ PRESS_C_EXPORT int cpress_get_mix_keep_time(CPressContext* handle, uint8_t index
 PRESS_C_EXPORT int cpress_set_mix_keep_time(CPressContext* handle, uint8_t index, int32_t ms);
 
 //! Start or stop the demolding action only / 启动或停止单独的脱模动作
-//! @param isDemolding  0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
+//! @param isDemolding 0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
+//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
+//! @note Current firmware does not implement CMDID_SET_START_DEMOLD (0x1523),
+//!       so this call currently fails or times out.
+//!       当前固件尚未实现 0x1523，调用会失败或超时。
 PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding);
 
 //! Register callback handlers / 注册回调处理器
 //! @param handle     Active context / 有效的上下文
 //! @param callbacks  Callback table. Each callback pointer may be NULL when not
-//!                   needed. Callbacks are invoked on the SDK worker thread.
-//!                   / 回调表。每个回调指针在不需要时都可为 NULL。回调会在 SDK
-//!                   工作线程中触发。
+//!                   needed. Callbacks may run on the timer thread or on the
+//!                   calling thread. / 回调表。每个回调指针在不需要时均可为
+//!                   NULL；回调可能在定时线程或调用线程执行。
 //! @param intervalSeconds  Periodic RealTimeData polling interval in seconds;
 //!                         <= 0 disables the timer. / 实时数据定时采集周期（秒），
 //!                         小于等于 0 时不启动定时采集。
@@ -334,10 +368,9 @@ PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle, const 
 PRESS_C_EXPORT void cpress_unregister_data_interface(CPressContext* handle);
 
 //! Get the SDK version string / 获取 SDK 版本字符串
-//! @return Version string. The returned pointer points to internal static storage
-//!         and remains valid at least until the next call to cpress_version().
-//!         / 版本字符串。返回指针指向内部静态存储区，至少在下一次调用
-//!         cpress_version() 前保持有效。
+//! @return Version string stored in static storage; valid for the lifetime of
+//!         the process. Do not free or modify it.
+//!         / 版本字符串，存放于静态存储区，进程生命周期内有效；请勿释放或修改。
 PRESS_C_EXPORT const char* cpress_version(void);
 
 #ifdef __cplusplus

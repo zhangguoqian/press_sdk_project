@@ -1,3 +1,23 @@
+"""Python bindings for the Press SDK.
+
+The module loads the native ``press`` shared library (Windows ``press.dll`` /
+``pressd.dll``, Linux ``libpress.so``, macOS ``libpress.dylib``) and exposes a
+thin, Pythonic wrapper around the ``cpress_*`` C API.
+
+- **Lifecycle**: create :class:`PressSdk`, call :meth:`PressSdk.connect`, then
+  use the get/set methods; use the object as a context manager to release the
+  native handle.
+- **Threading**: timer callbacks run on the SDK timer thread; callbacks caused
+  by a synchronous ``get_*_json`` call run on the calling thread.
+- **Data**: JSON methods exchange UTF-8 strings (ROD / PD / RT / TD / MD);
+  array helpers operate with 0-based indices.
+- **Errors**: getters raise ``RuntimeError`` with the SDK error text on failure;
+  setters return ``False``.
+
+Press SDK 的 Python 绑定：加载原生动态库并以 Python 风格封装 ``cpress_*``
+C 接口，覆盖生命周期、JSON 数据与常用单值命令。
+"""
+
 import ctypes
 import os
 from enum import IntEnum
@@ -178,7 +198,16 @@ class PressCDataCallbacks(ctypes.Structure):
 
 
 class PressSdk:
-    """Thin Python wrapper over the native cpress_* C interface."""
+    """High-level Python wrapper over the native ``cpress_*`` C API.
+
+    Use it as a context manager (``with PressSdk() as sdk:``) or call
+    :meth:`close` explicitly. All indexed helpers use 0-based indices and
+    return ``False`` when the device rejects the operation.
+
+    Press SDK 的高层 Python 封装。建议使用 ``with`` 语句或显式调用
+    ``close()`` 释放原生句柄；所有索引接口均从 0 开始，写入失败返回
+    ``False``。
+    """
 
     try:
         _lib = ctypes.CDLL(_resolve_library_path())
@@ -416,11 +445,21 @@ class PressSdk:
         return False
 
     def connect(self, port_name: str, port_type: int | PortType = PortType.SerialPortType) -> bool:
+        """Open a serial/TCP connection and perform the version handshake.
+
+        :param port_name: ``"COM3"`` style serial port or ``"host:port"``.
+        :param port_type: :class:`PortType` value.
+        :return: ``True`` on success; check :meth:`get_last_error_info` on failure.
+        / 打开串口或 TCP 连接并执行版本握手，失败时可通过
+        ``get_last_error_info()`` 查询原因。
+        """
         if not port_name:
             raise ValueError("port_name must not be empty")
         return self._lib.cpress_connect(self._handle, port_name.encode("utf-8"), int(port_type)) != 0
 
     def disconnect(self):
+        """Disconnect and stop the SDK worker/timer threads.
+        / 断开连接并停止 SDK 工作线程与定时线程。"""
         if getattr(self, "_handle", None):
             self._lib.cpress_disconnect(self._handle)
 
@@ -446,6 +485,8 @@ class PressSdk:
         return self._lib.cpress_is_running(self._handle) != 0
 
     def get_read_only_data_json(self, is_compressed: bool = False) -> str:
+        """Read static device information as ROD JSON.
+        / 以 ROD JSON 读取设备静态信息。"""
         result = self._lib.cpress_get_read_only_data_json(self._handle, 1 if is_compressed else 0)
         if result is None:
             raise RuntimeError(self.get_last_error_info())
@@ -468,16 +509,22 @@ class PressSdk:
         return result.decode("utf-8")
 
     def get_temp_data_json(self, is_compressed: bool = False) -> str:
+        """Read the complete temperature profile as TD JSON.
+        / 以 TD JSON 读取完整温度参数。"""
         result = self._lib.cpress_get_temp_data_json(self._handle, 1 if is_compressed else 0)
         if result is None:
             raise RuntimeError(self.get_last_error_info())
         return result.decode("utf-8")
 
     def set_temp_data_json(self, json: str, is_compressed: bool = False) -> bool:
+        """Write the complete temperature profile from TD JSON.
+        / 以 TD JSON 写入完整温度参数。"""
         return self._lib.cpress_set_temp_data_json(
             self._handle, json.encode("utf-8"), 1 if is_compressed else 0) != 0
 
     def get_mix_data_json(self, is_compressed: bool = False) -> str:
+        """Read the complete mixed-mode profile as MD JSON.
+        / 以 MD JSON 读取完整混合模式参数。"""
         result = self._lib.cpress_get_mix_data_json(self._handle, 1 if is_compressed else 0)
         if result is None:
             raise RuntimeError(self.get_last_error_info())
@@ -754,7 +801,15 @@ class PressSdk:
         return self._lib.cpress_set_mix_keep_time(self._handle, index, ms) != 0
 
     def register_data_interface(self, callbacks: PressCDataCallbacks, interval_seconds: int = 1) -> None:
-        """Register low-level native callbacks if the app wants to receive updates."""
+        """Register low-level native callbacks.
+
+        :param callbacks: Callback table; keep the object alive until
+            :meth:`unregister_data_interface` returns.
+        :param interval_seconds: RealTimeData polling period; ``<= 0`` disables
+            the timer.
+        / 注册底层原生回调。回调表对象需保持存活直到注销返回；
+        ``interval_seconds <= 0`` 时不启动定时采集。
+        """
         self._lib.cpress_register_data_interface(self._handle, ctypes.byref(callbacks), interval_seconds)
 
     def unregister_data_interface(self) -> None:

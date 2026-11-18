@@ -10,6 +10,16 @@
  * 这个封装有意保持接近原生 cpress_* API，并让 Node.js 调用方使用起来
  * 简单直接。库文件会优先从工程构建输出或本地安装目录解析，数据结构
  * 则通过 ref/ffi 映射到原生内存。
+ *
+ * Conventions / 约定:
+ *   - Lifecycle: create -> connect() -> get/set -> close().
+ *   - Timer callbacks run on the SDK timer thread; callbacks caused by a
+ *     synchronous get*Json call run on the calling thread.
+ *   - JSON methods exchange UTF-8 strings (ROD / PD / RT / TD / MD); indexed
+ *     helpers use 0-based indices.
+ *   - 生命周期：create -> connect() -> 读写 -> close()。
+ *   - 定时采集回调在 SDK 定时线程执行，主动 get*Json 触发的回调在调用线程执行。
+ *   - JSON 接口使用 UTF-8 字符串（ROD / PD / RT / TD / MD），索引接口从 0 开始。
  */
 const fs = require('fs');
 const path = require('path');
@@ -274,6 +284,14 @@ function readRectangleValue(invoke) {
   return { a: ref.deref(a), b: ref.deref(b) };
 }
 
+/**
+ * High-level Node.js wrapper around the Press SDK C API.
+ * Press SDK C 接口的 Node.js 高层封装。
+ *
+ * Always call {@link PressSdk#close} (or use try/finally) to release the
+ * native handle and stop worker threads.
+ * 请始终调用 close()（或使用 try/finally）释放原生句柄并停止后台线程。
+ */
 class PressSdk {
   // High-level SDK wrapper / 高层 SDK 封装
   constructor() {
@@ -292,7 +310,15 @@ class PressSdk {
     }
   }
 
-  // Connect to the machine / 连接设备
+  /**
+   * Open a serial/TCP connection and perform the version handshake.
+   * 打开串口或 TCP 连接并执行版本握手。
+   *
+   * @param {string} portName "COM3" or "host:port" / 串口名或 TCP 地址
+   * @param {number} [portType] PortType value / 端口类型
+   * @returns {boolean} true on success; check getLastErrorInfo() on failure
+   *                    / 成功返回 true，失败可查询 getLastErrorInfo()
+   */
   connect(portName, portType = PortType.SerialPortType) {
     this._assertHandle();
     if (portName === undefined || portName === null || portName === '') {
@@ -302,7 +328,7 @@ class PressSdk {
     return pressLib.cpress_connect(this.handle, String(portName), Number(portType)) !== 0;
   }
 
-  // Disconnect / 断开连接
+  /** Disconnect and stop SDK threads. / 断开连接并停止 SDK 线程。 */
   disconnect() {
     if (this.handle) {
       pressLib.cpress_disconnect(this.handle);
@@ -327,13 +353,14 @@ class PressSdk {
     return pressLib.cpress_get_last_error_info(this.handle) || '';
   }
 
-  // Start the machine / 启动设备
+  // Start the SDK scheduler; normally not needed after connect()
+  // 启动 SDK 调度线程；connect() 成功后通常无需调用
   run() {
     this._assertHandle();
     pressLib.cpress_run(this.handle);
   }
 
-  // Stop the machine / 停止设备
+  // Stop the scheduler and disconnect / 停止调度线程并断开连接
   stop() {
     this._assertHandle();
     pressLib.cpress_stop(this.handle);
@@ -366,7 +393,17 @@ class PressSdk {
     return pressLib.cpress_set_press_data_json(this.handle, json, isCompressed ? 1 : 0) !== 0;
   }
 
-  // Read real-time data / 读取实时状态（返回 JSON 字符串）
+  /**
+   * Read live machine state as RT JSON.
+   * 以 RT JSON 读取实时状态。
+   *
+   * When periodic polling is enabled this call does not trigger
+   * onRealTimeData; the timer reports it instead.
+   * 启用定时采集后本接口不触发 onRealTimeData，由定时器统一上报。
+   *
+   * @param {boolean} [isCompressed] request compressed firmware JSON
+   * @returns {string|null} UTF-8 JSON, or null on failure
+   */
   getRealTimeDataJson(isCompressed = false) {
     this._assertHandle();
     return pressLib.cpress_get_real_time_data_json(this.handle, isCompressed ? 1 : 0) || null;
@@ -402,13 +439,17 @@ class PressSdk {
     return pressLib.cpress_set_mix_data_json(this.handle, json, isCompressed ? 1 : 0) !== 0;
   }
 
-  // Start or stop pressing / 启动或停止加压
+  /** Start or stop pressing only / 单独启动或停止加压。 */
   setPressing(isPressing) {
     this._assertHandle();
     return pressLib.cpress_set_pressing(this.handle, isPressing ? 1 : 0) !== 0;
   }
 
-  // Start or stop demolding / 启动或停止脱模
+  /**
+   * Start or stop demolding only / 单独启动或停止脱模。
+   * Current firmware does not implement command 0x1523, so this call fails or
+   * times out. / 当前固件尚未实现 0x1523，调用会失败或超时。
+   */
   setDemolding(isDemolding) {
     this._assertHandle();
     return pressLib.cpress_set_demolding(this.handle, isDemolding ? 1 : 0) !== 0;

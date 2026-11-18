@@ -5,17 +5,28 @@ using System.Runtime.InteropServices;
 
 namespace PressSdk.Interop
 {
+    /// <summary>Communication port type / 通信端口类型。</summary>
     public enum PortType
     {
+        /// <summary>Serial port such as COM3 / 串口（如 COM3）。</summary>
         SerialPortType = 0,
+        /// <summary>TCP endpoint in "host:port" form / TCP 地址（"host:port"）。</summary>
         TcpSocketPortType = 1,
     }
 
+    /// <summary>Protocol constants shared by managed structs / 托管结构体共享的协议常量。</summary>
     public static class PressConstants
     {
+        /// <summary>Maximum pressure/temperature step count / 压力/温度最大段数。</summary>
         public const int MaxPStep = 30;
     }
 
+    /// <summary>
+    /// Device identity and limits. Mirrors the native ReadOnlyData layout.
+    /// Fields not shown here are available through the ROD JSON API.
+    /// 设备身份与限制信息，布局与原生 ReadOnlyData 对齐；未列出的字段可通过
+    /// ROD JSON 接口获取。
+    /// </summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct ReadOnlyData
     {
@@ -51,6 +62,13 @@ namespace PressSdk.Interop
         public byte m_IsHasSpeed;
     }
 
+    /// <summary>
+    /// Pressure profile configuration. Arrays have MaxPStep entries; only the
+    /// first m_PStep entries are meaningful. Use the PD JSON API for fields
+    /// added by newer firmware (for example, air time).
+    /// 压力配置结构体。数组长度固定为 MaxPStep，仅前 m_PStep 项有效；需要
+    /// 固件新增字段（如排气时间）时请使用 PD JSON 接口。
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct PressData
     {
@@ -75,6 +93,11 @@ namespace PressSdk.Interop
         public uint[] m_KPTime;
     }
 
+    /// <summary>
+    /// Live machine state. This is a commonly used subset; use the RT JSON API
+    /// for the complete firmware-aligned field set.
+    /// 实时机器状态的常用字段子集；完整字段请使用 RT JSON 接口。
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct RealTimeData
     {
@@ -121,11 +144,24 @@ namespace PressSdk.Interop
     }
 
     /// <summary>
-    /// High-level managed wrapper around the native Press SDK.
-    /// 对底层图像工具链的托管包装，负责管理句柄和数据回调。
+    /// High-level managed wrapper around the native Press SDK. Manages the
+    /// native handle, worker threads and callback marshalling.
+    /// Press SDK 的 C# 托管包装，负责管理原生句柄、后台线程与回调封送。
     ///
-    /// 注意：此类名与命名空间 <c>PressSdk.Interop</c> 共享同名，C# 在直接 <c>using PressSdk.Interop;</c> 后可能出现“namespace used as type”的歧义。
-    /// 建议使用：
+    /// <para><b>Lifecycle / 生命周期</b>: construct, call <see cref="Connect"/>,
+    /// use the get/set APIs, then dispose the instance (or use a using
+    /// declaration) to release the native handle. / 构造后调用 Connect()，使用
+    /// 读写接口，最后 Dispose() 或使用 using 声明释放原生句柄。</para>
+    ///
+    /// <para><b>Threading / 线程模型</b>: timer callbacks run on the SDK timer
+    /// thread; callbacks caused by a synchronous get*Json call run on the calling
+    /// thread. Marshal UI updates yourself. / 定时采集回调在 SDK 定时线程执行，
+    /// 主动 get*Json 触发的回调在调用线程执行；UI 更新请自行切换线程。</para>
+    ///
+    /// <para><b>Naming note / 命名提示</b>: the class name equals the namespace
+    /// segment <c>PressSdk.Interop</c>, so a direct <c>using PressSdk.Interop;</c>
+    /// may cause a "namespace used as type" ambiguity. Prefer:
+    /// / 类名与命名空间段同名，直接 using 可能产生“namespace used as type”歧义，建议：</para>
     /// <code>
     /// using PressSdkApi = PressSdk.Interop.PressSdk;
     /// using var sdk = new PressSdkApi();
@@ -488,6 +524,14 @@ namespace PressSdk.Interop
             }
         }
 
+        /// <summary>
+        /// Open a serial or TCP connection and perform the version handshake.
+        /// 打开串口或 TCP 连接并执行版本握手。
+        /// </summary>
+        /// <param name="portName">"COM3" or "host:port" / 串口名或 TCP 地址。</param>
+        /// <param name="portType">Port type / 端口类型。</param>
+        /// <returns>True on success; check <see cref="GetLastErrorInfo"/> on failure.
+        /// / 成功返回 true，失败可查询 GetLastErrorInfo()。</returns>
         public bool Connect(string portName, PortType portType)
         {
             if (string.IsNullOrEmpty(portName))
@@ -498,85 +542,134 @@ namespace PressSdk.Interop
             return NativeConnect(_handle, portName, (int)portType) != 0;
         }
 
+        /// <summary>Close the connection and stop SDK threads. / 断开连接并停止 SDK 线程。</summary>
         public void Disconnect()
         {
             NativeDisconnect(_handle);
         }
 
+        /// <summary>Whether the port is currently connected. / 当前是否已连接。</summary>
         public bool IsConnected()
         {
             return NativeIsConnected(_handle) != 0;
         }
 
+        /// <summary>
+        /// Register number assigned during the handshake; 0 before connecting.
+        /// 握手分配的注册号；未连接时为 0。
+        /// </summary>
         public ulong GetMachineRegisterNo()
         {
             return NativeGetMachineRegisterNo(_handle);
         }
 
+        /// <summary>Last readable error for this handle. / 当前句柄最后一条可读错误信息。</summary>
         public string GetLastErrorInfo()
         {
             var ptr = NativeGetLastErrorInfo(_handle);
             return ptr == IntPtr.Zero ? string.Empty : Marshal.PtrToStringAnsi(ptr) ?? string.Empty;
         }
 
+        /// <summary>Start the SDK scheduler; normally not needed after Connect().
+        /// / 启动 SDK 调度线程；Connect() 成功后通常无需调用。</summary>
         public void Run()
         {
             NativeRun(_handle);
         }
 
+        /// <summary>Stop the scheduler and disconnect. / 停止调度线程并断开连接。</summary>
         public void Stop()
         {
             NativeStop(_handle);
         }
 
+        /// <summary>Whether the SDK scheduler is running. / SDK 调度线程是否正在运行。</summary>
         public bool IsRunning()
         {
             return NativeIsRunning(_handle) != 0;
         }
 
-        /// <summary>Read ROD JSON; returns null on failure. / 读取 ROD JSON，失败返回 null。</summary>
+        /// <summary>Read static device information as ROD JSON.
+        /// / 以 ROD JSON 读取设备静态信息。</summary>
+        /// <param name="isCompressed">Request the compressed firmware format.
+        /// / 是否请求压缩格式。</param>
+        /// <returns>UTF-8 JSON, or null on failure. / UTF-8 JSON，失败返回 null。</returns>
         public string? GetReadOnlyDataJson(bool isCompressed = false)
         {
             return PtrToUtf8(NativeGetReadOnlyDataJson(_handle, isCompressed ? 1 : 0));
         }
 
-        /// <summary>Read PD JSON; returns null on failure. / 读取 PD JSON，失败返回 null。</summary>
+        /// <summary>Read the pressure profile as PD JSON.
+        /// / 以 PD JSON 读取压力参数。</summary>
+        /// <param name="isCompressed">Request the compressed firmware format.
+        /// / 是否请求压缩格式。</param>
+        /// <returns>UTF-8 JSON, or null on failure. / UTF-8 JSON，失败返回 null。</returns>
         public string? GetPressDataJson(bool isCompressed = false)
         {
             return PtrToUtf8(NativeGetPressDataJson(_handle, isCompressed ? 1 : 0));
         }
 
-        /// <summary>Write PD JSON. / 写入 PD JSON。</summary>
+        /// <summary>Write the pressure profile from PD JSON.
+        /// / 以 PD JSON 写入压力参数。</summary>
+        /// <param name="json">JSON payload. / JSON 数据。</param>
+        /// <param name="isCompressed">Use the compressed firmware format.
+        /// / 是否使用压缩格式。</param>
+        /// <returns>True on success. / 成功返回 true。</returns>
         public bool SetPressDataJson(string json, bool isCompressed = false)
         {
             return NativeSetPressDataJson(_handle, json, isCompressed ? 1 : 0) != 0;
         }
 
-        /// <summary>Read RT JSON; returns null on failure. / 读取 RT JSON，失败返回 null。</summary>
+        /// <summary>Read live machine state as RT JSON.
+        /// / 以 RT JSON 读取实时状态。</summary>
+        /// <remarks>When periodic polling is enabled, this call does not invoke
+        /// onRealTimeData; the timer reports it instead. / 启用定时采集后本接口不
+        /// 触发 onRealTimeData，由定时器统一上报。</remarks>
+        /// <param name="isCompressed">Request the compressed firmware format.
+        /// / 是否请求压缩格式。</param>
+        /// <returns>UTF-8 JSON, or null on failure. / UTF-8 JSON，失败返回 null。</returns>
         public string? GetRealTimeDataJson(bool isCompressed = false)
         {
             return PtrToUtf8(NativeGetRealTimeDataJson(_handle, isCompressed ? 1 : 0));
         }
 
-        /// <summary>Read TD JSON; returns null on failure. / 读取 TD JSON，失败返回 null。</summary>
+        /// <summary>Read all temperature parameters as TD JSON.
+        /// / 以 TD JSON 读取全部温度参数。</summary>
+        /// <param name="isCompressed">Request the compressed firmware format.
+        /// / 是否请求压缩格式。</param>
+        /// <returns>UTF-8 JSON, or null on failure. / UTF-8 JSON，失败返回 null。</returns>
         public string? GetTempDataJson(bool isCompressed = false)
         {
             return PtrToUtf8(NativeGetTempDataJson(_handle, isCompressed ? 1 : 0));
         }
 
-        /// <summary>Write TD JSON. / 写入 TD JSON。</summary>
+        /// <summary>Write all temperature parameters from TD JSON.
+        /// / 以 TD JSON 写入全部温度参数。</summary>
+        /// <param name="json">JSON payload. / JSON 数据。</param>
+        /// <param name="isCompressed">Use the compressed firmware format.
+        /// / 是否使用压缩格式。</param>
+        /// <returns>True on success. / 成功返回 true。</returns>
         public bool SetTempDataJson(string json, bool isCompressed = false)
         {
             return NativeSetTempDataJson(_handle, json, isCompressed ? 1 : 0) != 0;
         }
 
-        /// <summary>Read MD JSON; returns null on failure. / 读取 MD JSON，失败返回 null。</summary>
+        /// <summary>Read all mixed-mode parameters as MD JSON.
+        /// / 以 MD JSON 读取全部混合模式参数。</summary>
+        /// <param name="isCompressed">Request the compressed firmware format.
+        /// / 是否请求压缩格式。</param>
+        /// <returns>UTF-8 JSON, or null on failure. / UTF-8 JSON，失败返回 null。</returns>
         public string? GetMixDataJson(bool isCompressed = false)
         {
             return PtrToUtf8(NativeGetMixDataJson(_handle, isCompressed ? 1 : 0));
         }
 
-        /// <summary>Write MD JSON. / 写入 MD JSON。</summary>
+        /// <summary>Write all mixed-mode parameters from MD JSON.
+        /// / 以 MD JSON 写入全部混合模式参数。</summary>
+        /// <param name="json">JSON payload. / JSON 数据。</param>
+        /// <param name="isCompressed">Use the compressed firmware format.
+        /// / 是否使用压缩格式。</param>
+        /// <returns>True on success. / 成功返回 true。</returns>
         public bool SetMixDataJson(string json, bool isCompressed = false)
         {
             return NativeSetMixDataJson(_handle, json, isCompressed ? 1 : 0) != 0;

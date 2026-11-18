@@ -31,6 +31,7 @@
 
 #include <cstdint>
 
+//! Maximum number of pressure/temperature steps in PressData / PressData 最大段数
 #define MAX_PStep 30
 
 
@@ -40,16 +41,17 @@
 
 enum PressPortType
 {
-    SerialPortType,    //!< Serial port (COM / /dev/tty*) / 串口
-    TcpSocketPortType, //!< TCP socket / TCP 套接字
+    SerialPortType,    //!< Serial port (COMx or /dev/tty*) / 串口
+    TcpSocketPortType, //!< TCP socket ("host:port") / TCP 套接字
 };
 
+//! Application / firmware type reported by the device / 设备上报的应用类型
 enum AppType
 {
-    AUTO_HOT_PRESS = 0x01,
-    AUTO_PRESS = 0x02,
-    AUTO_HOT = 0x03,
-    MANUAL_PRESS = 0x04,
+    AUTO_HOT_PRESS = 0x01, //!< Automatic hot press / 自动热压
+    AUTO_PRESS     = 0x02, //!< Automatic press / 自动压片
+    AUTO_HOT       = 0x03, //!< Automatic heating / 自动加热
+    MANUAL_PRESS   = 0x04, //!< Manual press / 手动压片
 };
 
 /******************************************************************************
@@ -58,6 +60,11 @@ enum AppType
  *  捕获运行期间不变的静态配置：机器身份标识（名、型号、序列号）、
  *  压力/温度限制、界面设置（字体、语言菜单、远程/网络开关）等。
  *  所有字符串均为固定长度 char[64]，以 '\0' 结尾。
+ *
+ *  @note The struct has no user-defined constructor. Zero-initialize it before
+ *        use (e.g. `ReadOnlyData data{};`) so unused fields do not contain
+ *        indeterminate values. / 结构体没有自定义构造函数，使用前请零初始化
+ *        （如 `ReadOnlyData data{};`），避免未使用字段为不确定值。
  *****************************************************************************/
 
 struct ReadOnlyData
@@ -131,8 +138,9 @@ struct PressData
 /******************************************************************************
  * RealTimeData — Live machine state / 实时机器状态
  *
- *  设备运行时持续更新，反映当前工作模式、加压状态、活动步骤、实时压力
- *  和倒计时。m_PdChanged 标志通知宿主程序 PressData 是否已被设备端修改。
+ *  设备运行时持续更新，反映当前工作模式、加压/加热状态、活动步骤、实时
+ *  压力/温度和倒计时。m_PdChanged 为兼容字段，固件当前不提供该信息，恒为 0；
+ *  如需感知 PressData 变化，请重新调用 getPressDataJson()。
  *****************************************************************************/
 
 struct RealTimeData
@@ -159,12 +167,13 @@ struct RealTimeData
     uint8_t  m_IsAir;           //!< Exhaust flag (0/1) / 排气标志
 };
 
+//! Firmware version reported by the device / 设备上报的固件版本
 struct VersionInfo
 {
-    AppType m_AppNo;
-    uint8_t m_Major;
-    uint8_t m_Minor;
-    uint8_t m_Patch;
+    AppType m_AppNo;   //!< Application type / 应用类型
+    uint8_t m_Major;   //!< Major version / 主版本号
+    uint8_t m_Minor;   //!< Minor version / 次版本号
+    uint8_t m_Patch;   //!< Patch version / 修订号
 };
 
 //! Pressure parameter block (CMDID_PRESS_PARAMETER, 21 bytes) / 压力参数块
@@ -200,7 +209,7 @@ struct TempParameter
 struct OtherInfo
 {
     uint8_t m_Screenshot;    //!< Screenshot enable flag / 截屏使能标志
-    uint8_t m_StartDelay;   //!< Start-up delay (seconds) / 启动延迟(秒)
+    uint8_t m_StartDelay;    //!< Start-up delay (seconds) / 启动延迟(秒)
     uint8_t m_IsHideLang;    //!< Hide language menu flag / 隐藏语言菜单标志
     uint8_t m_Remote;        //!< Remote control enable flag / 远程控制使能标志
     uint8_t m_VersionType;   //!< Firmware version type / 固件版本类型
@@ -265,8 +274,8 @@ struct TempStepParameter
 //! Mixed-mode step parameter (CMDID_MIX_INDEX_STEP_PARAMETER, index + 23 bytes) / 混合模式步骤段参数
 //! 帧内布局: [index u1][IsPress u1][SetPValue f4][AfterValue f4]
 //!           [IsUpHeat u1][UpTemp f4][IsDownHeat u1][DownTemp f4][KTime i4]
-//! 注意: 下位机长度校验宏为 23，而实际组包为 24 字节（index + 23），
-//! 疑似固件 off-by-one；写入时以 24 字节布局为准，如被固件拒绝需固件侧修正。
+//! @note 帧长度为 24 字节（index + 23）。旧固件按 23 字节校验会拒绝写入；
+//!       如写入返回长度错误，请升级固件。
 struct MixStepParameter
 {
     uint8_t  m_IsPress;       //!< Press flag (0/1) / 是否加压

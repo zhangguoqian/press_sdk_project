@@ -10,19 +10,15 @@
  * 它被设计为一个小而安全的 FFI 层；当项目需要直接访问结构体时，
  * 可以在此基础上扩展更详细的类型映射。
  *
- * Key fixes compared to the older version:
- *  - load the actual native library name instead of forcing "press"
- *  - free temporary UTF-8 strings after each native call
- *  - avoid repeated open calls for the same library
- *  - add explicit lifecycle checks for disconnect/destroy
- *  - expose the main port-type constants and public API methods
- *
- * 相比旧版本修正的关键点：
- *  - 不再强制加载 "press"，而是尝试真实的库文件名
- *  - 每次传递 UTF-8 字符串给原生 API 后释放临时内存
- *  - 避免反复打开同一原生库
- *  - 为 disconnect / destroy 增加生命周期检查
- *  - 暴露主要端口类型常量和公共 API 方法
+ * Conventions / 约定:
+ *  - Lifecycle: create PressSdk -> connect() -> typed get/set -> dispose().
+ *  - All calls are synchronous FFI calls; timer callbacks are not exposed by
+ *    this binding yet, so poll getRealTime... or wrap the C callback API.
+ *  - Indexed helpers use 0-based indices and return false on failure.
+ *  - 生命周期：创建 PressSdk -> connect() -> 类型化读写 -> dispose()。
+ *  - 所有调用均为同步 FFI；当前绑定尚未暴露定时回调，可轮询实时数据或直接
+ *    封装 C 回调接口。
+ *  - 索引接口从 0 开始，失败返回 false。
  */
 import 'dart:ffi';
 import 'dart:io' show Platform;
@@ -99,8 +95,16 @@ class RealTimeData {
   int mPdChanged = 0;
 }
 
-/// Dart binding for the native Press SDK.
-/// 原生 Press SDK 的 Dart 绑定。
+/// High-level Dart wrapper for the native Press SDK.
+/// 原生 Press SDK 的 Dart 高层封装。
+///
+/// The native handle is created in the constructor and released by [dispose].
+/// Prefer `try/finally` to guarantee cleanup. This binding exposes typed
+/// values and single-value commands; JSON and callback APIs are available
+/// through the C interface directly.
+/// 原生句柄在构造函数中创建、由 dispose() 释放，建议使用 try/finally 确保
+/// 清理。本绑定提供类型化数据与单值命令；JSON 与回调接口可通过 C API 直接
+/// 使用。
 class PressSdk {
   // Keep a single library handle for the whole lifetime of the instance.
   // 整个实例生命周期内保留单个库句柄。
@@ -312,6 +316,8 @@ class PressSdk {
   }
 
   /// Set the demolding action on or off.
+  /// Note: current firmware does not implement command 0x1523, so this call
+  /// fails or times out. / 注意：当前固件尚未实现 0x1523，调用会失败或超时。
   /// 开启或停止单独的脱模动作。
   bool setDemolding(bool isDemolding) {
     _ensureNotDisposed();
