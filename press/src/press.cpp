@@ -527,6 +527,11 @@ void Press::registerDataInterface(PressDataInterface* dataInterface, int interva
     mpPrivate->registerDataInterface(dataInterface, intervalSeconds);
 }
 
+void Press::registerDataInterfaceOwned(std::shared_ptr<PressDataInterface> dataInterface, int intervalSeconds)
+{
+    mpPrivate->registerDataInterfaceOwned(std::move(dataInterface), intervalSeconds);
+}
+
 void Press::unregisterDataInterface()
 {
     mpPrivate->unregisterDataInterface();

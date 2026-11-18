@@ -135,6 +135,7 @@ enum class MachineError
     StateUnchanged,
 
     UnknownError,
+    FrameTooLong,       //!< 发送数据超过协议长度上限（0xFFFF）
 };
 
 struct FrameData
@@ -283,6 +284,8 @@ public:
     const char* getLastErrorInfo() const;
 
     void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 1);
+    //! 注册回调（共享所有权）：SDK 持有一份 shared_ptr，注销后仍在途的回调可安全执行
+    void registerDataInterfaceOwned(std::shared_ptr<PressDataInterface> dataInterface, int intervalSeconds = 1);
     void unregisterDataInterface();
 
     JsonData getMachineData() const;
@@ -310,7 +313,10 @@ private:
     bool _requestCommand(uint16_t command, const std::vector<uint8_t>& listData, std::vector<uint8_t>& responseListData);
     void _setError(MachineError err);
     std::shared_ptr<PressDataInterface> _safeGetInterface();
-    bool _handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData);
+    //! expectedState >= 0 时校验 1 字节回执（0x00 停止成功 / 0x01 启动成功）是否与请求方向一致
+    bool _handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData, int expectedState = -1);
+    //! 实时数据请求；notifyInterface 控制是否触发 onRealTimeData 回调
+    bool _getRealTimeDataJson(std::string& json, bool isCompressed, bool notifyInterface);
 
     std::mutex m_RequestSerialMutex{};
 
@@ -328,6 +334,8 @@ private:
     std::atomic<uint64_t> m_RegisterNo{0};
     std::atomic<uint64_t> m_RequestSeq{0};     //!< 请求序号，超时后丢弃迟到响应
     std::unique_ptr<PortBase> mpPort = nullptr;
+    std::atomic<bool> m_IsConnected{false};    //!< 连接状态快照，供 isConnected() 无锁读取
+    std::atomic<bool> m_Connecting{false};     //!< 握手进行中标志，防止并发 connect 互相回滚
 
     std::atomic<MachineError> m_LastError{MachineError::None};
     std::atomic<std::uint32_t> m_RequestTimeoutMs{300};  //!< 单次请求超时（毫秒），可配置
@@ -337,6 +345,8 @@ private:
     std::mutex m_MachineDataMutex{};
 
     std::unique_ptr<std::thread> mpRealTimeTimerThread = nullptr;
+    //! 每次启动定时器使用独立存活令牌：回调内重启定时器时，旧线程不会因全局标志被重新置位而复活
+    std::shared_ptr<std::atomic<bool>> mpTimerAliveToken;
     std::atomic<bool> m_TimerRunning{false};
     std::atomic<int> m_TimerInterval{0};      //!< 实时数据定时周期（秒），<=0 表示未启用
     std::atomic<int> m_TimerConsecutiveFailures{0};  //!< 定时采集连续失败计数（M7 断线上报）

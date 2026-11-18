@@ -102,6 +102,10 @@ const pressLib = ffi.Library(resolveLibraryPath(), {
   cpress_get_press_data_json: ['string', ['void*', 'int']],
   cpress_set_press_data_json: ['int', ['void*', 'string', 'int']],
   cpress_get_real_time_data_json: ['string', ['void*', 'int']],
+  cpress_get_temp_data_json: ['string', ['void*', 'int']],
+  cpress_set_temp_data_json: ['int', ['void*', 'string', 'int']],
+  cpress_get_mix_data_json: ['string', ['void*', 'int']],
+  cpress_set_mix_data_json: ['int', ['void*', 'string', 'int']],
   cpress_set_pressing: ['int', ['void*', 'int']],
   cpress_set_demolding: ['int', ['void*', 'int']],
 
@@ -366,6 +370,36 @@ class PressSdk {
   getRealTimeDataJson(isCompressed = false) {
     this._assertHandle();
     return pressLib.cpress_get_real_time_data_json(this.handle, isCompressed ? 1 : 0) || null;
+  }
+
+  // Read all temperature parameters / 读取全部温度参数（返回 TD JSON 字符串）
+  getTempDataJson(isCompressed = false) {
+    this._assertHandle();
+    return pressLib.cpress_get_temp_data_json(this.handle, isCompressed ? 1 : 0) || null;
+  }
+
+  // Write all temperature parameters / 以 TD JSON 字符串写入全部温度参数
+  setTempDataJson(json, isCompressed = false) {
+    this._assertHandle();
+    if (typeof json !== 'string') {
+      throw new TypeError('TD JSON string is required / 需要传入 TD JSON 字符串');
+    }
+    return pressLib.cpress_set_temp_data_json(this.handle, json, isCompressed ? 1 : 0) !== 0;
+  }
+
+  // Read all mix-mode parameters / 读取全部混合模式参数（返回 MD JSON 字符串）
+  getMixDataJson(isCompressed = false) {
+    this._assertHandle();
+    return pressLib.cpress_get_mix_data_json(this.handle, isCompressed ? 1 : 0) || null;
+  }
+
+  // Write all mix-mode parameters / 以 MD JSON 字符串写入全部混合模式参数
+  setMixDataJson(json, isCompressed = false) {
+    this._assertHandle();
+    if (typeof json !== 'string') {
+      throw new TypeError('MD JSON string is required / 需要传入 MD JSON 字符串');
+    }
+    return pressLib.cpress_set_mix_data_json(this.handle, json, isCompressed ? 1 : 0) !== 0;
   }
 
   // Start or stop pressing / 启动或停止加压

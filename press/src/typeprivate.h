@@ -80,7 +80,7 @@ enum ROD_CMDID {
 #define NAME_BOOL(size)                     (size > 1 && size < 32)
 #define MACHINE_TYPE_BOOL(size)             (size <= 32)
 #define SERIAL_NUMBER_TYPE_BOOL(size)       (size <= 32)
-#define PRESS_PARAMETER_TYPE_BOOL(size)     (size == 20)
+#define PRESS_PARAMETER_TYPE_BOOL(size)     (size == 21)
 #define TEMP_PARAMETER_TYPE_BOOL(size)      (size == 12)
 #define OTHER_INFO_TYPE_BOOL(size)          (size == 5)
 
@@ -239,7 +239,6 @@ enum STATE_CMDID {
 };
 
 #define SET_START_BOOL(size)                    (size == 1)
-#define SET_JSON_BOOL(size)                     (size > 3)
 
 //! Extract category field (bit11..8) from a command ID
 //! 从命令 ID 中提取类别字段 (bit11..8)

@@ -454,6 +454,50 @@ extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_get_real_time_data_json
     return json == nullptr ? nullptr : env->NewStringUTF(json);
 }
 
+extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_get_temp_data_json(JNIEnv* env, jclass, jlong handle, jint isCompressed)
+{
+    const char* json = cpress_get_temp_data_json(reinterpret_cast<CPressContext*>(handle), isCompressed);
+    return json == nullptr ? nullptr : env->NewStringUTF(json);
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_temp_data_json(JNIEnv* env, jclass, jlong handle, jstring json, jint isCompressed)
+{
+    if (json == nullptr)
+    {
+        return 0;
+    }
+    const char* utf8 = env->GetStringUTFChars(json, nullptr);
+    if (utf8 == nullptr)
+    {
+        return 0;
+    }
+    int result = cpress_set_temp_data_json(reinterpret_cast<CPressContext*>(handle), utf8, isCompressed);
+    env->ReleaseStringUTFChars(json, utf8);
+    return result;
+}
+
+extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_get_mix_data_json(JNIEnv* env, jclass, jlong handle, jint isCompressed)
+{
+    const char* json = cpress_get_mix_data_json(reinterpret_cast<CPressContext*>(handle), isCompressed);
+    return json == nullptr ? nullptr : env->NewStringUTF(json);
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_data_json(JNIEnv* env, jclass, jlong handle, jstring json, jint isCompressed)
+{
+    if (json == nullptr)
+    {
+        return 0;
+    }
+    const char* utf8 = env->GetStringUTFChars(json, nullptr);
+    if (utf8 == nullptr)
+    {
+        return 0;
+    }
+    int result = cpress_set_mix_data_json(reinterpret_cast<CPressContext*>(handle), utf8, isCompressed);
+    env->ReleaseStringUTFChars(json, utf8);
+    return result;
+}
+
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_pressing(JNIEnv* env, jclass, jlong handle, jint isPressing)
 {
     (void)env;
@@ -1181,15 +1225,22 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JN
         return;
     }
 
+    // 先停 SDK 线程（join 后无在途回调），再清理 JNI 上下文。
+    // 注意：cpress_unregister_data_interface 可能 join 定时线程，不能持有回调表锁，
+    // 否则定时线程内调用 unregister 会与这里互相等待。
+    bool hasExistingCallbacks = false;
     {
         std::lock_guard<std::mutex> lock(g_callbackMapMutex);
+        hasExistingCallbacks = g_callbackMap.find(ctx) != g_callbackMap.end();
+    }
+    if (hasExistingCallbacks)
+    {
+        cpress_unregister_data_interface(ctx);
 
+        std::lock_guard<std::mutex> lock(g_callbackMapMutex);
         auto it = g_callbackMap.find(ctx);
         if (it != g_callbackMap.end())
         {
-            // 先停 SDK 线程（join 后无在途回调），再清理 JNI 上下文，
-            // 避免定时线程回调正在执行时 jniCtx 被释放造成 use-after-free
-            cpress_unregister_data_interface(ctx);
             cleanupCallbackContext(env, it->second);
             g_callbackMap.erase(it);
         }
@@ -1244,6 +1295,16 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JN
     cCallbacks.onError = jniOnError;
 
     cpress_register_data_interface(ctx, &cCallbacks, intervalSeconds);
+
+    // 回调表写入必须与查找/删除使用同一把锁，避免与 destroy/unregister 并发时破坏 unordered_map
+    std::lock_guard<std::mutex> lock(g_callbackMapMutex);
+    auto it = g_callbackMap.find(ctx);
+    if (it != g_callbackMap.end())
+    {
+        // 并发重复注册：旧上下文已不再被 SDK 引用，安全清理
+        cleanupCallbackContext(env, it->second);
+        g_callbackMap.erase(it);
+    }
     g_callbackMap[ctx] = jniCtx;
 }
 
@@ -1257,6 +1318,10 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_unregister_data_interface(
         return;
     }
 
+    // 必须先停止 SDK 定时线程/注销 adapter，再释放 JNI 上下文：
+    // 否则正在执行的定时回调会访问已删除的 jniCtx（use-after-free）
+    cpress_unregister_data_interface(ctx);
+
     std::lock_guard<std::mutex> lock(g_callbackMapMutex);
 
     auto it = g_callbackMap.find(ctx);
@@ -1265,6 +1330,4 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_unregister_data_interface(
         cleanupCallbackContext(env, it->second);
         g_callbackMap.erase(it);
     }
-
-    cpress_unregister_data_interface(ctx);
 }

@@ -80,7 +80,7 @@ struct ReadOnlyData
     uint8_t  m_MaxPStep;            //!< Maximum pressure steps / 最大压力步数
     float    m_MaxPLimit;           //!< Upper pressure limit / 压力上限
     float    m_MinPLimit;           //!< Lower pressure limit / 压力下限
-    float    m_Max_Min;             //!< Max - Min difference / 最大与最小压力差
+    float    m_Max_Min;             //!< Auto repress offset / 自动补压值（非最大最小压力差）
     float    m_Diameter;            //!< Cylinder diameter (mm) / 油缸直径 (毫米)
     uint8_t  m_PDecimal;            //!< Pressure value decimal places / 压力值小数位数
     uint8_t  m_PressDecimal;        //!< Pressure unit decimal places / 压强单位小数位数
@@ -174,7 +174,7 @@ struct PressParameter
 {
     float   m_MaxPLimit;      //!< Upper pressure limit / 压力上限
     float   m_MinPLimit;      //!< Lower pressure limit / 压力下限
-    float   m_MaxMin;         //!< Max - Min difference / 最大最小压力差
+    float   m_MaxMin;         //!< Auto repress offset / 自动补压值（非最大最小压力差）
     float   m_Diameter;       //!< Cylinder diameter (mm) / 油缸直径
     uint8_t m_MaxPStep;       //!< Maximum pressure steps / 最大压力步数
     uint8_t m_PDecimal;       //!< Pressure value decimal places / 压力值小数位
@@ -215,7 +215,7 @@ struct DateTimeInfo
     uint8_t m_Hour;      //!< Hours (0-23) / 时
     uint8_t m_Day;       //!< Day of month (1-31) / 日
     uint8_t m_Month;     //!< Month (1-12) / 月
-    uint8_t m_Year;      //!< Year (full value, e.g. 2026) / 年（完整数值）
+    uint8_t m_Year;      //!< Year since 1900 (tm_year, e.g. 126 = 2026) / 自 1900 起的年份偏移（tm_year，126 表示 2026）
 };
 
 //! Machine state (CMDID_GET_CURRENT_STATE, variable length) / 机器状态

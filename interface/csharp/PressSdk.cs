@@ -278,6 +278,18 @@ namespace PressSdk.Interop
         [DllImport("press", EntryPoint = "cpress_get_real_time_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern IntPtr NativeGetRealTimeDataJson(IntPtr handle, int isCompressed);
 
+        [DllImport("press", EntryPoint = "cpress_get_temp_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern IntPtr NativeGetTempDataJson(IntPtr handle, int isCompressed);
+
+        [DllImport("press", EntryPoint = "cpress_set_temp_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetTempDataJson(IntPtr handle, string json, int isCompressed);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern IntPtr NativeGetMixDataJson(IntPtr handle, int isCompressed);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_data_json", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixDataJson(IntPtr handle, string json, int isCompressed);
+
         [DllImport("press", EntryPoint = "cpress_set_pressing", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeSetPressing(IntPtr handle, int isPressing);
 
@@ -544,6 +556,30 @@ namespace PressSdk.Interop
         public string? GetRealTimeDataJson(bool isCompressed = false)
         {
             return PtrToUtf8(NativeGetRealTimeDataJson(_handle, isCompressed ? 1 : 0));
+        }
+
+        /// <summary>Read TD JSON; returns null on failure. / 读取 TD JSON，失败返回 null。</summary>
+        public string? GetTempDataJson(bool isCompressed = false)
+        {
+            return PtrToUtf8(NativeGetTempDataJson(_handle, isCompressed ? 1 : 0));
+        }
+
+        /// <summary>Write TD JSON. / 写入 TD JSON。</summary>
+        public bool SetTempDataJson(string json, bool isCompressed = false)
+        {
+            return NativeSetTempDataJson(_handle, json, isCompressed ? 1 : 0) != 0;
+        }
+
+        /// <summary>Read MD JSON; returns null on failure. / 读取 MD JSON，失败返回 null。</summary>
+        public string? GetMixDataJson(bool isCompressed = false)
+        {
+            return PtrToUtf8(NativeGetMixDataJson(_handle, isCompressed ? 1 : 0));
+        }
+
+        /// <summary>Write MD JSON. / 写入 MD JSON。</summary>
+        public bool SetMixDataJson(string json, bool isCompressed = false)
+        {
+            return NativeSetMixDataJson(_handle, json, isCompressed ? 1 : 0) != 0;
         }
 
         private static string? PtrToUtf8(IntPtr ptr)

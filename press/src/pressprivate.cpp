@@ -20,7 +20,10 @@
 
 namespace {
 constexpr uint64_t WAIT_MILLI_SECONDS = 300;
-constexpr int CMD_LEN = 14;
+//! 帧头固定 12 字节：8 注册号 + 2 命令 + 2 数据长度
+constexpr int CMD_HEADER_LEN = 12;
+//! 空数据区帧仍含 1 字节校验和，最小帧长 13 字节
+constexpr int CMD_MIN_FRAME_LEN = 13;
 //! 响应数据区长度上限：超过即判定为伪帧头（设备 JSON 最大约 2KB）
 constexpr uint16_t FRAME_MAX_DATA_LEN = 8192;
 
@@ -43,6 +46,7 @@ const char* errorToString(MachineError err)
     case MachineError::ImmediateSignalBlocked: return "Immediate signal blocked";
     case MachineError::StateUnchanged:      return "State unchanged";
     case MachineError::UnknownError:        return "Unknown error";
+    case MachineError::FrameTooLong:        return "Request payload exceeds protocol limit";
     default:                                return "Unknown error";
     }
 }
@@ -57,52 +61,73 @@ PressPrivate::~PressPrivate()
 
 bool PressPrivate::connect(const char* portName, PressPortType portType)
 {
-    std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
+    {
+        std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
 
-    if (portName == nullptr || std::strlen(portName) == 0)
-    {
-        _setError(MachineError::ConnectFailed);
-        return false;
+        if (portName == nullptr || std::strlen(portName) == 0)
+        {
+            _setError(MachineError::ConnectFailed);
+            return false;
+        }
+
+        bool expectedConnecting = false;
+        if (!m_Connecting.compare_exchange_strong(expectedConnecting, true))
+        {
+            // 另一个线程正在握手，避免并发 connect 互相关闭端口
+            _setError(MachineError::ConnectFailed);
+            return false;
+        }
+
+        if (mpPort != nullptr)
+        {
+            _stopScheduler();
+            _closePort();
+        }
+
+        if (portType == SerialPortType)
+        {
+            mpPort = std::make_unique<SerialPort>();
+        }
+        else if (portType == TcpSocketPortType)
+        {
+            mpPort = std::make_unique<TcpSocket>();
+        }
+        else
+        {
+            _setError(MachineError::ConnectFailed);
+            m_Connecting.store(false);
+            return false;
+        }
+
+        mpPort->setPortName(portName);
+        bool ret = mpPort->open();
+        if (!ret)
+        {
+            _setError(MachineError::ConnectFailed);
+            mpPort.reset();
+            m_IsConnected.store(false);
+            m_Connecting.store(false);
+            return false;
+        }
+        m_IsConnected.store(true);
+        _startScheduler();
     }
 
-    if (mpPort != nullptr)
-    {
-        _stopScheduler();
-        _closePort();
-    }
-
-    if (portType == SerialPortType)
-    {
-        mpPort = std::make_unique<SerialPort>();
-    }
-    else if (portType == TcpSocketPortType)
-    {
-        mpPort = std::make_unique<TcpSocket>();
-    }
-    else
-    {
-        _setError(MachineError::ConnectFailed);
-        return false;
-    }
-
-    mpPort->setPortName(portName);
-    bool ret = mpPort->open();
-    if (!ret)
-    {
-        _setError(MachineError::ConnectFailed);
-        mpPort.reset();
-        return false;
-    }
-    _startScheduler();
-    // 版本查询作为连接握手，失败则回滚到未连接状态
+    // 版本查询作为连接握手。握手期间不持有生命周期锁：
+    // 失败回调 onError 允许调用方安全地重入 disconnect()/stop() 等接口。
     VersionInfo versionInfo{};
     if (!getVersionInfo(versionInfo))
     {
+        std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
         _stopScheduler();
         _closePort();
+        m_Connecting.store(false);
         return false;
     }
-    return true;
+
+    m_Connecting.store(false);
+    // 回调可能在握手期间断开连接，最终状态以实际端口状态为准
+    return isConnected();
 }
 
 void PressPrivate::disconnect()
@@ -114,11 +139,8 @@ void PressPrivate::disconnect()
 
 bool PressPrivate::isConnected() const
 {
-    if (mpPort == nullptr)
-    {
-        return false;
-    }
-    return mpPort->isOpen();
+    // 使用原子快照，避免与 connect()/disconnect() 重置 mpPort 时发生数据竞争
+    return m_IsConnected.load();
 }
 
 uint64_t PressPrivate::getMachineRegisterNo() const
@@ -202,29 +224,46 @@ bool PressPrivate::setPressDataJson(const std::string& json, bool isCompressed)
 
 bool PressPrivate::getRealTimeDataJson(std::string& json, bool isCompressed)
 {
+    // 定时采集开启时，主动 get 不再触发回调，避免同一份实时数据被重复上报；
+    // 未开启定时采集时保持“主动拉取即回调”的原有语义。
+    const bool notifyInterface = m_TimerInterval.load() <= 0;
+    return _getRealTimeDataJson(json, isCompressed, notifyInterface);
+}
+
+bool PressPrivate::_getRealTimeDataJson(std::string& json, bool isCompressed, bool notifyInterface)
+{
     json.clear();
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_RT_JSON_V, {static_cast<uint8_t>(isCompressed)}, responseListData))
     {
-        if (auto iface = _safeGetInterface())
+        if (notifyInterface)
         {
-            iface->onRealTimeData(static_cast<int>(m_LastError.load()), std::string());
+            if (auto iface = _safeGetInterface())
+            {
+                iface->onRealTimeData(static_cast<int>(m_LastError.load()), std::string());
+            }
         }
         return false;
     }
     if (responseListData.empty())
     {
         _setError(MachineError::ResponseTooShort);
-        if (auto iface = _safeGetInterface())
+        if (notifyInterface)
         {
-            iface->onRealTimeData(static_cast<int>(m_LastError.load()), std::string());
+            if (auto iface = _safeGetInterface())
+            {
+                iface->onRealTimeData(static_cast<int>(m_LastError.load()), std::string());
+            }
         }
         return false;
     }
     json.assign(responseListData.begin(), responseListData.end());
-    if (auto iface = _safeGetInterface())
+    if (notifyInterface)
     {
-        iface->onRealTimeData(0, json);
+        if (auto iface = _safeGetInterface())
+        {
+            iface->onRealTimeData(0, json);
+        }
     }
     return true;
 }
@@ -263,7 +302,7 @@ bool PressPrivate::setPressing(bool isPressing)
         if (auto iface = _safeGetInterface()) iface->onError(SET_PRESS_V, responseListData);
         return false;
     }
-    return _handleSetResponse(SET_PRESS_V, responseListData);
+    return _handleSetResponse(SET_PRESS_V, responseListData, isPressing ? 1 : 0);
 }
 
 bool PressPrivate::setDemolding(bool isDemolding)
@@ -274,10 +313,10 @@ bool PressPrivate::setDemolding(bool isDemolding)
         if (auto iface = _safeGetInterface()) iface->onError(SET_DEMOLD_V, responseListData);
         return false;
     }
-    return _handleSetResponse(SET_DEMOLD_V, responseListData);
+    return _handleSetResponse(SET_DEMOLD_V, responseListData, isDemolding ? 1 : 0);
 }
 
-bool PressPrivate::_handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData)
+bool PressPrivate::_handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& responseListData, int expectedState)
 {
     // 写命令响应分两类（依据下位机 receive.cpp 实现）：
     //   控制类命令（SET_START_*/SELECT_MODEL_STATE）：返回 1 字节状态码
@@ -294,7 +333,15 @@ bool PressPrivate::_handleSetResponse(uint16_t cmd, const std::vector<uint8_t>& 
         switch (responseListData[0])
         {
         case 0x00:
-        case 0x01: return true;    // 停止成功 / 启动成功
+        case 0x01:
+            // 回执方向必须与请求一致：请求停止却回启动成功（或反之）视为状态未按预期切换
+            if (expectedState >= 0 && responseListData[0] != static_cast<uint8_t>(expectedState))
+            {
+                _setError(MachineError::StateUnchanged);
+                if (auto iface = _safeGetInterface()) iface->onError(cmd, responseListData);
+                return false;
+            }
+            return true;    // 停止成功 / 启动成功
         case 0x02:
             _setError(MachineError::ImmediateSignalBlocked);
             if (auto iface = _safeGetInterface()) iface->onError(cmd, responseListData);
@@ -318,7 +365,7 @@ std::vector<uint8_t> PressPrivate::_buildSendFrame(const FrameData& frameData)
     assert(frameData.m_FrameDataList.size() <= 0xFFFF && "Frame data length exceeds uint16_t range");
 
     std::vector<uint8_t> data;
-    data.reserve(CMD_LEN + frameData.m_FrameDataList.size());
+    data.reserve(CMD_MIN_FRAME_LEN + frameData.m_FrameDataList.size());
 
     // 注册号按大端（网络字节序）写入帧
     uint64_t registerNo = m_RegisterNo.load();
@@ -355,7 +402,7 @@ MachineError PressPrivate::_parseResponseFrame(const std::vector<uint8_t>& respo
 {
     out.m_Command = command;
 
-    if (response.size() < CMD_LEN)
+    if (response.size() < CMD_MIN_FRAME_LEN)
     {
         return MachineError::ResponseTooShort;
     }
@@ -425,6 +472,13 @@ bool PressPrivate::_requestCommand(uint16_t command, const std::vector<uint8_t>&
     if (!m_IsRunning.load())
     {
         _setError(MachineError::Stopped);
+        return false;
+    }
+
+    // 协议长度字段为 uint16，超长时直接拒绝，避免 Release 下断言失效后静默截断
+    if (listData.size() > 0xFFFF)
+    {
+        _setError(MachineError::FrameTooLong);
         return false;
     }
 
@@ -518,6 +572,20 @@ void PressPrivate::_startScheduler()
                 m_CommandQueue.pop();
             }
 
+            // 停止流程可能刚清空队列并置位停止标志：对已出队但未发送的命令回 Stopped，
+            // 避免“调用方收到停止/失败，命令却仍被下发到设备”
+            if (!m_IsRunning.load())
+            {
+                _setError(MachineError::Stopped);
+                FrameData flag;
+                flag.m_Seq = request.m_Seq;
+                flag.m_Error = MachineError::Stopped;
+                std::lock_guard<std::mutex> rlock(m_ResponseMutex);
+                m_ResponseQueue.push(std::move(flag));
+                m_ResponseCond.notify_one();
+                continue;
+            }
+
             if (mpPort == nullptr)
             {
                 _setError(MachineError::PortNotOpen);
@@ -548,7 +616,7 @@ void PressPrivate::_startScheduler()
             }
 
             std::vector<uint8_t> rawResponse;
-            rawResponse.reserve(CMD_LEN);
+            rawResponse.reserve(CMD_MIN_FRAME_LEN);
             auto readDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(m_RequestTimeoutMs.load());
             bool frameReady = false;
             while (!frameReady && std::chrono::steady_clock::now() < readDeadline)
@@ -562,7 +630,7 @@ void PressPrivate::_startScheduler()
                 }
                 // 在缓冲中扫描完整帧（帧长 = 13 + len）：
                 // 长度字段非法或校验和不符时丢弃首字节重新同步，避免错位后永久无法恢复
-                while (!frameReady && rawResponse.size() >= CMD_LEN)
+                while (!frameReady && rawResponse.size() >= CMD_HEADER_LEN)
                 {
                     uint16_t len = (static_cast<uint16_t>(rawResponse[10]) << 8) | rawResponse[11];
                     if (len > FRAME_MAX_DATA_LEN)
@@ -631,13 +699,35 @@ void PressPrivate::_startScheduler()
 
 void PressPrivate::_stopScheduler()
 {
-    _stopRealTimeTimer();
+    // 先置停止标志并唤醒所有等待者：
+    // 1) 正在 _requestCommand 中等待响应的定时线程/用户线程会立即返回 Stopped，而不是等满超时；
+    // 2) 清空尚未发送的命令，避免停止后仍向设备下发写/控制命令。
     m_IsRunning.store(false);
+    m_TimerRunning.store(false);
     m_CommandCond.notify_all();
     m_ResponseCond.notify_all();
+    m_TimerCond.notify_all();
+    {
+        std::lock_guard<std::mutex> lock(m_CommandMutex);
+        while (!m_CommandQueue.empty())
+        {
+            m_CommandQueue.pop();
+        }
+    }
+
+    _stopRealTimeTimer();
+
     if (mpRunThread && mpRunThread->joinable())
     {
-        mpRunThread->join();
+        if (mpRunThread->get_id() == std::this_thread::get_id())
+        {
+            // 理论上调度线程不会执行用户回调；保留自线程保护，避免 join 自身抛异常
+            mpRunThread->detach();
+        }
+        else
+        {
+            mpRunThread->join();
+        }
     }
     mpRunThread.reset();
 }
@@ -645,6 +735,7 @@ void PressPrivate::_stopScheduler()
 
 void PressPrivate::_closePort()
 {
+    m_IsConnected.store(false);
     if (mpPort != nullptr)
     {
         mpPort->close();
@@ -694,18 +785,32 @@ const char* PressPrivate::getLastErrorInfo() const
 
 void PressPrivate::registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds)
 {
+    if (dataInterface == nullptr)
+    {
+        unregisterDataInterface();
+        return;
+    }
+    // 使用空删除器：shared_ptr 仅用于线程安全的引用计数，不管理对象生命周期。
+    // 需要 SDK 托管生命周期时请使用 registerDataInterfaceOwned()。
+    registerDataInterfaceOwned(std::shared_ptr<PressDataInterface>(dataInterface, [](PressDataInterface*){}),
+                               intervalSeconds);
+}
+
+void PressPrivate::registerDataInterfaceOwned(std::shared_ptr<PressDataInterface> dataInterface, int intervalSeconds)
+{
     std::lock_guard<std::mutex> lifecycleLock(m_LifecycleMutex);
 
-    if (dataInterface == nullptr)
+    if (!dataInterface)
     {
         _unregisterInterfaceLocked();
         return;
     }
     {
         std::lock_guard<std::mutex> lock(m_MachineDataMutex);
-        // 使用空删除器：shared_ptr 仅用于线程安全的引用计数，不管理对象生命周期
-        mpMachineDataInterface = std::shared_ptr<PressDataInterface>(dataInterface, [](PressDataInterface*){});
+        mpMachineDataInterface = std::move(dataInterface);
     }
+    // 重新注册时重置连续失败计数，避免沿用上一轮回调对象的断线状态
+    m_TimerConsecutiveFailures.store(0);
     // intervalSeconds <= 0 时不启动定时线程（与 press.hpp 文档一致），
     // 避免 wait_for 非正周期立即超时导致高频空转轰炸设备
     if (intervalSeconds > 0)
@@ -793,23 +898,28 @@ void PressPrivate::_startRealTimeTimer(int intervalSeconds)
     _stopRealTimeTimer();
     m_TimerInterval.store(intervalSeconds);
     m_TimerRunning.store(true);
-    mpRealTimeTimerThread = std::make_unique<std::thread>([this]
+    std::shared_ptr<std::atomic<bool>> aliveToken = std::make_shared<std::atomic<bool>>(true);
+    mpTimerAliveToken = aliveToken;
+    mpRealTimeTimerThread = std::make_unique<std::thread>([this, aliveToken]
     {
-        while (m_TimerRunning.load() && m_IsRunning.load())
+        // 固定速率调度：按绝对时间点推进，避免“周期 + 请求耗时”造成的累积漂移
+        auto nextDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(m_TimerInterval.load());
+        while (aliveToken->load() && m_IsRunning.load())
         {
             {
                 std::unique_lock<std::mutex> lock(m_TimerMutex);
-                m_TimerCond.wait_for(lock, std::chrono::seconds(m_TimerInterval.load()), [this] {
-                    return !m_TimerRunning.load() || !m_IsRunning.load();
+                m_TimerCond.wait_until(lock, nextDeadline, [this, &aliveToken] {
+                    return !aliveToken->load() || !m_IsRunning.load();
                 });
             }
-            if (!m_TimerRunning.load() || !m_IsRunning.load())
+            if (!aliveToken->load() || !m_IsRunning.load())
             {
                 break;
             }
 
             std::string realTimeJson;
-            if (getRealTimeDataJson(realTimeJson))
+            // 定时线程必须强制通知回调；主动 get 的重复回调抑制逻辑不能作用于定时采集
+            if (_getRealTimeDataJson(realTimeJson, false, true))
             {
                 m_TimerConsecutiveFailures.store(0);
             }
@@ -821,6 +931,15 @@ void PressPrivate::_startRealTimeTimer(int intervalSeconds)
                     iface->onError(GET_RT_JSON_V, {});
                 }
             }
+
+            // 计算下一个绝对时间点；若已错过（请求耗时超过周期），跳过错过的节拍重新对齐
+            const auto period = std::chrono::seconds(m_TimerInterval.load());
+            nextDeadline += period;
+            const auto now = std::chrono::steady_clock::now();
+            if (nextDeadline <= now)
+            {
+                nextDeadline = now + period;
+            }
         }
     });
 }
@@ -828,10 +947,24 @@ void PressPrivate::_startRealTimeTimer(int intervalSeconds)
 void PressPrivate::_stopRealTimeTimer()
 {
     m_TimerRunning.store(false);
+    if (mpTimerAliveToken)
+    {
+        mpTimerAliveToken->store(false);
+        mpTimerAliveToken.reset();
+    }
     m_TimerCond.notify_all();
     if (mpRealTimeTimerThread && mpRealTimeTimerThread->joinable())
     {
-        mpRealTimeTimerThread->join();
+        if (mpRealTimeTimerThread->get_id() == std::this_thread::get_id())
+        {
+            // 回调线程内调用 unregister/stop/disconnect 等接口：不能 join 自身，
+            // 分离后线程会在当前回调返回后自行退出循环
+            mpRealTimeTimerThread->detach();
+        }
+        else
+        {
+            mpRealTimeTimerThread->join();
+        }
     }
     mpRealTimeTimerThread.reset();
 }
@@ -2444,7 +2577,7 @@ bool PressPrivate::setStartHeat(bool isHeating)
         if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
         return false;
     }
-    return _handleSetResponse(command, responseListData);
+    return _handleSetResponse(command, responseListData, isHeating ? 1 : 0);
 }
 
 bool PressPrivate::setStart(bool isStart)
@@ -2456,7 +2589,7 @@ bool PressPrivate::setStart(bool isStart)
         if (auto iface = _safeGetInterface()) iface->onError(command, responseListData);
         return false;
     }
-    return _handleSetResponse(command, responseListData);
+    return _handleSetResponse(command, responseListData, isStart ? 1 : 0);
 }
 
 bool PressPrivate::selectModelState(uint8_t model)

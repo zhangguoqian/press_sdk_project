@@ -117,8 +117,11 @@ public:
  *
  *  Thread safety / 线程安全:
  *    - 所有公共方法都是线程安全的，可从任意线程调用。
- *    - 通过 PressDataInterface 注册的回调在内部调度线程中执行，
- *      耗时操作应移交给其他线程处理。
+ *    - 定时采集（intervalSeconds > 0）触发的 onRealTimeData / onError 在 SDK
+ *      定时线程中执行；主动调用 get*Json 接口触发的对应回调在调用方线程中
+ *      同步执行，耗时操作应移交给其他线程处理。
+ *    - 回调中可安全调用 disconnect()/stop()/unregisterDataInterface() 等生命周期
+ *      接口；但不要在回调中析构 Press 对象本身。
  *****************************************************************************/
 
 class PRESS_EXPORT Press
@@ -214,6 +217,12 @@ public:
     //!                        并通过 onRealTimeData() 上报；小于等于 0 时不启动。
     void registerDataInterface(PressDataInterface* dataInterface, int intervalSeconds = 1);
 
+    //! Register a callback interface with shared ownership.
+    //! The SDK keeps a shared_ptr, so callbacks already in flight can safely
+    //! finish after unregistration.
+    //! 以共享所有权方式注册回调接口：SDK 持有 shared_ptr，注销后仍在途的回调可安全执行。
+    void registerDataInterfaceOwned(std::shared_ptr<PressDataInterface> dataInterface, int intervalSeconds = 1);
+
     //! Unregister the previously registered callback interface.
     //! 注销之前注册的回调接口。
     void unregisterDataInterface();
@@ -225,6 +234,10 @@ public:
      *  以下 get/set 方法直接以 JSON 字符串与设备交换数据。
      *  isCompressed = true 时请求设备返回压缩后的 JSON 批量数据。
      *  All get/set methods exchange raw JSON strings with the device.
+     *
+     *  回调语义：主动调用 getReadOnlyDataJson / getPressDataJson / getTempDataJson /
+     *  getMixDataJson 会同步触发对应 on* 回调；getRealTimeDataJson 在定时采集
+     *  未启用时同样触发，启用定时采集后由定时线程统一上报，避免重复。
      *************************************************************************/
 
     //! Read static (read-only) device information as ROD JSON.
@@ -246,6 +259,8 @@ public:
     //! Read live real-time machine state as RT JSON.
     //! @param json         [out] Raw RT JSON on success; empty on failure.
     //! 读取实时机器状态（RT JSON）。
+    //! 注意：当定时采集已启用（intervalSeconds > 0）时，主动调用本接口不再触发
+    //! onRealTimeData 回调，避免同一份数据被定时器与主动拉取重复上报。
     bool getRealTimeDataJson(std::string& json, bool isCompressed = false);
 
     //! Read all temperature parameters as TD JSON.
@@ -282,7 +297,7 @@ public:
     //! @return true on success / 读取设备序列号。
     bool getSerialNumber(std::string& serialNumber);
 
-    //! Read the pressure parameter block (CMDID_PRESS_PARAMETER, 20 bytes).
+    //! Read the pressure parameter block (CMDID_PRESS_PARAMETER, 21 bytes).
     //! 读取压力参数块，成功后同步缓存到 ReadOnlyData。
     bool getPressParameter(PressParameter& param);
 
@@ -576,8 +591,8 @@ public:
      *  (0x0304) 固件已注释，以上命令暂不提供封装。
      *************************************************************************/
 
-    //! Read current machine state (CMDID_GET_CURRENT_STATE, 3-5 bytes by mode).
-    //! 读取机器当前状态（响应长度依模式为 3/4/5 字节，见 MachineState）。
+    //! Read current machine state (CMDID_GET_CURRENT_STATE, 20/25/30 bytes by mode).
+    //! 读取机器当前状态（响应长度依模式为 20/25/30 字节，见 MachineState）。
     bool getMachineState(MachineState& state);
 
     //! Start or stop pressing only (does not affect heating).
@@ -588,6 +603,7 @@ public:
     //! Start or stop demolding only.
     //! @param isDemolding true to start demolding, false to stop.
     //! @return true on success / 单独启动或停止脱模。
+    //! 注意：当前固件尚未实现 CMDID_SET_START_DEMOLD (0x1523)，调用会返回失败/超时。
     bool setDemolding(bool isDemolding);
 
     //! Start or stop heating (CMDID_SET_START_HEAT). 启动或停止加热。

@@ -8,7 +8,22 @@ project(press
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-find_package(JNI REQUIRED)
+# JNI 绑定为可选能力：未安装 JDK 时仍可构建纯 C/C++ SDK
+option(PRESS_BUILD_JNI "Build JNI bindings (requires a JDK; Android NDK provides JNI headers)" ON)
+set(PRESS_JNI_ENABLED OFF)
+if (PRESS_BUILD_JNI)
+    if (ANDROID)
+        set(PRESS_JNI_ENABLED ON)
+    else ()
+        find_package(JNI QUIET)
+        if (JNI_FOUND)
+            set(PRESS_JNI_ENABLED ON)
+        else ()
+            message(STATUS "JNI not found: building press without JNI bindings "
+                           "(install a JDK or pass -DPRESS_BUILD_JNI=OFF to silence this message)")
+        endif ()
+    endif ()
+endif ()
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in"
@@ -19,7 +34,6 @@ configure_file(
 set(LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/press.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/c/cpress.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/jni/press_jni.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/pressprivate.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/unity.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/port/serialport.cpp"
@@ -30,6 +44,10 @@ set(LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/json/json_value.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/json/json_writer.cpp"
 )
+
+if (PRESS_JNI_ENABLED)
+    list(APPEND LIB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/jni/press_jni.cpp")
+endif ()
 
 add_library(press SHARED ${LIB_SOURCES})
 
@@ -53,8 +71,11 @@ target_include_directories(press
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${JNI_INCLUDE_DIRS}
 )
+
+if (PRESS_JNI_ENABLED AND JNI_INCLUDE_DIRS)
+    target_include_directories(press PRIVATE ${JNI_INCLUDE_DIRS})
+endif ()
 
 target_compile_definitions(press PRIVATE PRESS_BUILDING_LIBRARY)
 

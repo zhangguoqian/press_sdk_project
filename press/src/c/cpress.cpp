@@ -96,7 +96,8 @@ private:
 struct CPressContext
 {
     std::unique_ptr<Press> impl;
-    std::unique_ptr<CMachineDataAdapter> callbackAdapter;
+    //! 共享所有权：注销后仍在途的回调可继续安全访问 adapter
+    std::shared_ptr<CMachineDataAdapter> callbackAdapter;
     CPressDataCallbacks callbacks;
     //! 最近一次 JSON 查询结果，返回指针在该缓冲区中保持有效，
     //! 直到同一上下文的下一次 GET 调用（单线程使用假设）。
@@ -263,6 +264,62 @@ PRESS_C_EXPORT const char* cpress_get_real_time_data_json(CPressContext* handle,
         return nullptr;
     }
     return handle->lastJson.c_str();
+}
+
+PRESS_C_EXPORT const char* cpress_get_temp_data_json(CPressContext* handle,
+                                                     int isCompressed)
+{
+    if (handle == nullptr || handle->impl == nullptr)
+    {
+        return nullptr;
+    }
+
+    handle->lastJson.clear();
+    if (!handle->impl->getTempDataJson(handle->lastJson, isCompressed != 0))
+    {
+        return nullptr;
+    }
+    return handle->lastJson.c_str();
+}
+
+PRESS_C_EXPORT int cpress_set_temp_data_json(CPressContext* handle,
+                                             const char* json,
+                                             int isCompressed)
+{
+    if (handle == nullptr || handle->impl == nullptr || json == nullptr)
+    {
+        return 0;
+    }
+
+    return handle->impl->setTempDataJson(json, isCompressed != 0) ? 1 : 0;
+}
+
+PRESS_C_EXPORT const char* cpress_get_mix_data_json(CPressContext* handle,
+                                                    int isCompressed)
+{
+    if (handle == nullptr || handle->impl == nullptr)
+    {
+        return nullptr;
+    }
+
+    handle->lastJson.clear();
+    if (!handle->impl->getMixDataJson(handle->lastJson, isCompressed != 0))
+    {
+        return nullptr;
+    }
+    return handle->lastJson.c_str();
+}
+
+PRESS_C_EXPORT int cpress_set_mix_data_json(CPressContext* handle,
+                                            const char* json,
+                                            int isCompressed)
+{
+    if (handle == nullptr || handle->impl == nullptr || json == nullptr)
+    {
+        return 0;
+    }
+
+    return handle->impl->setMixDataJson(json, isCompressed != 0) ? 1 : 0;
 }
 
 PRESS_C_EXPORT int cpress_get_serial_number(CPressContext* handle, char* buf, size_t bufSize)
@@ -668,14 +725,14 @@ PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle,
         return;
     }
 
-    // 先注销（停定时线程、保证无在途回调），再替换 adapter，避免旧 adapter
-    // 被析构后 impl 内的非拥有指针仍被回调访问
+    // 先注销（停定时线程），再替换 adapter；adapter 由 SDK 与上下文共享持有，
+    // 即使其他线程仍有在途同步回调，也不会访问已析构对象
     handle->impl->unregisterDataInterface();
     handle->callbackAdapter.reset();
 
     handle->callbacks = *callbacks;
-    handle->callbackAdapter.reset(new CMachineDataAdapter(handle->callbacks));
-    handle->impl->registerDataInterface(handle->callbackAdapter.get(), intervalSeconds);
+    handle->callbackAdapter = std::make_shared<CMachineDataAdapter>(handle->callbacks);
+    handle->impl->registerDataInterfaceOwned(handle->callbackAdapter, intervalSeconds);
 }
 
 PRESS_C_EXPORT void cpress_unregister_data_interface(CPressContext* handle)

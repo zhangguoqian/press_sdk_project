@@ -14,12 +14,22 @@
  *  该 API 设计保持简单：创建句柄、连接端口、调用 get/set 操作，并可选择
  *  注册回调处理函数。所有导出函数都使用 extern "C" 以保证 C++ 链接兼容。
  *
+ *  Scope / 能力范围:
+ *    - The C API is a stable subset of the C++ API. JSON data access covers
+ *      ROD / PD / RT / TD / MD, plus the commonly used single-value commands.
+ *    - Device-info, machine-state, date-time and display settings are currently
+ *      available only through the C++ API (press.hpp).
+ *    - C 接口是 C++ 接口的稳定子集：JSON 覆盖 ROD / PD / RT / TD / MD 及常用
+ *      单值命令；设备信息、机器状态、时间与显示设置等目前仅由 C++ 接口提供。
+ *
  *  Threading model / 线程模型:
  *    - The underlying SDK remains internally thread-safe.
- *    - Callbacks are invoked by the SDK worker thread.
+ *    - Timer-driven callbacks run on the SDK timer thread; callbacks caused by
+ *      synchronous get*Json calls run on the calling thread.
  *    - UI code should dispatch to the UI thread if needed.
  *    - 底层 SDK 内部仍然保持线程安全。
- *    - 回调由 SDK 工作线程触发。
+ *    - 定时采集触发的回调在 SDK 定时线程执行；主动调用 get*Json 触发的回调
+ *      在调用线程执行。
  *    - 如果 UI 代码需要更新界面，应自行进行线程分发。
  *****************************************************************************/
 
@@ -58,10 +68,11 @@ typedef struct CPressContext CPressContext;
 //! @param errorCode     Result code; 0 means success / 结果码；0 表示成功
 //! @param registerNo    Device register number / 设备注册号
 //! @param json          Raw ROD JSON payload, empty on failure / 原始 ROD JSON 数据，失败时为空字符串
-//! @note This callback may be invoked on the SDK worker thread. If the caller
-//!       needs UI updates, it should marshal the callback onto the UI thread.
-//!       该回调可能在 SDK 工作线程中触发；如果调用方需要更新 UI，应该自行
-//!       将回调切到 UI 线程处理。
+//! @note This callback may be invoked on the SDK timer thread or on the thread
+//!       that called a synchronous get*Json function. If the caller needs UI
+//!       updates, it should marshal the callback onto the UI thread.
+//!       该回调可能在 SDK 定时线程或调用 get*Json 的线程中触发；如果调用方
+//!       需要更新 UI，应该自行将回调切到 UI 线程处理。
 typedef void (*PressCReadOnlyDataCallback)(void *userData, int errorCode, uint64_t registerNo, const char *json);
 
 //! Real-time data callback prototype / 实时数据回调原型
@@ -210,6 +221,22 @@ PRESS_C_EXPORT int cpress_set_press_data_json(CPressContext* handle, const char*
 //! @param isCompressed 0 = false, non-zero = true / 0 表示 false，非 0 表示 true
 //! @return Internal JSON buffer or NULL on failure / 内部 JSON 缓冲区，失败返回 NULL
 PRESS_C_EXPORT const char* cpress_get_real_time_data_json(CPressContext* handle, int isCompressed);
+
+//! Read the complete temperature configuration as raw JSON (TD) / 以原始 JSON 读取全部温度参数
+//! @return Internal JSON buffer or NULL on failure / 内部 JSON 缓冲区，失败返回 NULL
+PRESS_C_EXPORT const char* cpress_get_temp_data_json(CPressContext* handle, int isCompressed);
+
+//! Write the complete temperature configuration from raw JSON (TD) / 以原始 JSON 写入全部温度参数
+//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
+PRESS_C_EXPORT int cpress_set_temp_data_json(CPressContext* handle, const char* json, int isCompressed);
+
+//! Read the complete mix-mode configuration as raw JSON (MD) / 以原始 JSON 读取全部混合模式参数
+//! @return Internal JSON buffer or NULL on failure / 内部 JSON 缓冲区，失败返回 NULL
+PRESS_C_EXPORT const char* cpress_get_mix_data_json(CPressContext* handle, int isCompressed);
+
+//! Write the complete mix-mode configuration from raw JSON (MD) / 以原始 JSON 写入全部混合模式参数
+//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
+PRESS_C_EXPORT int cpress_set_mix_data_json(CPressContext* handle, const char* json, int isCompressed);
 
 //! Start or stop the pressing action only / 启动或停止单独的加压动作
 //! @param isPressing   0 = stop, non-zero = start / 0 表示停止，非 0 表示启动

@@ -111,10 +111,11 @@ public final class PressSdk implements AutoCloseable {
      * need to override the callbacks they care about.</p>
      * <p>四个方法都提供了空的 default 实现，调用方只需覆写自己关心的回调即可。</p>
      *
-     * <p><b>Threading note / 线程说明</b>: All callbacks are invoked on a native SDK worker
-     * thread. If you need to update the UI, you must dispatch the call to your application's
-     * UI thread yourself.</p>
-     * <p>所有回调都在 SDK 工作线程中触发，如需更新 UI，请自行切换线程。</p>
+     * <p><b>Threading note / 线程说明</b>: Timer-driven callbacks run on a native SDK timer
+     * thread, while callbacks caused by a synchronous get*Json call run on the calling thread.
+     * If you need to update the UI, dispatch the call to your application's UI thread yourself.</p>
+     * <p>定时采集触发的回调在 SDK 定时线程执行；主动调用 get*Json 触发的回调在调用线程执行。
+     * 如需更新 UI，请自行切换线程。</p>
      */
     public interface DataCallbacks {
         /**
@@ -385,6 +386,36 @@ public final class PressSdk implements AutoCloseable {
     public String getRealTimeDataJson(boolean isCompressed) {
         ensureOpen();
         return press_get_real_time_data_json(this.handle, isCompressed ? 1 : 0);
+    }
+
+    /** Read all temperature parameters as TD JSON; null on failure. / 以 TD JSON 读取全部温度参数，失败返回 null。 */
+    public String getTempDataJson(boolean isCompressed) {
+        ensureOpen();
+        return press_get_temp_data_json(this.handle, isCompressed ? 1 : 0);
+    }
+
+    /** Write all temperature parameters from TD JSON. / 以 TD JSON 写入全部温度参数。 */
+    public boolean setTempDataJson(String json, boolean isCompressed) {
+        ensureOpen();
+        if (json == null) {
+            throw new IllegalArgumentException("json must not be null.");
+        }
+        return press_set_temp_data_json(this.handle, json, isCompressed ? 1 : 0) != 0;
+    }
+
+    /** Read all mix-mode parameters as MD JSON; null on failure. / 以 MD JSON 读取全部混合模式参数，失败返回 null。 */
+    public String getMixDataJson(boolean isCompressed) {
+        ensureOpen();
+        return press_get_mix_data_json(this.handle, isCompressed ? 1 : 0);
+    }
+
+    /** Write all mix-mode parameters from MD JSON. / 以 MD JSON 写入全部混合模式参数。 */
+    public boolean setMixDataJson(String json, boolean isCompressed) {
+        ensureOpen();
+        if (json == null) {
+            throw new IllegalArgumentException("json must not be null.");
+        }
+        return press_set_mix_data_json(this.handle, json, isCompressed ? 1 : 0) != 0;
     }
 
     public boolean setPressing(boolean isPressing) {
@@ -935,6 +966,10 @@ public final class PressSdk implements AutoCloseable {
     public static native String press_get_press_data_json(long handle, int isCompressed);
     public static native int press_set_press_data_json(long handle, String json, int isCompressed);
     public static native String press_get_real_time_data_json(long handle, int isCompressed);
+    public static native String press_get_temp_data_json(long handle, int isCompressed);
+    public static native int press_set_temp_data_json(long handle, String json, int isCompressed);
+    public static native String press_get_mix_data_json(long handle, int isCompressed);
+    public static native int press_set_mix_data_json(long handle, String json, int isCompressed);
     public static native int press_set_pressing(long handle, int isPressing);
     public static native int press_set_demolding(long handle, int isDemolding);
     public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks, int intervalSeconds);
