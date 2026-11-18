@@ -10,8 +10,8 @@
 
 namespace
 {
-constexpr const char* kPressSdkClassName = "PressSdk";
-constexpr const char* kDataCallbacksClassName = "PressSdk$DataCallbacks";
+// constexpr const char* kPressSdkClassName = "PressSdk";
+// constexpr const char* kDataCallbacksClassName = "PressSdk$DataCallbacks";
 
 struct JniCallbackContext
 {

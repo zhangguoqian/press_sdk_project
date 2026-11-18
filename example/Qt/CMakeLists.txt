@@ -55,6 +55,13 @@ file(GLOB_RECURSE EXAMPLE_SOURCES CONFIGURE_DEPENDS
 
 add_executable(${PROJECT_NAME} WIN32 ${EXAMPLE_SOURCES})
 
+# Qt 代码生成仅作用于本示例目标，避免影响非 Qt 目标（如 test/cpp）
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    AUTOMOC ON
+    AUTOUIC ON
+    AUTORCC ON
+)
+
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
