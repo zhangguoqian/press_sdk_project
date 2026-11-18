@@ -285,6 +285,999 @@ void forceIdle(Press& press)
     waitForIdle(press, 5000);
 }
 
+//! 执行单次接口调用并打印 参数 / 返回值 / 错误信息 / 耗时
+//! 原始收发帧十六进制由 SDK 的 PRESS_HEX_TRACE 环境变量开启
+template <typename Fn>
+bool callAndLog(const char* fn, const char* argText, uint16_t cmd, Press& press, Fn&& call)
+{
+    const auto start = std::chrono::steady_clock::now();
+    const bool ret = call();
+    const double ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - start).count();
+    std::printf("  %-14s param=%-5s cmd=0x%04X ret=%-5s err=\"%s\" %.1f ms\n",
+                fn, argText, cmd, ret ? "true" : "false", press.getLastErrorInfo(), ms);
+    return ret;
+}
+
+//! 打印当前状态标志位（bit0=加压 bit1=加热）
+void printFlags(const char* tag, Press& press)
+{
+    MachineState st{};
+    if (press.getMachineState(st))
+    {
+        std::printf("  [state] %-9s flags=0x%02X press=%u heat=%u mode=%u\n",
+                    tag, st.m_Flags,
+                    static_cast<unsigned>(st.m_Flags & 0x01),
+                    static_cast<unsigned>((st.m_Flags >> 1) & 0x01),
+                    static_cast<unsigned>(st.m_ModelState));
+    }
+}
+
+//! 启停分项测试：启动与停止各自单独调用一次，逐条记录参数/返回值/耗时
+void runStartStopCases(Press& press)
+{
+    // 协议命令号（与 pressprivate.h 中的 CMDID_* 一致）
+    constexpr uint16_t CMD_SET_START  = 0x1511;
+    constexpr uint16_t CMD_SET_PRESS  = 0x1521;
+    constexpr uint16_t CMD_SET_HEAT   = 0x1522;
+    constexpr uint16_t CMD_SET_DEMOLD = 0x1523;
+
+    std::printf("\n================ start/stop cases: one call per test ================\n");
+    std::printf("  frame hex dump: set PRESS_HEX_TRACE=1 to print TX/RX raw frames\n");
+
+    forceIdle(press);
+    MachineState st{};
+    uint8_t originalMode = 0;
+    if (press.getMachineState(st))
+    {
+        originalMode = st.m_ModelState;
+    }
+    if (originalMode != 2)
+    {
+        std::printf("  [info] switching work mode %u -> 2 for control cases\n",
+                    static_cast<unsigned>(originalMode));
+        press.selectModelState(2);
+        waitForMode(press, 2, 2000);
+    }
+    printFlags("initial", press);
+
+    // ---- 加热：开、关 分别调用 ----
+    std::printf("\n-- setStartHeat (CMD 0x1522) --\n");
+    callAndLog("setStartHeat", "true", CMD_SET_HEAT, press, [&] { return press.setStartHeat(true); });
+    const bool heatOn = waitForFlag(press, 0x02, true, 8000);
+    printFlags("heat=on", press);
+    callAndLog("setStartHeat", "false", CMD_SET_HEAT, press, [&] { return press.setStartHeat(false); });
+    const bool heatOff = waitForFlag(press, 0x02, false, 5000);
+    printFlags("heat=off", press);
+    std::printf("  [check] heat flag on=%s off=%s\n",
+                heatOn ? "ok" : "fail", heatOff ? "ok" : "fail");
+
+    // ---- 加压：开 → 动作 0.8 s → 关 分别调用 ----
+    std::printf("\n-- setPressing (CMD 0x1521) --\n");
+    forceIdle(press);
+    callAndLog("setPressing", "true", CMD_SET_PRESS, press, [&] { return press.setPressing(true); });
+    const bool pressOn = waitForFlag(press, 0x01, true, 3000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(800));
+    printFlags("press=on", press);
+    callAndLog("setPressing", "false", CMD_SET_PRESS, press, [&] { return press.setPressing(false); });
+    const bool pressOff = waitForFlag(press, 0x01, false, 5000);
+    printFlags("press=off", press);
+    std::printf("  [check] press flag on=%s off=%s\n",
+                pressOn ? "ok" : "fail", pressOff ? "ok" : "fail");
+
+    // ---- 脱模：固件未实现 0x1523，仅记录调用结果 ----
+    std::printf("\n-- setDemolding (CMD 0x1523, firmware not implemented) --\n");
+    forceIdle(press);
+    callAndLog("setDemolding", "true", CMD_SET_DEMOLD, press, [&] { return press.setDemolding(true); });
+    callAndLog("setDemolding", "false", CMD_SET_DEMOLD, press, [&] { return press.setDemolding(false); });
+
+    // ---- 全流程启停 ----
+    std::printf("\n-- setStart (CMD 0x1511) --\n");
+    forceIdle(press);
+    callAndLog("setStart", "true", CMD_SET_START, press, [&] { return press.setStart(true); });
+    const bool active = waitForActive(press, 10000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    printFlags("start", press);
+    callAndLog("setStart", "false", CMD_SET_START, press, [&] { return press.setStart(false); });
+    bool idle = waitForIdle(press, 12000);
+    if (!idle)
+    {
+        press.setPressing(false);
+        press.setStartHeat(false);
+        idle = waitForIdle(press, 5000);
+    }
+    printFlags("stopped", press);
+    std::printf("  [check] active flag=%s idle=%s\n",
+                active ? "ok" : "none", idle ? "ok" : "fail");
+
+    if (originalMode != 0)
+    {
+        press.selectModelState(originalMode);
+        waitForMode(press, originalMode, 2000);
+    }
+    forceIdle(press);
+    std::printf("\nstart/stop cases done.\n");
+}
+
+// ==================== 全接口逐调用追踪 / per-call trace for all interfaces ====================
+
+int g_traceTotal = 0;
+int g_traceFail  = 0;
+
+//! 出参摘要：单值 / 字符串（超过 60 字符截断）
+std::string traceDescribe(float v)
+{
+    char b[64];
+    std::snprintf(b, sizeof(b), "value=%.1f", v);
+    return b;
+}
+
+std::string traceDescribe(uint8_t v)
+{
+    char b[64];
+    std::snprintf(b, sizeof(b), "value=%u", static_cast<unsigned>(v));
+    return b;
+}
+
+std::string traceDescribe(int32_t v)
+{
+    char b[64];
+    std::snprintf(b, sizeof(b), "value=%lld", static_cast<long long>(v));
+    return b;
+}
+
+std::string traceDescribe(uint64_t v)
+{
+    char b[64];
+    std::snprintf(b, sizeof(b), "value=%llu", static_cast<unsigned long long>(v));
+    return b;
+}
+
+std::string traceDescribe(bool v)
+{
+    return v ? std::string("value=true") : std::string("value=false");
+}
+
+std::string traceDescribe(const std::string& v)
+{
+    const size_t kMax = 60;
+    if (v.size() <= kMax)
+    {
+        return "value=" + v;
+    }
+    return "value=" + v.substr(0, kMax) + "...";
+}
+
+std::string traceDescribe(const std::vector<std::string>& v)
+{
+    char b[64];
+    std::snprintf(b, sizeof(b), "count=%zu", v.size());
+    std::string s = b;
+    if (!v.empty())
+    {
+        s += ",first=" + v.front();
+    }
+    return s;
+}
+
+//! JSON 出参不打印全文，只给字节数
+std::string traceDescribeJson(const std::string& v)
+{
+    char b[48];
+    std::snprintf(b, sizeof(b), "json=%zuB", v.size());
+    return b;
+}
+
+std::string traceDescribe(const PressParameter& p)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "maxP=%.1f,minP=%.1f,maxStep=%u",
+                  p.m_MaxPLimit, p.m_MinPLimit, static_cast<unsigned>(p.m_MaxPStep));
+    return b;
+}
+
+std::string traceDescribe(const TempParameter& p)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "maxT=%.1f,minT=%.1f,maxStep=%u",
+                  p.m_MaxTLimit, p.m_MinTLimit, static_cast<unsigned>(p.m_MaxTStep));
+    return b;
+}
+
+std::string traceDescribe(const OtherInfo& i)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "startDelay=%u,remote=%u",
+                  static_cast<unsigned>(i.m_StartDelay), static_cast<unsigned>(i.m_Remote));
+    return b;
+}
+
+std::string traceDescribe(const DateTimeInfo& t)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "%04u-%02u-%02u %02u:%02u:%02u",
+                  static_cast<unsigned>(1900 + t.m_Year), static_cast<unsigned>(t.m_Month),
+                  static_cast<unsigned>(t.m_Day), static_cast<unsigned>(t.m_Hour),
+                  static_cast<unsigned>(t.m_Minute), static_cast<unsigned>(t.m_Second));
+    return b;
+}
+
+std::string traceDescribe(const MachineState& s)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "flags=0x%02X,model=%u",
+                  static_cast<unsigned>(s.m_Flags), static_cast<unsigned>(s.m_ModelState));
+    return b;
+}
+
+std::string traceDescribe(const PressStepParameter& p)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "setP=%.1f,afterP=%.1f,kp=%u",
+                  p.m_SetPValue, p.m_AfterValue, static_cast<unsigned>(p.m_KPTime));
+    return b;
+}
+
+std::string traceDescribe(const TempStepParameter& p)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "temp=%.1f,speed=%.1f,kt=%u",
+                  p.m_TempValue, p.m_SpeedValue, static_cast<unsigned>(p.m_KTTime));
+    return b;
+}
+
+std::string traceDescribe(const MixStepParameter& p)
+{
+    char b[96];
+    std::snprintf(b, sizeof(b), "isPress=%u,setP=%.1f,upTemp=%.1f",
+                  static_cast<unsigned>(p.m_IsPress), p.m_SetPValue, p.m_UpTemp);
+    return b;
+}
+
+//! 单次调用追踪：打印 函数名 / 入参 / 返回值 / 引用返回摘要 / 错误信息 / 耗时
+//! （收发原始帧由 PRESS_HEX_TRACE 输出）；调用失败时不读取未初始化出参，out 打印 "-"
+template <typename Fn, typename OutFn>
+bool traceCallOut(const char* fn, const char* param, Press& press, Fn&& call, OutFn&& outFn)
+{
+    const auto start = std::chrono::steady_clock::now();
+    const bool ret = call();
+    const double ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - start).count();
+    ++g_traceTotal;
+    if (!ret)
+    {
+        ++g_traceFail;
+    }
+
+    std::string out = "-";
+    if (ret)
+    {
+        out = outFn();
+        for (char& c : out)
+        {
+            if (c == '"')
+            {
+                c = '\'';
+            }
+        }
+    }
+    std::printf("  [trace] %-26s param=%-26s ret=%-5s out=\"%s\" err=\"%s\" %.1f ms\n",
+                fn, param, ret ? "true" : "false", out.c_str(), press.getLastErrorInfo(), ms);
+    return ret;
+}
+
+//! 单次调用追踪（无出参 / 不关心出参）
+template <typename Fn>
+bool traceCall(const char* fn, const char* param, Press& press, Fn&& call)
+{
+    return traceCallOut(fn, param, press, call, [] { return std::string("-"); });
+}
+
+//! getter 追踪：调用后按出参类型生成摘要
+template <typename T, typename Fn>
+bool traceGet(const char* fn, const char* param, Press& press, T& out, Fn&& call)
+{
+    return traceCallOut(fn, param, press, call, [&] { return traceDescribe(out); });
+}
+
+template <typename GetFn, typename SetFn>
+void traceByteSetter(Press& press, const char* name, GetFn&& get, SetFn&& set)
+{
+    uint8_t value = 0;
+    if (!get(value))
+    {
+        traceCall(name, "read-back failed", press, [&] { return false; });
+        return;
+    }
+    char param[64];
+    std::snprintf(param, sizeof(param), "value=%u (原值写回)", static_cast<unsigned>(value));
+    traceCall(name, param, press, [&] { return set(value); });
+}
+
+template <typename GetFn, typename SetFn>
+void traceFloatSetter(Press& press, const char* name, GetFn&& get, SetFn&& set)
+{
+    float value = 0.0f;
+    if (!get(value))
+    {
+        traceCall(name, "read-back failed", press, [&] { return false; });
+        return;
+    }
+    char param[64];
+    std::snprintf(param, sizeof(param), "value=%.3f (原值写回)", value);
+    traceCall(name, param, press, [&] { return set(value); });
+}
+
+template <typename GetFn, typename SetFn>
+void traceInt32Setter(Press& press, const char* name, GetFn&& get, SetFn&& set)
+{
+    int32_t value = 0;
+    if (!get(value))
+    {
+        traceCall(name, "read-back failed", press, [&] { return false; });
+        return;
+    }
+    char param[64];
+    std::snprintf(param, sizeof(param), "value=%lld (原值写回)", static_cast<long long>(value));
+    traceCall(name, param, press, [&] { return set(value); });
+}
+
+template <typename GetFn, typename SetFn>
+void traceBoolSetter(Press& press, const char* name, GetFn&& get, SetFn&& set)
+{
+    bool value = false;
+    if (!get(value))
+    {
+        traceCall(name, "read-back failed", press, [&] { return false; });
+        return;
+    }
+    char param[64];
+    std::snprintf(param, sizeof(param), "value=%s (原值写回)", value ? "true" : "false");
+    traceCall(name, param, press, [&] { return set(value); });
+}
+
+template <typename GetFn, typename SetFn>
+void traceIndexedFloatSetter(Press& press, const char* name, GetFn&& get, SetFn&& set)
+{
+    float value = 0.0f;
+    if (!get(0, value))
+    {
+        traceCall(name, "index=0 read-back failed", press, [&] { return false; });
+        return;
+    }
+    char param[64];
+    std::snprintf(param, sizeof(param), "index=0 value=%.3f (原值写回)", value);
+    traceCall(name, param, press, [&] { return set(0, value); });
+}
+
+template <typename GetFn, typename SetFn>
+void traceIndexedInt32Setter(Press& press, const char* name, GetFn&& get, SetFn&& set)
+{
+    int32_t value = 0;
+    if (!get(0, value))
+    {
+        traceCall(name, "index=0 read-back failed", press, [&] { return false; });
+        return;
+    }
+    char param[64];
+    std::snprintf(param, sizeof(param), "index=0 value=%lld (原值写回)",
+                  static_cast<long long>(value));
+    traceCall(name, param, press, [&] { return set(0, value); });
+}
+
+//! 全接口追踪：每个接口调用一次，输出 入参 / 返回值 / 错误 / 耗时；原始帧由 PRESS_HEX_TRACE 打印
+void runInterfaceTrace(Press& press)
+{
+    g_traceTotal = 0;
+    g_traceFail  = 0;
+    std::printf("\n================ trace: all interfaces (1 call each) ================\n");
+    std::printf("  raw frame hex: set PRESS_HEX_TRACE=1\n");
+
+    // ---- 本地接口（无串口往返）----
+    {
+        bool connected = false;
+        traceCallOut("isConnected", "-", press,
+                     [&] { connected = press.isConnected(); return connected; },
+                     [&] { return traceDescribe(connected); });
+    }
+    {
+        uint64_t no = 0;
+        traceCallOut("getMachineRegisterNo", "-", press,
+                     [&] { no = press.getMachineRegisterNo(); return true; },
+                     [&] { return traceDescribe(no); });
+    }
+    {
+        bool running = false;
+        traceCallOut("isRunning", "-", press,
+                     [&] { running = press.isRunning(); return true; },
+                     [&] { return traceDescribe(running); });
+    }
+    {
+        std::string info;
+        traceCallOut("getLastErrorInfo", "-", press,
+                     [&] { info = press.getLastErrorInfo(); return true; },
+                     [&] { return traceDescribe(info); });
+    }
+    {
+        std::string ver;
+        traceCallOut("Press::version", "-", press,
+                     [&] { ver = Press::version(); return !ver.empty(); },
+                     [&] { return traceDescribe(ver); });
+    }
+    {
+        std::vector<std::string> ports;
+        traceCallOut("Press::getPortList", "-", press,
+                     [&] { ports = Press::getPortList(); return !ports.empty(); },
+                     [&] { return traceDescribe(ports); });
+    }
+
+    // ---- 设备信息 ----
+    {
+        std::string s;
+        traceGet("getName", "lang=0", press, s, [&] { return press.getName(s); });
+    }
+    {
+        std::string s;
+        traceGet("getMachineType", "out=string", press, s,
+                 [&] { return press.getMachineType(s); });
+    }
+    {
+        std::string s;
+        traceGet("getSerialNumber", "out=string", press, s,
+                 [&] { return press.getSerialNumber(s); });
+    }
+    {
+        PressParameter p{};
+        traceGet("getPressParameter", "out=PressParameter", press, p,
+                 [&] { return press.getPressParameter(p); });
+    }
+    {
+        TempParameter p{};
+        traceGet("getTempParameter", "out=TempParameter", press, p,
+                 [&] { return press.getTempParameter(p); });
+    }
+    {
+        OtherInfo i{};
+        traceGet("getOtherInfo", "out=OtherInfo", press, i,
+                 [&] { return press.getOtherInfo(i); });
+    }
+
+    // ---- JSON 批量（仅打印字节数）----
+    {
+        std::string j;
+        traceCallOut("getReadOnlyDataJson", "compressed=false", press,
+                     [&] { return press.getReadOnlyDataJson(j); },
+                     [&] { return traceDescribeJson(j); });
+    }
+    {
+        std::string j;
+        traceCallOut("getPressDataJson", "compressed=false", press,
+                     [&] { return press.getPressDataJson(j); },
+                     [&] { return traceDescribeJson(j); });
+    }
+    {
+        std::string j;
+        traceCallOut("getRealTimeDataJson", "compressed=false", press,
+                     [&] { return press.getRealTimeDataJson(j); },
+                     [&] { return traceDescribeJson(j); });
+    }
+    {
+        std::string j;
+        traceCallOut("getTempDataJson", "compressed=false", press,
+                     [&] { return press.getTempDataJson(j); },
+                     [&] { return traceDescribeJson(j); });
+    }
+    {
+        std::string j;
+        traceCallOut("getMixDataJson", "compressed=false", press,
+                     [&] { return press.getMixDataJson(j); },
+                     [&] { return traceDescribeJson(j); });
+    }
+
+    // ---- 状态 ----
+    {
+        MachineState state{};
+        traceGet("getMachineState", "out=MachineState", press, state,
+                 [&] { return press.getMachineState(state); });
+    }
+
+    // ---- 压力单值/索引（getter）----
+    {
+        uint8_t v = 0;
+        traceGet("getPressStepCount", "out=uint8", press, v,
+                 [&] { return press.getPressStepCount(v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getCalibrationValue", "out=float", press, v,
+                 [&] { return press.getCalibrationValue(v); });
+    }
+    {
+        uint8_t v = 0;
+        traceGet("getModeType", "out=uint8", press, v, [&] { return press.getModeType(v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getCircle", "out=float", press, v, [&] { return press.getCircle(v); });
+    }
+    {
+        float a = 0.0f;
+        float b = 0.0f;
+        traceCallOut("getRectangle", "out=a,b", press,
+                     [&] { return press.getRectangle(a, b); },
+                     [&] {
+                         char buf[64];
+                         std::snprintf(buf, sizeof(buf), "a=%.1f,b=%.1f", a, b);
+                         return std::string(buf);
+                     });
+    }
+    {
+        uint8_t v = 0;
+        traceGet("getAirTime", "out=uint8", press, v, [&] { return press.getAirTime(v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getPressValueIndex", "index=0", press, v,
+                 [&] { return press.getPressValueIndex(0, v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getAfterValueIndex", "index=0", press, v,
+                 [&] { return press.getAfterValueIndex(0, v); });
+    }
+    {
+        int32_t v = 0;
+        traceGet("getKeepPressTime", "index=0", press, v,
+                 [&] { return press.getKeepPressTime(0, v); });
+    }
+    {
+        PressStepParameter p{};
+        traceGet("getPressStepParameter", "index=0", press, p,
+                 [&] { return press.getPressStepParameter(0, p); });
+    }
+
+    // ---- 温度单值/索引（getter）----
+    {
+        uint8_t v = 0;
+        traceGet("getTempStepCount", "out=uint8", press, v,
+                 [&] { return press.getTempStepCount(v); });
+    }
+    {
+        uint8_t v = 0;
+        traceGet("getTempSpeedMold", "out=uint8", press, v,
+                 [&] { return press.getTempSpeedMold(v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getStartTempIndex", "index=0", press, v,
+                 [&] { return press.getStartTempIndex(0, v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getTempSpeedIndex", "index=0", press, v,
+                 [&] { return press.getTempSpeedIndex(0, v); });
+    }
+    {
+        int32_t v = 0;
+        traceGet("getKeepTempTime", "index=0", press, v,
+                 [&] { return press.getKeepTempTime(0, v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getMaxWaterValue", "out=float", press, v,
+                 [&] { return press.getMaxWaterValue(v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getMinWaterValue", "out=float", press, v,
+                 [&] { return press.getMinWaterValue(v); });
+    }
+    {
+        TempStepParameter p{};
+        traceGet("getTempStepParameter", "index=0", press, p,
+                 [&] { return press.getTempStepParameter(0, p); });
+    }
+
+    // ---- 混合模式（getter）----
+    {
+        uint8_t v = 0;
+        traceGet("getMixStepCount", "out=uint8", press, v,
+                 [&] { return press.getMixStepCount(v); });
+    }
+    {
+        uint8_t v = 0;
+        traceGet("getMixMoldType", "out=uint8", press, v,
+                 [&] { return press.getMixMoldType(v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getMixCircle", "out=float", press, v,
+                 [&] { return press.getMixCircle(v); });
+    }
+    {
+        float a = 0.0f;
+        float b = 0.0f;
+        traceCallOut("getMixRectangle", "out=a,b", press,
+                     [&] { return press.getMixRectangle(a, b); },
+                     [&] {
+                         char buf[64];
+                         std::snprintf(buf, sizeof(buf), "a=%.1f,b=%.1f", a, b);
+                         return std::string(buf);
+                     });
+    }
+    {
+        bool v = false;
+        traceGet("getMixIsPressIndex", "index=0", press, v,
+                 [&] { return press.getMixIsPressIndex(0, v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getMixPressIndex", "index=0", press, v,
+                 [&] { return press.getMixPressIndex(0, v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getMixAfterPressIndex", "index=0", press, v,
+                 [&] { return press.getMixAfterPressIndex(0, v); });
+    }
+    {
+        bool v = false;
+        traceGet("getMixIsHeatUpIndex", "index=0", press, v,
+                 [&] { return press.getMixIsHeatUpIndex(0, v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getMixHeatUpIndex", "index=0", press, v,
+                 [&] { return press.getMixHeatUpIndex(0, v); });
+    }
+    {
+        bool v = false;
+        traceGet("getMixIsHeatDownIndex", "index=0", press, v,
+                 [&] { return press.getMixIsHeatDownIndex(0, v); });
+    }
+    {
+        float v = 0.0f;
+        traceGet("getMixHeatDownIndex", "index=0", press, v,
+                 [&] { return press.getMixHeatDownIndex(0, v); });
+    }
+    {
+        int32_t v = 0;
+        traceGet("getMixKeepTime", "index=0", press, v,
+                 [&] { return press.getMixKeepTime(0, v); });
+    }
+    {
+        MixStepParameter p{};
+        traceGet("getMixStepParameter", "index=0", press, p,
+                 [&] { return press.getMixStepParameter(0, p); });
+    }
+
+    // ---- 系统（getter）----
+    {
+        DateTimeInfo t{};
+        traceGet("getDateTime", "out=DateTimeInfo", press, t,
+                 [&] { return press.getDateTime(t); });
+    }
+    {
+        uint8_t v = 0;
+        traceGet("getBrightness", "out=uint8", press, v,
+                 [&] { return press.getBrightness(v); });
+    }
+    {
+        bool v = false;
+        traceGet("getButtonSound", "out=bool", press, v,
+                 [&] { return press.getButtonSound(v); });
+    }
+    {
+        uint8_t v = 0;
+        traceGet("getLanguage", "out=uint8", press, v,
+                 [&] { return press.getLanguage(v); });
+    }
+
+    // ---- 设置命令（读出后原值写回，入参为实际写入值）----
+    traceByteSetter(press, "setPressStepCount",
+                    [&](uint8_t& v) { return press.getPressStepCount(v); },
+                    [&](uint8_t v) { return press.setPressStepCount(v); });
+    traceFloatSetter(press, "setCalibrationValue",
+                     [&](float& v) { return press.getCalibrationValue(v); },
+                     [&](float v) { return press.setCalibrationValue(v); });
+    traceByteSetter(press, "setModeType",
+                    [&](uint8_t& v) { return press.getModeType(v); },
+                    [&](uint8_t v) { return press.setModeType(v); });
+    traceFloatSetter(press, "setCircle",
+                     [&](float& v) { return press.getCircle(v); },
+                     [&](float v) { return press.setCircle(v); });
+    {
+        float a = 0.0f;
+        float b = 0.0f;
+        char param[64];
+        if (press.getRectangle(a, b))
+        {
+            std::snprintf(param, sizeof(param), "a=%.1f b=%.1f (原值写回)", a, b);
+            traceCall("setRectangle", param, press, [&] { return press.setRectangle(a, b); });
+        }
+        else
+        {
+            traceCall("setRectangle", "read-back failed", press, [&] { return false; });
+        }
+    }
+    traceByteSetter(press, "setAirTime",
+                    [&](uint8_t& v) { return press.getAirTime(v); },
+                    [&](uint8_t v) { return press.setAirTime(v); });
+    traceIndexedFloatSetter(press, "setPressValueIndex",
+                            [&](uint8_t i, float& v) { return press.getPressValueIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setPressValueIndex(i, v); });
+    traceIndexedFloatSetter(press, "setAfterValueIndex",
+                            [&](uint8_t i, float& v) { return press.getAfterValueIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setAfterValueIndex(i, v); });
+    traceIndexedInt32Setter(press, "setKeepPressTime",
+                            [&](uint8_t i, int32_t& v) { return press.getKeepPressTime(i, v); },
+                            [&](uint8_t i, int32_t v) { return press.setKeepPressTime(i, v); });
+    {
+        PressStepParameter p{};
+        if (press.getPressStepParameter(0, p))
+        {
+            traceCall("setPressStepParameter", "index=0 (原值写回)", press,
+                      [&] { return press.setPressStepParameter(0, p); });
+        }
+        else
+        {
+            traceCall("setPressStepParameter", "index=0 read-back failed", press,
+                      [&] { return false; });
+        }
+    }
+
+    traceByteSetter(press, "setTempStepCount",
+                    [&](uint8_t& v) { return press.getTempStepCount(v); },
+                    [&](uint8_t v) { return press.setTempStepCount(v); });
+    traceByteSetter(press, "setTempSpeedMold",
+                    [&](uint8_t& v) { return press.getTempSpeedMold(v); },
+                    [&](uint8_t v) { return press.setTempSpeedMold(v); });
+    traceIndexedFloatSetter(press, "setTempIndex",
+                            [&](uint8_t i, float& v) { return press.getStartTempIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setTempIndex(i, v); });
+    traceIndexedFloatSetter(press, "setTempSpeedIndex",
+                            [&](uint8_t i, float& v) { return press.getTempSpeedIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setTempSpeedIndex(i, v); });
+    traceIndexedInt32Setter(press, "setKeepTempTime",
+                            [&](uint8_t i, int32_t& v) { return press.getKeepTempTime(i, v); },
+                            [&](uint8_t i, int32_t v) { return press.setKeepTempTime(i, v); });
+    traceFloatSetter(press, "setMaxWaterValue",
+                     [&](float& v) { return press.getMaxWaterValue(v); },
+                     [&](float v) { return press.setMaxWaterValue(v); });
+    traceFloatSetter(press, "setMinWaterValue",
+                     [&](float& v) { return press.getMinWaterValue(v); },
+                     [&](float v) { return press.setMinWaterValue(v); });
+
+    traceByteSetter(press, "setMixStepCount",
+                    [&](uint8_t& v) { return press.getMixStepCount(v); },
+                    [&](uint8_t v) { return press.setMixStepCount(v); });
+    traceByteSetter(press, "setMixMoldType",
+                    [&](uint8_t& v) { return press.getMixMoldType(v); },
+                    [&](uint8_t v) { return press.setMixMoldType(v); });
+    traceFloatSetter(press, "setMixCircle",
+                     [&](float& v) { return press.getMixCircle(v); },
+                     [&](float v) { return press.setMixCircle(v); });
+    {
+        float a = 0.0f;
+        float b = 0.0f;
+        char param[64];
+        if (press.getMixRectangle(a, b))
+        {
+            std::snprintf(param, sizeof(param), "a=%.1f b=%.1f (原值写回)", a, b);
+            traceCall("setMixRectangle", param, press, [&] { return press.setMixRectangle(a, b); });
+        }
+        else
+        {
+            traceCall("setMixRectangle", "read-back failed", press, [&] { return false; });
+        }
+    }
+    {
+        bool v = false;
+        if (press.getMixIsPressIndex(0, v))
+        {
+            traceCall("setMixIsPressIndex", v ? "index=0 value=true" : "index=0 value=false",
+                      press, [&] { return press.setMixIsPressIndex(0, v); });
+        }
+        else
+        {
+            traceCall("setMixIsPressIndex", "index=0 read-back failed", press,
+                      [&] { return false; });
+        }
+    }
+    traceIndexedFloatSetter(press, "setMixPressIndex",
+                            [&](uint8_t i, float& v) { return press.getMixPressIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setMixPressIndex(i, v); });
+    traceIndexedFloatSetter(press, "setMixAfterPressIndex",
+                            [&](uint8_t i, float& v) { return press.getMixAfterPressIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setMixAfterPressIndex(i, v); });
+    {
+        bool v = false;
+        if (press.getMixIsHeatUpIndex(0, v))
+        {
+            traceCall("setMixIsHeatUpIndex", v ? "index=0 value=true" : "index=0 value=false",
+                      press, [&] { return press.setMixIsHeatUpIndex(0, v); });
+        }
+        else
+        {
+            traceCall("setMixIsHeatUpIndex", "index=0 read-back failed", press,
+                      [&] { return false; });
+        }
+    }
+    traceIndexedFloatSetter(press, "setMixHeatUpIndex",
+                            [&](uint8_t i, float& v) { return press.getMixHeatUpIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setMixHeatUpIndex(i, v); });
+    {
+        bool v = false;
+        if (press.getMixIsHeatDownIndex(0, v))
+        {
+            traceCall("setMixIsHeatDownIndex", v ? "index=0 value=true" : "index=0 value=false",
+                      press, [&] { return press.setMixIsHeatDownIndex(0, v); });
+        }
+        else
+        {
+            traceCall("setMixIsHeatDownIndex", "index=0 read-back failed", press,
+                      [&] { return false; });
+        }
+    }
+    traceIndexedFloatSetter(press, "setMixHeatDownIndex",
+                            [&](uint8_t i, float& v) { return press.getMixHeatDownIndex(i, v); },
+                            [&](uint8_t i, float v) { return press.setMixHeatDownIndex(i, v); });
+    traceIndexedInt32Setter(press, "setMixKeepTime",
+                            [&](uint8_t i, int32_t& v) { return press.getMixKeepTime(i, v); },
+                            [&](uint8_t i, int32_t v) { return press.setMixKeepTime(i, v); });
+    {
+        TempStepParameter p{};
+        if (press.getTempStepParameter(0, p))
+        {
+            traceCall("setTempStepParameter", "index=0 (原值写回)", press,
+                      [&] { return press.setTempStepParameter(0, p); });
+        }
+        else
+        {
+            traceCall("setTempStepParameter", "index=0 read-back failed", press,
+                      [&] { return false; });
+        }
+    }
+    {
+        MixStepParameter p{};
+        if (press.getMixStepParameter(0, p))
+        {
+            traceCall("setMixStepParameter", "index=0 (原值写回)", press,
+                      [&] { return press.setMixStepParameter(0, p); });
+        }
+        else
+        {
+            traceCall("setMixStepParameter", "index=0 read-back failed", press,
+                      [&] { return false; });
+        }
+    }
+
+    // ---- 系统设置（原值写回）----
+    {
+        DateTimeInfo t{};
+        if (press.getDateTime(t))
+        {
+            traceCall("setDateTime", "原值写回", press, [&] { return press.setDateTime(t); });
+        }
+        else
+        {
+            traceCall("setDateTime", "read-back failed", press, [&] { return false; });
+        }
+    }
+    traceByteSetter(press, "setBrightness",
+                    [&](uint8_t& v) { return press.getBrightness(v); },
+                    [&](uint8_t v) { return press.setBrightness(v); });
+    traceBoolSetter(press, "setButtonSound",
+                    [&](bool& v) { return press.getButtonSound(v); },
+                    [&](bool v) { return press.setButtonSound(v); });
+    traceByteSetter(press, "setLanguage",
+                    [&](uint8_t& v) { return press.getLanguage(v); },
+                    [&](uint8_t v) { return press.setLanguage(v); });
+
+    // ---- JSON 写入（原值写回）----
+    {
+        std::string j;
+        if (press.getPressDataJson(j))
+        {
+            char param[64];
+            std::snprintf(param, sizeof(param), "json=%zuB (原值写回)", j.size());
+            traceCall("setPressDataJson", param, press, [&] { return press.setPressDataJson(j); });
+        }
+        else
+        {
+            traceCall("setPressDataJson", "read-back failed", press, [&] { return false; });
+        }
+    }
+    {
+        std::string j;
+        if (press.getTempDataJson(j))
+        {
+            char param[64];
+            std::snprintf(param, sizeof(param), "json=%zuB (原值写回)", j.size());
+            traceCall("setTempDataJson", param, press, [&] { return press.setTempDataJson(j); });
+        }
+        else
+        {
+            traceCall("setTempDataJson", "read-back failed", press, [&] { return false; });
+        }
+    }
+    {
+        std::string j;
+        if (press.getMixDataJson(j))
+        {
+            char param[64];
+            std::snprintf(param, sizeof(param), "json=%zuB (原值写回)", j.size());
+            traceCall("setMixDataJson", param, press, [&] { return press.setMixDataJson(j); });
+        }
+        else
+        {
+            traceCall("setMixDataJson", "read-back failed", press, [&] { return false; });
+        }
+    }
+
+    // ---- 运行控制（真实动作，空载）----
+    forceIdle(press);
+    MachineState st{};
+    uint8_t originalMode = 0;
+    if (press.getMachineState(st))
+    {
+        originalMode = st.m_ModelState;
+    }
+    if (originalMode != 2)
+    {
+        char param[32];
+        std::snprintf(param, sizeof(param), "target=2 (原模式 %u)", static_cast<unsigned>(originalMode));
+        traceCall("selectModelState", param, press, [&] { return press.selectModelState(2); });
+        waitForMode(press, 2, 2000);
+    }
+
+    traceCall("setStartHeat", "true", press, [&] { return press.setStartHeat(true); });
+    const bool heatOn = waitForFlag(press, 0x02, true, 8000);
+    traceCall("setStartHeat", "false", press, [&] { return press.setStartHeat(false); });
+    const bool heatOff = waitForFlag(press, 0x02, false, 5000);
+    std::printf("  [check] setStartHeat flag on=%s off=%s\n",
+                heatOn ? "ok" : "fail", heatOff ? "ok" : "fail");
+
+    forceIdle(press);
+    traceCall("setPressing", "true", press, [&] { return press.setPressing(true); });
+    const bool pressOn = waitForFlag(press, 0x01, true, 3000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(800));
+    traceCall("setPressing", "false", press, [&] { return press.setPressing(false); });
+    const bool pressOff = waitForFlag(press, 0x01, false, 5000);
+    std::printf("  [check] setPressing flag on=%s off=%s\n",
+                pressOn ? "ok" : "fail", pressOff ? "ok" : "fail");
+
+    forceIdle(press);
+    traceCall("setDemolding", "true", press, [&] { return press.setDemolding(true); });
+    traceCall("setDemolding", "false", press, [&] { return press.setDemolding(false); });
+
+    forceIdle(press);
+    traceCall("setStart", "true", press, [&] { return press.setStart(true); });
+    const bool active = waitForActive(press, 10000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    traceCall("setStart", "false", press, [&] { return press.setStart(false); });
+    bool idle = waitForIdle(press, 12000);
+    if (!idle)
+    {
+        press.setPressing(false);
+        press.setStartHeat(false);
+        idle = waitForIdle(press, 5000);
+    }
+    std::printf("  [check] setStart active=%s idle=%s\n",
+                active ? "ok" : "none", idle ? "ok" : "fail");
+
+    if (originalMode != 0)
+    {
+        char param[32];
+        std::snprintf(param, sizeof(param), "target=%u (恢复原模式)", static_cast<unsigned>(originalMode));
+        traceCall("selectModelState", param, press, [&] { return press.selectModelState(originalMode); });
+        waitForMode(press, originalMode, 2000);
+    }
+    forceIdle(press);
+
+    std::printf("\n  trace summary: %d calls, %d failed\n", g_traceTotal, g_traceFail);
+}
+
 //! set 类基准：读出当前值后原值写回 / Read current value then write it back
 template <typename GetFn, typename SetFn>
 void benchSetter(Press& press, const char* name, GetFn&& get, SetFn&& set)
@@ -487,6 +1480,10 @@ void usage()
     std::printf("Usage:\n");
     std::printf("  press_cpp_test serial <port>        e.g. serial COM3\n");
     std::printf("  press_cpp_test tcp <host:port>      e.g. tcp 192.168.1.100:9000\n\n");
+    std::printf("  press_cpp_test serial <port> startstop   # 仅执行启停分项测试\n");
+    std::printf("                                           # start/stop cases only\n");
+    std::printf("  press_cpp_test serial <port> traceall    # 全接口逐调用追踪（入参/返回值/耗时）\n");
+    std::printf("                                           # per-call trace for all interfaces\n\n");
 
     const auto ports = Press::getPortList();
     if (ports.empty())
@@ -535,6 +1532,23 @@ int main(int argc, char* argv[])
     {
         std::printf("Connect failed, abort. err: %s\n", press.getLastErrorInfo());
         return 1;
+    }
+
+    // 可选模式：仅执行启停分项测试（第三参数 startstop）
+    const std::string runMode = (argc >= 4) ? argv[3] : std::string();
+    if (runMode == "startstop")
+    {
+        runStartStopCases(press);
+        press.disconnect();
+        return 0;
+    }
+
+    // 可选模式：全接口逐调用追踪（每个接口 1 次，打印入参/返回值/耗时，hex 由 PRESS_HEX_TRACE 输出）
+    if (runMode == "traceall")
+    {
+        runInterfaceTrace(press);
+        press.disconnect();
+        return 0;
     }
 
     // ==================== 2. 回调注册 + 1 秒定时采集 ====================

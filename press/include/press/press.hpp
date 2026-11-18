@@ -694,7 +694,8 @@ public:
     //! Start or stop demolding only.
     //! @param isDemolding true to start demolding, false to stop.
     //! @return true on success / 单独启动或停止脱模。
-    //! 注意：当前固件尚未实现 CMDID_SET_START_DEMOLD (0x1523)，调用会返回失败/超时。
+    //! 适用机型：自动压片机可用；自动热压机不可用（固件未实现 CMDID_SET_START_DEMOLD 0x1523，调用返回失败）。
+    //! Device support: available on automatic tablet press, NOT available on automatic hot press.
     bool setDemolding(bool isDemolding);
 
     //! Start or stop heating (CMDID_SET_START_HEAT).

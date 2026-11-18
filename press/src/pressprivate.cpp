@@ -8,6 +8,8 @@
 #include "common/unity.h"
 #include "presstype.h"
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
 #include <thread>
 #include <iostream>
 #include <cassert>
@@ -49,6 +51,37 @@ const char* errorToString(MachineError err)
     case MachineError::FrameTooLong:        return "Request payload exceeds protocol limit";
     default:                                return "Unknown error";
     }
+}
+
+//! 原始收发帧十六进制追踪开关：仅当环境变量 PRESS_HEX_TRACE 非空且不为 "0" 时输出
+bool hexTraceEnabled()
+{
+    static const bool enabled = []
+    {
+        const char* value = std::getenv("PRESS_HEX_TRACE");
+        return value != nullptr && value[0] != '\0' && std::strcmp(value, "0") != 0;
+    }();
+    return enabled;
+}
+
+//! 以单行形式输出整帧十六进制 / Dump a complete raw frame as one hex line
+void traceFrameHex(const char* direction, uint16_t command, const std::vector<uint8_t>& frame)
+{
+    if (!hexTraceEnabled())
+    {
+        return;
+    }
+    char head[64];
+    std::snprintf(head, sizeof(head), "[hex] %s cmd=0x%04X len=%zu :", direction, command, frame.size());
+    std::string line = head;
+    char hex[4];
+    for (uint8_t byte : frame)
+    {
+        std::snprintf(hex, sizeof(hex), " %02X", byte);
+        line += hex;
+    }
+    std::printf("%s\n", line.c_str());
+    std::fflush(stdout);
 }
 } // namespace
 
@@ -602,6 +635,7 @@ void PressPrivate::_startScheduler()
             mpPort->flushInput();
 
             std::vector<uint8_t> sendData = _buildSendFrame(request);
+            traceFrameHex("TX", request.m_Command, sendData);
             auto writeRet = mpPort->write(sendData.data(), sendData.size());
             if (writeRet != sendData.size())
             {
@@ -647,6 +681,7 @@ void PressPrivate::_startScheduler()
                     if (rawResponse[frameLen - 1] == expect)
                     {
                         rawResponse.resize(frameLen);  // 截掉帧后可能混入的多余字节
+                        traceFrameHex("RX", request.m_Command, rawResponse);
                         frameReady = true;
                     }
                     else

@@ -1,0 +1,605 @@
+﻿Press SDK version: 1.0.0
+[hex] TX cmd=0x0000 len=14 : 00 00 00 00 00 00 00 00 00 00 00 01 00 01
+[hex] RX cmd=0x0000 len=17 : 30 55 45 17 B4 A4 63 E4 00 00 00 04 01 03 01 05 8E
+[PASS] connect
+  connect latency: 70.6 ms (includes version handshake)
+
+================ trace: all interfaces (1 call each) ================
+  raw frame hex: set PRESS_HEX_TRACE=1
+  [trace] isConnected                param=-                          ret=true  out="value=true" err="No error" 0.0 ms
+  [trace] getMachineRegisterNo       param=-                          ret=true  out="value=3482765854958183396" err="No error" 0.0 ms
+  [trace] isRunning                  param=-                          ret=true  out="value=true" err="No error" 0.0 ms
+  [trace] getLastErrorInfo           param=-                          ret=true  out="value=No error" err="No error" 0.0 ms
+  [trace] Press::version             param=-                          ret=true  out="value=1.0.0" err="No error" 0.0 ms
+  [trace] Press::getPortList         param=-                          ret=true  out="count=1,first=COM4" err="No error" 4.7 ms
+[hex] TX cmd=0x0001 len=14 : 30 55 45 17 B4 A4 63 E4 00 01 00 01 00 82
+[hex] RX cmd=0x0001 len=29 : 30 55 45 17 B4 A4 63 E4 00 01 00 10 01 E8 87 AA E5 8A A8 E7 83 AD E5 8E 8B E6 9C BA 13
+  [trace] getName                    param=lang=0                     ret=true  out="value=自动热压机" err="No error" 41.9 ms
+[hex] TX cmd=0x0002 len=14 : 30 55 45 17 B4 A4 63 E4 00 02 00 01 00 83
+[hex] RX cmd=0x0002 len=17 : 30 55 45 17 B4 A4 63 E4 00 02 00 04 54 59 50 45 C8
+  [trace] getMachineType             param=out=string                 ret=true  out="value=TYPE" err="No error" 45.9 ms
+[hex] TX cmd=0x0003 len=14 : 30 55 45 17 B4 A4 63 E4 00 03 00 01 00 84
+[hex] RX cmd=0x0003 len=19 : 30 55 45 17 B4 A4 63 E4 00 03 00 06 41 53 44 31 32 33 F7
+  [trace] getSerialNumber            param=out=string                 ret=true  out="value=ASD123" err="No error" 45.8 ms
+[hex] TX cmd=0x0004 len=14 : 30 55 45 17 B4 A4 63 E4 00 04 00 01 00 85
+[hex] RX cmd=0x0004 len=34 : 30 55 45 17 B4 A4 63 E4 00 04 00 15 00 00 F0 41 00 00 00 3F 9A 99 99 3E 00 00 DC 42 1E 01 02 00 00 52
+  [trace] getPressParameter          param=out=PressParameter         ret=true  out="maxP=30.0,minP=0.5,maxStep=30" err="No error" 62.2 ms
+[hex] TX cmd=0x0005 len=14 : 30 55 45 17 B4 A4 63 E4 00 05 00 01 00 86
+[hex] RX cmd=0x0005 len=25 : 30 55 45 17 B4 A4 63 E4 00 05 00 0C 00 00 9B 43 00 00 C8 41 1E 01 01 00 98
+  [trace] getTempParameter           param=out=TempParameter          ret=true  out="maxT=310.0,minT=25.0,maxStep=30" err="No error" 45.9 ms
+[hex] TX cmd=0x0006 len=14 : 30 55 45 17 B4 A4 63 E4 00 06 00 01 00 87
+[hex] RX cmd=0x0006 len=18 : 30 55 45 17 B4 A4 63 E4 00 06 00 05 00 03 00 01 02 91
+  [trace] getOtherInfo               param=out=OtherInfo              ret=true  out="startDelay=3,remote=1" err="No error" 47.6 ms
+[hex] TX cmd=0x00FF len=14 : 30 55 45 17 B4 A4 63 E4 00 FF 00 01 00 80
+[hex] RX cmd=0x00FF len=383 : 30 55 45 17 B4 A4 63 E4 00 FF 01 72 7B 22 4E 61 6D 65 5A 48 22 3A 22 22 2C 22 4E 61 6D 65 45 4E 22 3A 22 22 2C 22 54 79 70 65 22 3A 22 54 59 50 45 22 2C 22 53 63 72 65 65 6E 73 68 6F 74 22 3A 30 2C 22 53 74 61 72 74 44 65 6C 61 79 22 3A 33 2C 22 56 65 72 73 69 6F 6E 54 79 70 65 22 3A 32 2C 22 53 65 72 69 61 6C 4E 75 6D 62 65 72 22 3A 22 41 53 44 31 32 33 22 2C 22 49 73 48 69 64 65 4C 61 6E 67 22 3A 30 2C 22 52 65 6D 6F 74 65 22 3A 31 2C 22 4E 65 74 77 6F 72 6B 22 3A 30 2C 22 4D 61 78 50 53 74 65 70 22 3A 33 30 2C 22 4D 61 78 50 4C 69 6D 69 74 22 3A 33 30 2E 30 2C 22 4D 69 6E 50 4C 69 6D 69 74 22 3A 30 2E 35 2C 22 4D 61 78 5F 4D 69 6E 22 3A 30 2E 33 2C 22 44 69 61 6D 65 74 65 72 22 3A 31 31 30 2E 30 2C 22 50 44 65 63 69 6D 61 6C 22 3A 31 2C 22 50 72 65 73 73 44 65 63 69 6D 61 6C 22 3A 32 2C 22 50 4D 6F 64 65 6C 22 3A 30 2C 22 4F 75 74 54 79 70 65 22 3A 30 2C 22 4D 61 78 54 53 74 65 70 22 3A 33 30 2C 22 4D 61 78 54 4C 69 6D 69 74 22 3A 33 31 30 2E 30 2C 22 4D 69 6E 54 4C 69 6D 69 74 22 3A 32 35 2E 30 2C 22 54 44 65 63 69 6D 61 6C 22 3A 31 2C 22 49 73 48 61 73 57 61 74 65 72 22 3A 31 2C 22 49 73 48 61 73 53 70 65 65 64 22 3A 30 7D 89
+  [trace] getReadOnlyDataJson        param=compressed=false           ret=true  out="json=370B" err="No error" 77.8 ms
+[hex] TX cmd=0x01FF len=14 : 30 55 45 17 B4 A4 63 E4 01 FF 00 01 00 81
+[hex] RX cmd=0x01FF len=533 : 30 55 45 17 B4 A4 63 E4 01 FF 02 08 7B 22 50 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 43 68 65 63 6B 56 61 6C 75 65 22 3A 30 2E 30 2C 22 41 69 72 54 69 6D 65 22 3A 31 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 30 2E 37 2C 31 2E 37 2C 32 2E 37 2C 33 2E 37 2C 34 2E 37 2C 35 2E 37 2C 36 2E 37 2C 37 2E 37 2C 38 2E 37 2C 39 2E 37 2C 31 30 2E 37 2C 31 31 2E 37 2C 31 32 2E 37 2C 31 33 2E 37 2C 31 34 2E 37 2C 31 35 2E 37 2C 31 36 2E 37 2C 31 37 2E 37 2C 31 38 2E 37 2C 31 39 2E 37 2C 32 30 2E 37 2C 32 31 2E 37 2C 32 32 2E 37 2C 32 33 2E 37 2C 32 34 2E 37 2C 32 35 2E 37 2C 32 36 2E 37 2C 32 37 2E 37 2C 32 38 2E 37 2C 32 39 2E 37 5D 2C 22 4B 50 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 1E
+  [trace] getPressDataJson           param=compressed=false           ret=true  out="json=520B" err="No error" 62.0 ms
+[hex] TX cmd=0x05FF len=14 : 30 55 45 17 B4 A4 63 E4 05 FF 00 01 00 85
+[hex] RX cmd=0x05FF len=237 : 30 55 45 17 B4 A4 63 E4 05 FF 00 E0 7B 22 4D 6F 64 65 6C 53 74 61 74 65 22 3A 32 2C 22 49 73 50 53 74 61 72 74 22 3A 30 2C 22 49 73 54 53 74 61 72 74 22 3A 30 2C 22 49 73 54 31 53 74 61 72 74 22 3A 30 2C 22 43 50 53 74 65 70 22 3A 30 2C 22 43 54 53 74 65 70 22 3A 30 2C 22 43 54 31 53 74 65 70 22 3A 30 2C 22 50 56 61 6C 75 65 22 3A 38 2E 39 30 35 2C 22 4D 6F 6C 64 50 72 65 73 73 75 72 65 22 3A 30 2E 31 32 30 32 2C 22 54 55 70 56 61 6C 75 65 22 3A 32 33 2E 32 39 2C 22 54 44 6F 77 6E 56 61 6C 75 65 22 3A 30 2E 34 35 36 37 2C 22 50 54 69 6D 65 22 3A 36 30 30 2C 22 54 54 69 6D 65 22 3A 35 30 30 2C 22 54 31 54 69 6D 65 22 3A 30 2C 22 49 73 41 69 72 22 3A 30 2C 22 46 6C 6F 77 43 68 61 6E 67 65 22 3A 30 7D 32
+  [trace] getRealTimeDataJson        param=compressed=false           ret=true  out="json=224B" err="No error" 30.4 ms
+[hex] TX cmd=0x02FF len=14 : 30 55 45 17 B4 A4 63 E4 02 FF 00 01 00 82
+[hex] RX cmd=0x02FF len=507 : 30 55 45 17 B4 A4 63 E4 02 FF 01 EE 7B 22 54 53 74 65 70 22 3A 35 2C 22 54 79 70 65 22 3A 30 2C 22 4D 69 6E 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 4D 61 78 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 53 74 61 72 74 54 65 6D 70 22 3A 5B 33 30 2E 30 2C 33 35 2E 30 2C 34 30 2E 30 2C 34 35 2E 30 2C 35 30 2E 30 2C 35 35 2E 30 2C 36 30 2E 30 2C 36 35 2E 30 2C 37 30 2E 30 2C 37 35 2E 30 2C 38 30 2E 30 2C 38 35 2E 30 2C 39 30 2E 30 2C 39 35 2E 30 2C 31 30 30 2E 30 2C 31 30 35 2E 30 2C 31 31 30 2E 30 2C 31 31 35 2E 30 2C 31 32 30 2E 30 2C 31 32 35 2E 30 2C 31 33 30 2E 30 2C 31 33 35 2E 30 2C 31 34 30 2E 30 2C 31 34 35 2E 30 2C 31 35 30 2E 30 2C 31 35 35 2E 30 2C 31 36 30 2E 30 2C 31 36 35 2E 30 2C 31 37 30 2E 30 2C 31 37 35 2E 30 5D 2C 22 53 70 65 65 64 22 3A 5B 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 5D 2C 22 4B 54 54 69 6D 65 22 3A 5B 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 5D 7D 0A 3B
+  [trace] getTempDataJson            param=compressed=false           ret=true  out="json=494B" err="No error" 78.1 ms
+[hex] TX cmd=0x03FF len=14 : 30 55 45 17 B4 A4 63 E4 03 FF 00 01 00 83
+[hex] RX cmd=0x03FF len=1090 : 30 55 45 17 B4 A4 63 E4 03 FF 04 35 7B 22 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 49 73 50 72 65 73 73 22 3A 5B 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 5D 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 49 73 55 70 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 55 70 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 49 73 44 6F 77 6E 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 44 6F 77 6E 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 4B 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 0A 5D
+  [trace] getMixDataJson             param=compressed=false           ret=true  out="json=1077B" err="No error" 155.0 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 25 62 FD 40 1D 48 BA 41 98 D1 E9 3E 58 02 00 00 F4 01 00 00 00 A3
+  [trace] getMachineState            param=out=MachineState           ret=true  out="flags=0x00,model=2" err="No error" 61.6 ms
+[hex] TX cmd=0x0100 len=14 : 30 55 45 17 B4 A4 63 E4 01 00 00 01 00 82
+[hex] RX cmd=0x0100 len=14 : 30 55 45 17 B4 A4 63 E4 01 00 00 01 03 85
+  [trace] getPressStepCount          param=out=uint8                  ret=true  out="value=3" err="No error" 45.9 ms
+[hex] TX cmd=0x0101 len=14 : 30 55 45 17 B4 A4 63 E4 01 01 00 01 00 83
+[hex] RX cmd=0x0101 len=17 : 30 55 45 17 B4 A4 63 E4 01 01 00 04 00 00 00 00 86
+  [trace] getCalibrationValue        param=out=float                  ret=true  out="value=0.0" err="No error" 46.3 ms
+[hex] TX cmd=0x0102 len=14 : 30 55 45 17 B4 A4 63 E4 01 02 00 01 00 84
+[hex] RX cmd=0x0102 len=14 : 30 55 45 17 B4 A4 63 E4 01 02 00 01 01 85
+  [trace] getModeType                param=out=uint8                  ret=true  out="value=1" err="No error" 46.7 ms
+[hex] TX cmd=0x0103 len=14 : 30 55 45 17 B4 A4 63 E4 01 03 00 01 00 85
+[hex] RX cmd=0x0103 len=17 : 30 55 45 17 B4 A4 63 E4 01 03 00 04 00 00 C8 42 92
+  [trace] getCircle                  param=out=float                  ret=true  out="value=100.0" err="No error" 46.0 ms
+[hex] TX cmd=0x0104 len=14 : 30 55 45 17 B4 A4 63 E4 01 04 00 01 00 86
+[hex] RX cmd=0x0104 len=21 : 30 55 45 17 B4 A4 63 E4 01 04 00 08 00 00 C8 42 00 00 C8 42 A1
+  [trace] getRectangle               param=out=a,b                    ret=true  out="a=100.0,b=100.0" err="No error" 61.3 ms
+[hex] TX cmd=0x0106 len=14 : 30 55 45 17 B4 A4 63 E4 01 06 00 01 00 88
+[hex] RX cmd=0x0106 len=14 : 30 55 45 17 B4 A4 63 E4 01 06 00 01 01 89
+  [trace] getAirTime                 param=out=uint8                  ret=true  out="value=1" err="No error" 46.2 ms
+[hex] TX cmd=0x0107 len=14 : 30 55 45 17 B4 A4 63 E4 01 07 00 01 00 89
+[hex] RX cmd=0x0107 len=18 : 30 55 45 17 B4 A4 63 E4 01 07 00 05 00 00 00 80 3F 4C
+  [trace] getPressValueIndex         param=index=0                    ret=true  out="value=1.0" err="No error" 45.6 ms
+[hex] TX cmd=0x0108 len=14 : 30 55 45 17 B4 A4 63 E4 01 08 00 01 00 8A
+[hex] RX cmd=0x0108 len=18 : 30 55 45 17 B4 A4 63 E4 01 08 00 05 00 33 33 33 3F 66
+  [trace] getAfterValueIndex         param=index=0                    ret=true  out="value=0.7" err="No error" 61.3 ms
+[hex] TX cmd=0x0109 len=14 : 30 55 45 17 B4 A4 63 E4 01 09 00 01 00 8B
+[hex] RX cmd=0x0109 len=18 : 30 55 45 17 B4 A4 63 E4 01 09 00 05 00 58 02 00 00 E9
+  [trace] getKeepPressTime           param=index=0                    ret=true  out="value=600" err="No error" 46.1 ms
+[hex] TX cmd=0x010A len=14 : 30 55 45 17 B4 A4 63 E4 01 0A 00 01 00 8C
+[hex] RX cmd=0x010A len=26 : 30 55 45 17 B4 A4 63 E4 01 0A 00 0D 00 00 00 80 3F 33 33 33 3F 58 02 00 00 89
+  [trace] getPressStepParameter      param=index=0                    ret=true  out="setP=1.0,afterP=0.7,kp=600" err="No error" 46.4 ms
+[hex] TX cmd=0x0200 len=14 : 30 55 45 17 B4 A4 63 E4 02 00 00 01 00 83
+[hex] RX cmd=0x0200 len=14 : 30 55 45 17 B4 A4 63 E4 02 00 00 01 05 88
+  [trace] getTempStepCount           param=out=uint8                  ret=true  out="value=5" err="No error" 46.2 ms
+[hex] TX cmd=0x0201 len=14 : 30 55 45 17 B4 A4 63 E4 02 01 00 01 00 84
+[hex] RX cmd=0x0201 len=14 : 30 55 45 17 B4 A4 63 E4 02 01 00 01 00 84
+  [trace] getTempSpeedMold           param=out=uint8                  ret=true  out="value=0" err="No error" 61.2 ms
+[hex] TX cmd=0x0202 len=14 : 30 55 45 17 B4 A4 63 E4 02 02 00 01 00 85
+[hex] RX cmd=0x0202 len=18 : 30 55 45 17 B4 A4 63 E4 02 02 00 05 00 00 00 F0 41 BA
+  [trace] getStartTempIndex          param=index=0                    ret=true  out="value=30.0" err="No error" 46.5 ms
+[hex] TX cmd=0x0203 len=14 : 30 55 45 17 B4 A4 63 E4 02 03 00 01 00 86
+[hex] RX cmd=0x0203 len=18 : 30 55 45 17 B4 A4 63 E4 02 03 00 05 00 00 00 40 40 0A
+  [trace] getTempSpeedIndex          param=index=0                    ret=true  out="value=3.0" err="No error" 46.3 ms
+[hex] TX cmd=0x0204 len=14 : 30 55 45 17 B4 A4 63 E4 02 04 00 01 00 87
+[hex] RX cmd=0x0204 len=18 : 30 55 45 17 B4 A4 63 E4 02 04 00 05 00 F4 01 00 00 80
+  [trace] getKeepTempTime            param=index=0                    ret=true  out="value=500" err="No error" 45.9 ms
+[hex] TX cmd=0x0206 len=14 : 30 55 45 17 B4 A4 63 E4 02 06 00 01 00 89
+[hex] RX cmd=0x0206 len=17 : 30 55 45 17 B4 A4 63 E4 02 06 00 04 00 00 C8 41 95
+  [trace] getMaxWaterValue           param=out=float                  ret=true  out="value=25.0" err="No error" 61.6 ms
+[hex] TX cmd=0x0207 len=14 : 30 55 45 17 B4 A4 63 E4 02 07 00 01 00 8A
+[hex] RX cmd=0x0207 len=17 : 30 55 45 17 B4 A4 63 E4 02 07 00 04 00 00 C8 41 96
+  [trace] getMinWaterValue           param=out=float                  ret=true  out="value=25.0" err="No error" 46.7 ms
+[hex] TX cmd=0x0205 len=14 : 30 55 45 17 B4 A4 63 E4 02 05 00 01 00 88
+[hex] RX cmd=0x0205 len=26 : 30 55 45 17 B4 A4 63 E4 02 05 00 0D 00 00 00 F0 41 00 00 40 40 F4 01 00 00 3A
+  [trace] getTempStepParameter       param=index=0                    ret=true  out="temp=30.0,speed=3.0,kt=500" err="No error" 46.6 ms
+[hex] TX cmd=0x0300 len=14 : 30 55 45 17 B4 A4 63 E4 03 00 00 01 00 84
+[hex] RX cmd=0x0300 len=14 : 30 55 45 17 B4 A4 63 E4 03 00 00 01 03 87
+  [trace] getMixStepCount            param=out=uint8                  ret=true  out="value=3" err="No error" 46.8 ms
+[hex] TX cmd=0x0301 len=14 : 30 55 45 17 B4 A4 63 E4 03 01 00 01 00 85
+[hex] RX cmd=0x0301 len=14 : 30 55 45 17 B4 A4 63 E4 03 01 00 01 01 86
+  [trace] getMixMoldType             param=out=uint8                  ret=true  out="value=1" err="No error" 46.9 ms
+[hex] TX cmd=0x0302 len=14 : 30 55 45 17 B4 A4 63 E4 03 02 00 01 00 86
+[hex] RX cmd=0x0302 len=17 : 30 55 45 17 B4 A4 63 E4 03 02 00 04 00 00 C8 42 93
+  [trace] getMixCircle               param=out=float                  ret=true  out="value=100.0" err="No error" 62.2 ms
+[hex] TX cmd=0x0303 len=14 : 30 55 45 17 B4 A4 63 E4 03 03 00 01 00 87
+[hex] RX cmd=0x0303 len=21 : 30 55 45 17 B4 A4 63 E4 03 03 00 08 00 00 C8 42 00 00 C8 42 A2
+  [trace] getMixRectangle            param=out=a,b                    ret=true  out="a=100.0,b=100.0" err="No error" 46.2 ms
+[hex] TX cmd=0x0305 len=14 : 30 55 45 17 B4 A4 63 E4 03 05 00 01 00 89
+[hex] RX cmd=0x0305 len=15 : 30 55 45 17 B4 A4 63 E4 03 05 00 02 00 00 8A
+  [trace] getMixIsPressIndex         param=index=0                    ret=true  out="value=false" err="No error" 46.5 ms
+[hex] TX cmd=0x0306 len=14 : 30 55 45 17 B4 A4 63 E4 03 06 00 01 00 8A
+[hex] RX cmd=0x0306 len=18 : 30 55 45 17 B4 A4 63 E4 03 06 00 05 00 00 00 80 3F 4D
+  [trace] getMixPressIndex           param=index=0                    ret=true  out="value=1.0" err="No error" 46.9 ms
+[hex] TX cmd=0x0307 len=14 : 30 55 45 17 B4 A4 63 E4 03 07 00 01 00 8B
+[hex] RX cmd=0x0307 len=18 : 30 55 45 17 B4 A4 63 E4 03 07 00 05 00 00 00 80 3F 4E
+  [trace] getMixAfterPressIndex      param=index=0                    ret=true  out="value=1.0" err="No error" 61.5 ms
+[hex] TX cmd=0x0308 len=14 : 30 55 45 17 B4 A4 63 E4 03 08 00 01 00 8C
+[hex] RX cmd=0x0308 len=15 : 30 55 45 17 B4 A4 63 E4 03 08 00 02 00 01 8E
+  [trace] getMixIsHeatUpIndex        param=index=0                    ret=true  out="value=true" err="No error" 46.1 ms
+[hex] TX cmd=0x0309 len=14 : 30 55 45 17 B4 A4 63 E4 03 09 00 01 00 8D
+[hex] RX cmd=0x0309 len=18 : 30 55 45 17 B4 A4 63 E4 03 09 00 05 00 00 00 C8 41 9A
+  [trace] getMixHeatUpIndex          param=index=0                    ret=true  out="value=25.0" err="No error" 46.1 ms
+[hex] TX cmd=0x030A len=14 : 30 55 45 17 B4 A4 63 E4 03 0A 00 01 00 8E
+[hex] RX cmd=0x030A len=15 : 30 55 45 17 B4 A4 63 E4 03 0A 00 02 00 01 90
+  [trace] getMixIsHeatDownIndex      param=index=0                    ret=true  out="value=true" err="No error" 46.1 ms
+[hex] TX cmd=0x030B len=14 : 30 55 45 17 B4 A4 63 E4 03 0B 00 01 00 8F
+[hex] RX cmd=0x030B len=18 : 30 55 45 17 B4 A4 63 E4 03 0B 00 05 00 00 00 C8 41 9C
+  [trace] getMixHeatDownIndex        param=index=0                    ret=true  out="value=25.0" err="No error" 61.2 ms
+[hex] TX cmd=0x030C len=14 : 30 55 45 17 B4 A4 63 E4 03 0C 00 01 00 90
+[hex] RX cmd=0x030C len=18 : 30 55 45 17 B4 A4 63 E4 03 0C 00 05 00 58 02 00 00 EE
+  [trace] getMixKeepTime             param=index=0                    ret=true  out="value=600" err="No error" 46.2 ms
+[hex] TX cmd=0x030D len=14 : 30 55 45 17 B4 A4 63 E4 03 0D 00 01 00 91
+[hex] RX cmd=0x030D len=37 : 30 55 45 17 B4 A4 63 E4 03 0D 00 18 00 00 00 00 80 3F 00 00 80 3F 01 00 00 C8 41 01 00 00 C8 41 58 02 00 00 94
+  [trace] getMixStepParameter        param=index=0                    ret=true  out="isPress=0,setP=1.0,upTemp=25.0" err="No error" 46.5 ms
+[hex] TX cmd=0x0400 len=14 : 30 55 45 17 B4 A4 63 E4 04 00 00 01 00 85
+[hex] RX cmd=0x0400 len=19 : 30 55 45 17 B4 A4 63 E4 04 00 00 06 22 07 00 13 0B 7E 4F
+  [trace] getDateTime                param=out=DateTimeInfo           ret=true  out="2026-11-19 00:07:34" err="No error" 61.3 ms
+[hex] TX cmd=0x0401 len=14 : 30 55 45 17 B4 A4 63 E4 04 01 00 01 00 86
+[hex] RX cmd=0x0401 len=14 : 30 55 45 17 B4 A4 63 E4 04 01 00 01 4F D5
+  [trace] getBrightness              param=out=uint8                  ret=true  out="value=79" err="No error" 45.7 ms
+[hex] TX cmd=0x0402 len=14 : 30 55 45 17 B4 A4 63 E4 04 02 00 01 00 87
+[hex] RX cmd=0x0402 len=14 : 30 55 45 17 B4 A4 63 E4 04 02 00 01 00 87
+  [trace] getButtonSound             param=out=bool                   ret=true  out="value=false" err="No error" 45.8 ms
+[hex] TX cmd=0x0403 len=14 : 30 55 45 17 B4 A4 63 E4 04 03 00 01 00 88
+[hex] RX cmd=0x0403 len=14 : 30 55 45 17 B4 A4 63 E4 04 03 00 01 01 89
+  [trace] getLanguage                param=out=uint8                  ret=true  out="value=1" err="No error" 46.4 ms
+[hex] TX cmd=0x0100 len=14 : 30 55 45 17 B4 A4 63 E4 01 00 00 01 00 82
+[hex] RX cmd=0x0100 len=14 : 30 55 45 17 B4 A4 63 E4 01 00 00 01 03 85
+[hex] TX cmd=0x1100 len=14 : 30 55 45 17 B4 A4 63 E4 11 00 00 01 03 95
+[hex] RX cmd=0x1100 len=14 : 30 55 45 17 B4 A4 63 E4 11 00 00 01 03 95
+  [trace] setPressStepCount          param=value=3 (原值写回)     ret=true  out="-" err="No error" 45.9 ms
+[hex] TX cmd=0x0101 len=14 : 30 55 45 17 B4 A4 63 E4 01 01 00 01 00 83
+[hex] RX cmd=0x0101 len=17 : 30 55 45 17 B4 A4 63 E4 01 01 00 04 00 00 00 00 86
+[hex] TX cmd=0x1101 len=17 : 30 55 45 17 B4 A4 63 E4 11 01 00 04 00 00 00 00 96
+[hex] RX cmd=0x1101 len=17 : 30 55 45 17 B4 A4 63 E4 11 01 00 04 00 00 00 00 96
+  [trace] setCalibrationValue        param=value=0.000 (原值写回) ret=true  out="-" err="No error" 61.7 ms
+[hex] TX cmd=0x0102 len=14 : 30 55 45 17 B4 A4 63 E4 01 02 00 01 00 84
+[hex] RX cmd=0x0102 len=14 : 30 55 45 17 B4 A4 63 E4 01 02 00 01 01 85
+[hex] TX cmd=0x1102 len=14 : 30 55 45 17 B4 A4 63 E4 11 02 00 01 01 95
+[hex] RX cmd=0x1102 len=14 : 30 55 45 17 B4 A4 63 E4 11 02 00 01 01 95
+  [trace] setModeType                param=value=1 (原值写回)     ret=true  out="-" err="No error" 46.2 ms
+[hex] TX cmd=0x0103 len=14 : 30 55 45 17 B4 A4 63 E4 01 03 00 01 00 85
+[hex] RX cmd=0x0103 len=17 : 30 55 45 17 B4 A4 63 E4 01 03 00 04 00 00 C8 42 92
+[hex] TX cmd=0x1103 len=17 : 30 55 45 17 B4 A4 63 E4 11 03 00 04 00 00 C8 42 A2
+[hex] RX cmd=0x1103 len=17 : 30 55 45 17 B4 A4 63 E4 11 03 00 04 00 00 C8 42 A2
+  [trace] setCircle                  param=value=100.000 (原值写回) ret=true  out="-" err="No error" 45.7 ms
+[hex] TX cmd=0x0104 len=14 : 30 55 45 17 B4 A4 63 E4 01 04 00 01 00 86
+[hex] RX cmd=0x0104 len=21 : 30 55 45 17 B4 A4 63 E4 01 04 00 08 00 00 C8 42 00 00 C8 42 A1
+[hex] TX cmd=0x1104 len=21 : 30 55 45 17 B4 A4 63 E4 11 04 00 08 00 00 C8 42 00 00 C8 42 B1
+[hex] RX cmd=0x1104 len=21 : 30 55 45 17 B4 A4 63 E4 11 04 00 08 00 00 C8 42 00 00 C8 42 B1
+  [trace] setRectangle               param=a=100.0 b=100.0 (原值写回) ret=true  out="-" err="No error" 61.6 ms
+[hex] TX cmd=0x0106 len=14 : 30 55 45 17 B4 A4 63 E4 01 06 00 01 00 88
+[hex] RX cmd=0x0106 len=14 : 30 55 45 17 B4 A4 63 E4 01 06 00 01 01 89
+[hex] TX cmd=0x1106 len=14 : 30 55 45 17 B4 A4 63 E4 11 06 00 01 01 99
+[hex] RX cmd=0x1106 len=14 : 30 55 45 17 B4 A4 63 E4 11 06 00 01 01 99
+  [trace] setAirTime                 param=value=1 (原值写回)     ret=true  out="-" err="No error" 61.2 ms
+[hex] TX cmd=0x0107 len=14 : 30 55 45 17 B4 A4 63 E4 01 07 00 01 00 89
+[hex] RX cmd=0x0107 len=18 : 30 55 45 17 B4 A4 63 E4 01 07 00 05 00 00 00 80 3F 4C
+[hex] TX cmd=0x1107 len=18 : 30 55 45 17 B4 A4 63 E4 11 07 00 05 00 00 00 80 3F 5C
+[hex] RX cmd=0x1107 len=18 : 30 55 45 17 B4 A4 63 E4 11 07 00 05 00 00 00 80 3F 5C
+  [trace] setPressValueIndex         param=index=0 value=1.000 (原值写回) ret=true  out="-" err="No error" 46.4 ms
+[hex] TX cmd=0x0108 len=14 : 30 55 45 17 B4 A4 63 E4 01 08 00 01 00 8A
+[hex] RX cmd=0x0108 len=18 : 30 55 45 17 B4 A4 63 E4 01 08 00 05 00 33 33 33 3F 66
+[hex] TX cmd=0x1108 len=18 : 30 55 45 17 B4 A4 63 E4 11 08 00 05 00 33 33 33 3F 76
+[hex] RX cmd=0x1108 len=18 : 30 55 45 17 B4 A4 63 E4 11 08 00 05 00 33 33 33 3F 76
+  [trace] setAfterValueIndex         param=index=0 value=0.700 (原值写回) ret=true  out="-" err="No error" 47.0 ms
+[hex] TX cmd=0x0109 len=14 : 30 55 45 17 B4 A4 63 E4 01 09 00 01 00 8B
+[hex] RX cmd=0x0109 len=18 : 30 55 45 17 B4 A4 63 E4 01 09 00 05 00 58 02 00 00 E9
+[hex] TX cmd=0x1109 len=18 : 30 55 45 17 B4 A4 63 E4 11 09 00 05 00 58 02 00 00 F9
+[hex] RX cmd=0x1109 len=18 : 30 55 45 17 B4 A4 63 E4 11 09 00 05 00 58 02 00 00 F9
+  [trace] setKeepPressTime           param=index=0 value=600 (原值写回) ret=true  out="-" err="No error" 61.1 ms
+[hex] TX cmd=0x010A len=14 : 30 55 45 17 B4 A4 63 E4 01 0A 00 01 00 8C
+[hex] RX cmd=0x010A len=26 : 30 55 45 17 B4 A4 63 E4 01 0A 00 0D 00 00 00 80 3F 33 33 33 3F 58 02 00 00 89
+[hex] TX cmd=0x110A len=26 : 30 55 45 17 B4 A4 63 E4 11 0A 00 0D 00 00 00 80 3F 33 33 33 3F 58 02 00 00 99
+[hex] RX cmd=0x110A len=26 : 30 55 45 17 B4 A4 63 E4 11 0A 00 0D 00 00 00 80 3F 33 33 33 3F 58 02 00 00 99
+  [trace] setPressStepParameter      param=index=0 (原值写回)     ret=true  out="-" err="No error" 45.8 ms
+[hex] TX cmd=0x0200 len=14 : 30 55 45 17 B4 A4 63 E4 02 00 00 01 00 83
+[hex] RX cmd=0x0200 len=14 : 30 55 45 17 B4 A4 63 E4 02 00 00 01 05 88
+[hex] TX cmd=0x1200 len=14 : 30 55 45 17 B4 A4 63 E4 12 00 00 01 05 98
+[hex] RX cmd=0x1200 len=14 : 30 55 45 17 B4 A4 63 E4 12 00 00 01 05 98
+  [trace] setTempStepCount           param=value=5 (原值写回)     ret=true  out="-" err="No error" 47.3 ms
+[hex] TX cmd=0x0201 len=14 : 30 55 45 17 B4 A4 63 E4 02 01 00 01 00 84
+[hex] RX cmd=0x0201 len=14 : 30 55 45 17 B4 A4 63 E4 02 01 00 01 00 84
+[hex] TX cmd=0x1201 len=14 : 30 55 45 17 B4 A4 63 E4 12 01 00 01 00 94
+[hex] RX cmd=0x1201 len=14 : 30 55 45 17 B4 A4 63 E4 12 01 00 01 00 94
+  [trace] setTempSpeedMold           param=value=0 (原值写回)     ret=true  out="-" err="No error" 61.9 ms
+[hex] TX cmd=0x0202 len=14 : 30 55 45 17 B4 A4 63 E4 02 02 00 01 00 85
+[hex] RX cmd=0x0202 len=18 : 30 55 45 17 B4 A4 63 E4 02 02 00 05 00 00 00 F0 41 BA
+[hex] TX cmd=0x1202 len=18 : 30 55 45 17 B4 A4 63 E4 12 02 00 05 00 00 00 F0 41 CA
+[hex] RX cmd=0x1202 len=18 : 30 55 45 17 B4 A4 63 E4 12 02 00 05 00 00 00 F0 41 CA
+  [trace] setTempIndex               param=index=0 value=30.000 (原值写回) ret=true  out="-" err="No error" 46.2 ms
+[hex] TX cmd=0x0203 len=14 : 30 55 45 17 B4 A4 63 E4 02 03 00 01 00 86
+[hex] RX cmd=0x0203 len=18 : 30 55 45 17 B4 A4 63 E4 02 03 00 05 00 00 00 40 40 0A
+[hex] TX cmd=0x1203 len=18 : 30 55 45 17 B4 A4 63 E4 12 03 00 05 00 00 00 40 40 1A
+[hex] RX cmd=0x1203 len=18 : 30 55 45 17 B4 A4 63 E4 12 03 00 05 00 00 00 40 40 1A
+  [trace] setTempSpeedIndex          param=index=0 value=3.000 (原值写回) ret=true  out="-" err="No error" 61.2 ms
+[hex] TX cmd=0x0204 len=14 : 30 55 45 17 B4 A4 63 E4 02 04 00 01 00 87
+[hex] RX cmd=0x0204 len=18 : 30 55 45 17 B4 A4 63 E4 02 04 00 05 00 F4 01 00 00 80
+[hex] TX cmd=0x1204 len=18 : 30 55 45 17 B4 A4 63 E4 12 04 00 05 00 F4 01 00 00 90
+[hex] RX cmd=0x1204 len=18 : 30 55 45 17 B4 A4 63 E4 12 04 00 05 00 F4 01 00 00 90
+  [trace] setKeepTempTime            param=index=0 value=500 (原值写回) ret=true  out="-" err="No error" 61.9 ms
+[hex] TX cmd=0x0206 len=14 : 30 55 45 17 B4 A4 63 E4 02 06 00 01 00 89
+[hex] RX cmd=0x0206 len=17 : 30 55 45 17 B4 A4 63 E4 02 06 00 04 00 00 C8 41 95
+[hex] TX cmd=0x1206 len=17 : 30 55 45 17 B4 A4 63 E4 12 06 00 04 00 00 C8 41 A5
+[hex] RX cmd=0x1206 len=17 : 30 55 45 17 B4 A4 63 E4 12 06 00 04 00 00 C8 41 A5
+  [trace] setMaxWaterValue           param=value=25.000 (原值写回) ret=true  out="-" err="No error" 46.3 ms
+[hex] TX cmd=0x0207 len=14 : 30 55 45 17 B4 A4 63 E4 02 07 00 01 00 8A
+[hex] RX cmd=0x0207 len=17 : 30 55 45 17 B4 A4 63 E4 02 07 00 04 00 00 C8 41 96
+[hex] TX cmd=0x1207 len=17 : 30 55 45 17 B4 A4 63 E4 12 07 00 04 00 00 C8 41 A6
+[hex] RX cmd=0x1207 len=17 : 30 55 45 17 B4 A4 63 E4 12 07 00 04 00 00 C8 41 A6
+  [trace] setMinWaterValue           param=value=25.000 (原值写回) ret=true  out="-" err="No error" 61.3 ms
+[hex] TX cmd=0x0300 len=14 : 30 55 45 17 B4 A4 63 E4 03 00 00 01 00 84
+[hex] RX cmd=0x0300 len=14 : 30 55 45 17 B4 A4 63 E4 03 00 00 01 03 87
+[hex] TX cmd=0x1300 len=14 : 30 55 45 17 B4 A4 63 E4 13 00 00 01 03 97
+[hex] RX cmd=0x1300 len=14 : 30 55 45 17 B4 A4 63 E4 13 00 00 01 03 97
+  [trace] setMixStepCount            param=value=3 (原值写回)     ret=true  out="-" err="No error" 61.7 ms
+[hex] TX cmd=0x0301 len=14 : 30 55 45 17 B4 A4 63 E4 03 01 00 01 00 85
+[hex] RX cmd=0x0301 len=14 : 30 55 45 17 B4 A4 63 E4 03 01 00 01 01 86
+[hex] TX cmd=0x1301 len=14 : 30 55 45 17 B4 A4 63 E4 13 01 00 01 01 96
+[hex] RX cmd=0x1301 len=14 : 30 55 45 17 B4 A4 63 E4 13 01 00 01 01 96
+  [trace] setMixMoldType             param=value=1 (原值写回)     ret=true  out="-" err="No error" 46.1 ms
+[hex] TX cmd=0x0302 len=14 : 30 55 45 17 B4 A4 63 E4 03 02 00 01 00 86
+[hex] RX cmd=0x0302 len=17 : 30 55 45 17 B4 A4 63 E4 03 02 00 04 00 00 C8 42 93
+[hex] TX cmd=0x1302 len=17 : 30 55 45 17 B4 A4 63 E4 13 02 00 04 00 00 C8 42 A3
+[hex] RX cmd=0x1302 len=17 : 30 55 45 17 B4 A4 63 E4 13 02 00 04 00 00 C8 42 A3
+  [trace] setMixCircle               param=value=100.000 (原值写回) ret=true  out="-" err="No error" 46.2 ms
+[hex] TX cmd=0x0303 len=14 : 30 55 45 17 B4 A4 63 E4 03 03 00 01 00 87
+[hex] RX cmd=0x0303 len=21 : 30 55 45 17 B4 A4 63 E4 03 03 00 08 00 00 C8 42 00 00 C8 42 A2
+[hex] TX cmd=0x1303 len=21 : 30 55 45 17 B4 A4 63 E4 13 03 00 08 00 00 C8 42 00 00 C8 42 B2
+[hex] RX cmd=0x1303 len=21 : 30 55 45 17 B4 A4 63 E4 13 03 00 08 00 00 C8 42 00 00 C8 42 B2
+  [trace] setMixRectangle            param=a=100.0 b=100.0 (原值写回) ret=true  out="-" err="No error" 62.2 ms
+[hex] TX cmd=0x0305 len=14 : 30 55 45 17 B4 A4 63 E4 03 05 00 01 00 89
+[hex] RX cmd=0x0305 len=15 : 30 55 45 17 B4 A4 63 E4 03 05 00 02 00 00 8A
+[hex] TX cmd=0x1305 len=15 : 30 55 45 17 B4 A4 63 E4 13 05 00 02 00 00 9A
+[hex] RX cmd=0x1305 len=15 : 30 55 45 17 B4 A4 63 E4 13 05 00 02 00 00 9A
+  [trace] setMixIsPressIndex         param=index=0 value=false        ret=true  out="-" err="No error" 62.2 ms
+[hex] TX cmd=0x0306 len=14 : 30 55 45 17 B4 A4 63 E4 03 06 00 01 00 8A
+[hex] RX cmd=0x0306 len=18 : 30 55 45 17 B4 A4 63 E4 03 06 00 05 00 00 00 80 3F 4D
+[hex] TX cmd=0x1306 len=18 : 30 55 45 17 B4 A4 63 E4 13 06 00 05 00 00 00 80 3F 5D
+[hex] RX cmd=0x1306 len=18 : 30 55 45 17 B4 A4 63 E4 13 06 00 05 00 00 00 80 3F 5D
+  [trace] setMixPressIndex           param=index=0 value=1.000 (原值写回) ret=true  out="-" err="No error" 46.7 ms
+[hex] TX cmd=0x0307 len=14 : 30 55 45 17 B4 A4 63 E4 03 07 00 01 00 8B
+[hex] RX cmd=0x0307 len=18 : 30 55 45 17 B4 A4 63 E4 03 07 00 05 00 00 00 80 3F 4E
+[hex] TX cmd=0x1307 len=18 : 30 55 45 17 B4 A4 63 E4 13 07 00 05 00 00 00 80 3F 5E
+[hex] RX cmd=0x1307 len=18 : 30 55 45 17 B4 A4 63 E4 13 07 00 05 00 00 00 80 3F 5E
+  [trace] setMixAfterPressIndex      param=index=0 value=1.000 (原值写回) ret=true  out="-" err="No error" 45.7 ms
+[hex] TX cmd=0x0308 len=14 : 30 55 45 17 B4 A4 63 E4 03 08 00 01 00 8C
+[hex] RX cmd=0x0308 len=15 : 30 55 45 17 B4 A4 63 E4 03 08 00 02 00 01 8E
+[hex] TX cmd=0x1308 len=15 : 30 55 45 17 B4 A4 63 E4 13 08 00 02 00 01 9E
+[hex] RX cmd=0x1308 len=15 : 30 55 45 17 B4 A4 63 E4 13 08 00 02 00 01 9E
+  [trace] setMixIsHeatUpIndex        param=index=0 value=true         ret=true  out="-" err="No error" 61.7 ms
+[hex] TX cmd=0x0309 len=14 : 30 55 45 17 B4 A4 63 E4 03 09 00 01 00 8D
+[hex] RX cmd=0x0309 len=18 : 30 55 45 17 B4 A4 63 E4 03 09 00 05 00 00 00 C8 41 9A
+[hex] TX cmd=0x1309 len=18 : 30 55 45 17 B4 A4 63 E4 13 09 00 05 00 00 00 C8 41 AA
+[hex] RX cmd=0x1309 len=18 : 30 55 45 17 B4 A4 63 E4 13 09 00 05 00 00 00 C8 41 AA
+  [trace] setMixHeatUpIndex          param=index=0 value=25.000 (原值写回) ret=true  out="-" err="No error" 61.7 ms
+[hex] TX cmd=0x030A len=14 : 30 55 45 17 B4 A4 63 E4 03 0A 00 01 00 8E
+[hex] RX cmd=0x030A len=15 : 30 55 45 17 B4 A4 63 E4 03 0A 00 02 00 01 90
+[hex] TX cmd=0x130A len=15 : 30 55 45 17 B4 A4 63 E4 13 0A 00 02 00 01 A0
+[hex] RX cmd=0x130A len=15 : 30 55 45 17 B4 A4 63 E4 13 0A 00 02 00 01 A0
+  [trace] setMixIsHeatDownIndex      param=index=0 value=true         ret=true  out="-" err="No error" 62.4 ms
+[hex] TX cmd=0x030B len=14 : 30 55 45 17 B4 A4 63 E4 03 0B 00 01 00 8F
+[hex] RX cmd=0x030B len=18 : 30 55 45 17 B4 A4 63 E4 03 0B 00 05 00 00 00 C8 41 9C
+[hex] TX cmd=0x130B len=18 : 30 55 45 17 B4 A4 63 E4 13 0B 00 05 00 00 00 C8 41 AC
+[hex] RX cmd=0x130B len=18 : 30 55 45 17 B4 A4 63 E4 13 0B 00 05 00 00 00 C8 41 AC
+  [trace] setMixHeatDownIndex        param=index=0 value=25.000 (原值写回) ret=true  out="-" err="No error" 46.7 ms
+[hex] TX cmd=0x030C len=14 : 30 55 45 17 B4 A4 63 E4 03 0C 00 01 00 90
+[hex] RX cmd=0x030C len=18 : 30 55 45 17 B4 A4 63 E4 03 0C 00 05 00 58 02 00 00 EE
+[hex] TX cmd=0x130C len=18 : 30 55 45 17 B4 A4 63 E4 13 0C 00 05 00 58 02 00 00 FE
+[hex] RX cmd=0x130C len=18 : 30 55 45 17 B4 A4 63 E4 13 0C 00 05 00 58 02 00 00 FE
+  [trace] setMixKeepTime             param=index=0 value=600 (原值写回) ret=true  out="-" err="No error" 46.0 ms
+[hex] TX cmd=0x0205 len=14 : 30 55 45 17 B4 A4 63 E4 02 05 00 01 00 88
+[hex] RX cmd=0x0205 len=26 : 30 55 45 17 B4 A4 63 E4 02 05 00 0D 00 00 00 F0 41 00 00 40 40 F4 01 00 00 3A
+[hex] TX cmd=0x1205 len=26 : 30 55 45 17 B4 A4 63 E4 12 05 00 0D 00 00 00 F0 41 00 00 40 40 F4 01 00 00 4A
+[hex] RX cmd=0x1205 len=26 : 30 55 45 17 B4 A4 63 E4 12 05 00 0D 00 00 00 F0 41 00 00 40 40 F4 01 00 00 4A
+  [trace] setTempStepParameter       param=index=0 (原值写回)     ret=true  out="-" err="No error" 61.9 ms
+[hex] TX cmd=0x030D len=14 : 30 55 45 17 B4 A4 63 E4 03 0D 00 01 00 91
+[hex] RX cmd=0x030D len=37 : 30 55 45 17 B4 A4 63 E4 03 0D 00 18 00 00 00 00 80 3F 00 00 80 3F 01 00 00 C8 41 01 00 00 C8 41 58 02 00 00 94
+[hex] TX cmd=0x130D len=37 : 30 55 45 17 B4 A4 63 E4 13 0D 00 18 00 00 00 00 80 3F 00 00 80 3F 01 00 00 C8 41 01 00 00 C8 41 58 02 00 00 A4
+[hex] RX cmd=0x130D len=37 : 30 55 45 17 B4 A4 63 E4 13 0D 00 18 00 00 00 00 80 3F 00 00 80 3F 01 00 00 C8 41 01 00 00 C8 41 58 02 00 00 A4
+  [trace] setMixStepParameter        param=index=0 (原值写回)     ret=true  out="-" err="No error" 46.5 ms
+[hex] TX cmd=0x0400 len=14 : 30 55 45 17 B4 A4 63 E4 04 00 00 01 00 85
+[hex] RX cmd=0x0400 len=19 : 30 55 45 17 B4 A4 63 E4 04 00 00 06 25 07 00 13 0B 7E 52
+[hex] TX cmd=0x1400 len=19 : 30 55 45 17 B4 A4 63 E4 14 00 00 06 25 07 00 13 0B 7E 62
+[hex] RX cmd=0x1400 len=19 : 30 55 45 17 B4 A4 63 E4 14 00 00 06 25 07 00 13 0B 7E 62
+  [trace] setDateTime                param=原值写回               ret=true  out="-" err="No error" 45.9 ms
+[hex] TX cmd=0x0401 len=14 : 30 55 45 17 B4 A4 63 E4 04 01 00 01 00 86
+[hex] RX cmd=0x0401 len=14 : 30 55 45 17 B4 A4 63 E4 04 01 00 01 4F D5
+[hex] TX cmd=0x1401 len=14 : 30 55 45 17 B4 A4 63 E4 14 01 00 01 4F E5
+[hex] RX cmd=0x1401 len=14 : 30 55 45 17 B4 A4 63 E4 14 01 00 01 4F E5
+  [trace] setBrightness              param=value=79 (原值写回)    ret=true  out="-" err="No error" 61.2 ms
+[hex] TX cmd=0x0402 len=14 : 30 55 45 17 B4 A4 63 E4 04 02 00 01 00 87
+[hex] RX cmd=0x0402 len=14 : 30 55 45 17 B4 A4 63 E4 04 02 00 01 00 87
+[hex] TX cmd=0x1402 len=14 : 30 55 45 17 B4 A4 63 E4 14 02 00 01 00 97
+[hex] RX cmd=0x1402 len=14 : 30 55 45 17 B4 A4 63 E4 14 02 00 01 00 97
+  [trace] setButtonSound             param=value=false (原值写回) ret=true  out="-" err="No error" 46.5 ms
+[hex] TX cmd=0x0403 len=14 : 30 55 45 17 B4 A4 63 E4 04 03 00 01 00 88
+[hex] RX cmd=0x0403 len=14 : 30 55 45 17 B4 A4 63 E4 04 03 00 01 01 89
+[hex] TX cmd=0x1403 len=14 : 30 55 45 17 B4 A4 63 E4 14 03 00 01 01 99
+[hex] RX cmd=0x1403 len=14 : 30 55 45 17 B4 A4 63 E4 14 03 00 01 01 99
+  [trace] setLanguage                param=value=1 (原值写回)     ret=true  out="-" err="No error" 46.6 ms
+[hex] TX cmd=0x01FF len=14 : 30 55 45 17 B4 A4 63 E4 01 FF 00 01 00 81
+[hex] RX cmd=0x01FF len=533 : 30 55 45 17 B4 A4 63 E4 01 FF 02 08 7B 22 50 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 43 68 65 63 6B 56 61 6C 75 65 22 3A 30 2E 30 2C 22 41 69 72 54 69 6D 65 22 3A 31 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 30 2E 37 2C 31 2E 37 2C 32 2E 37 2C 33 2E 37 2C 34 2E 37 2C 35 2E 37 2C 36 2E 37 2C 37 2E 37 2C 38 2E 37 2C 39 2E 37 2C 31 30 2E 37 2C 31 31 2E 37 2C 31 32 2E 37 2C 31 33 2E 37 2C 31 34 2E 37 2C 31 35 2E 37 2C 31 36 2E 37 2C 31 37 2E 37 2C 31 38 2E 37 2C 31 39 2E 37 2C 32 30 2E 37 2C 32 31 2E 37 2C 32 32 2E 37 2C 32 33 2E 37 2C 32 34 2E 37 2C 32 35 2E 37 2C 32 36 2E 37 2C 32 37 2E 37 2C 32 38 2E 37 2C 32 39 2E 37 5D 2C 22 4B 50 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 1E
+[hex] TX cmd=0x11FF len=534 : 30 55 45 17 B4 A4 63 E4 11 FF 02 09 00 7B 22 50 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 43 68 65 63 6B 56 61 6C 75 65 22 3A 30 2E 30 2C 22 41 69 72 54 69 6D 65 22 3A 31 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 30 2E 37 2C 31 2E 37 2C 32 2E 37 2C 33 2E 37 2C 34 2E 37 2C 35 2E 37 2C 36 2E 37 2C 37 2E 37 2C 38 2E 37 2C 39 2E 37 2C 31 30 2E 37 2C 31 31 2E 37 2C 31 32 2E 37 2C 31 33 2E 37 2C 31 34 2E 37 2C 31 35 2E 37 2C 31 36 2E 37 2C 31 37 2E 37 2C 31 38 2E 37 2C 31 39 2E 37 2C 32 30 2E 37 2C 32 31 2E 37 2C 32 32 2E 37 2C 32 33 2E 37 2C 32 34 2E 37 2C 32 35 2E 37 2C 32 36 2E 37 2C 32 37 2E 37 2C 32 38 2E 37 2C 32 39 2E 37 5D 2C 22 4B 50 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 2F
+[hex] RX cmd=0x11FF len=533 : 30 55 45 17 B4 A4 63 E4 11 FF 02 08 7B 22 50 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 43 68 65 63 6B 56 61 6C 75 65 22 3A 30 2E 30 2C 22 41 69 72 54 69 6D 65 22 3A 31 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 30 2E 37 2C 31 2E 37 2C 32 2E 37 2C 33 2E 37 2C 34 2E 37 2C 35 2E 37 2C 36 2E 37 2C 37 2E 37 2C 38 2E 37 2C 39 2E 37 2C 31 30 2E 37 2C 31 31 2E 37 2C 31 32 2E 37 2C 31 33 2E 37 2C 31 34 2E 37 2C 31 35 2E 37 2C 31 36 2E 37 2C 31 37 2E 37 2C 31 38 2E 37 2C 31 39 2E 37 2C 32 30 2E 37 2C 32 31 2E 37 2C 32 32 2E 37 2C 32 33 2E 37 2C 32 34 2E 37 2C 32 35 2E 37 2C 32 36 2E 37 2C 32 37 2E 37 2C 32 38 2E 37 2C 32 39 2E 37 5D 2C 22 4B 50 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 2E
+  [trace] setPressDataJson           param=json=520B (原值写回)   ret=true  out="-" err="No error" 108.3 ms
+[hex] TX cmd=0x02FF len=14 : 30 55 45 17 B4 A4 63 E4 02 FF 00 01 00 82
+[hex] RX cmd=0x02FF len=507 : 30 55 45 17 B4 A4 63 E4 02 FF 01 EE 7B 22 54 53 74 65 70 22 3A 35 2C 22 54 79 70 65 22 3A 30 2C 22 4D 69 6E 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 4D 61 78 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 53 74 61 72 74 54 65 6D 70 22 3A 5B 33 30 2E 30 2C 33 35 2E 30 2C 34 30 2E 30 2C 34 35 2E 30 2C 35 30 2E 30 2C 35 35 2E 30 2C 36 30 2E 30 2C 36 35 2E 30 2C 37 30 2E 30 2C 37 35 2E 30 2C 38 30 2E 30 2C 38 35 2E 30 2C 39 30 2E 30 2C 39 35 2E 30 2C 31 30 30 2E 30 2C 31 30 35 2E 30 2C 31 31 30 2E 30 2C 31 31 35 2E 30 2C 31 32 30 2E 30 2C 31 32 35 2E 30 2C 31 33 30 2E 30 2C 31 33 35 2E 30 2C 31 34 30 2E 30 2C 31 34 35 2E 30 2C 31 35 30 2E 30 2C 31 35 35 2E 30 2C 31 36 30 2E 30 2C 31 36 35 2E 30 2C 31 37 30 2E 30 2C 31 37 35 2E 30 5D 2C 22 53 70 65 65 64 22 3A 5B 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 5D 2C 22 4B 54 54 69 6D 65 22 3A 5B 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 5D 7D 0A 3B
+[hex] TX cmd=0x12FF len=508 : 30 55 45 17 B4 A4 63 E4 12 FF 01 EF 00 7B 22 54 53 74 65 70 22 3A 35 2C 22 54 79 70 65 22 3A 30 2C 22 4D 69 6E 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 4D 61 78 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 53 74 61 72 74 54 65 6D 70 22 3A 5B 33 30 2E 30 2C 33 35 2E 30 2C 34 30 2E 30 2C 34 35 2E 30 2C 35 30 2E 30 2C 35 35 2E 30 2C 36 30 2E 30 2C 36 35 2E 30 2C 37 30 2E 30 2C 37 35 2E 30 2C 38 30 2E 30 2C 38 35 2E 30 2C 39 30 2E 30 2C 39 35 2E 30 2C 31 30 30 2E 30 2C 31 30 35 2E 30 2C 31 31 30 2E 30 2C 31 31 35 2E 30 2C 31 32 30 2E 30 2C 31 32 35 2E 30 2C 31 33 30 2E 30 2C 31 33 35 2E 30 2C 31 34 30 2E 30 2C 31 34 35 2E 30 2C 31 35 30 2E 30 2C 31 35 35 2E 30 2C 31 36 30 2E 30 2C 31 36 35 2E 30 2C 31 37 30 2E 30 2C 31 37 35 2E 30 5D 2C 22 53 70 65 65 64 22 3A 5B 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 5D 2C 22 4B 54 54 69 6D 65 22 3A 5B 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 5D 7D 0A 4C
+[hex] RX cmd=0x12FF len=507 : 30 55 45 17 B4 A4 63 E4 12 FF 01 EE 7B 22 54 53 74 65 70 22 3A 35 2C 22 54 79 70 65 22 3A 30 2C 22 4D 69 6E 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 4D 61 78 57 61 74 65 72 22 3A 32 35 2E 30 2C 22 53 74 61 72 74 54 65 6D 70 22 3A 5B 33 30 2E 30 2C 33 35 2E 30 2C 34 30 2E 30 2C 34 35 2E 30 2C 35 30 2E 30 2C 35 35 2E 30 2C 36 30 2E 30 2C 36 35 2E 30 2C 37 30 2E 30 2C 37 35 2E 30 2C 38 30 2E 30 2C 38 35 2E 30 2C 39 30 2E 30 2C 39 35 2E 30 2C 31 30 30 2E 30 2C 31 30 35 2E 30 2C 31 31 30 2E 30 2C 31 31 35 2E 30 2C 31 32 30 2E 30 2C 31 32 35 2E 30 2C 31 33 30 2E 30 2C 31 33 35 2E 30 2C 31 34 30 2E 30 2C 31 34 35 2E 30 2C 31 35 30 2E 30 2C 31 35 35 2E 30 2C 31 36 30 2E 30 2C 31 36 35 2E 30 2C 31 37 30 2E 30 2C 31 37 35 2E 30 5D 2C 22 53 70 65 65 64 22 3A 5B 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 2C 33 2E 30 5D 2C 22 4B 54 54 69 6D 65 22 3A 5B 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 2C 35 30 30 5D 7D 0A 4B
+  [trace] setTempDataJson            param=json=494B (原值写回)   ret=true  out="-" err="No error" 154.4 ms
+[hex] TX cmd=0x03FF len=14 : 30 55 45 17 B4 A4 63 E4 03 FF 00 01 00 83
+[hex] RX cmd=0x03FF len=1090 : 30 55 45 17 B4 A4 63 E4 03 FF 04 35 7B 22 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 49 73 50 72 65 73 73 22 3A 5B 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 5D 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 49 73 55 70 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 55 70 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 49 73 44 6F 77 6E 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 44 6F 77 6E 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 4B 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 0A 5D
+[hex] TX cmd=0x13FF len=1091 : 30 55 45 17 B4 A4 63 E4 13 FF 04 36 00 7B 22 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 49 73 50 72 65 73 73 22 3A 5B 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 5D 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 49 73 55 70 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 55 70 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 49 73 44 6F 77 6E 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 44 6F 77 6E 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 4B 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 0A 6E
+[hex] RX cmd=0x13FF len=1090 : 30 55 45 17 B4 A4 63 E4 13 FF 04 35 7B 22 53 74 65 70 22 3A 33 2C 22 54 79 70 65 22 3A 31 2C 22 41 22 3A 31 30 30 2E 30 2C 22 42 22 3A 31 30 30 2E 30 2C 22 44 22 3A 31 30 30 2E 30 2C 22 49 73 50 72 65 73 73 22 3A 5B 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 5D 2C 22 53 65 74 50 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 41 66 74 65 72 56 61 6C 75 65 22 3A 5B 31 2E 30 2C 32 2E 30 2C 33 2E 30 2C 34 2E 30 2C 35 2E 30 2C 36 2E 30 2C 37 2E 30 2C 38 2E 30 2C 39 2E 30 2C 31 30 2E 30 2C 31 31 2E 30 2C 31 32 2E 30 2C 31 33 2E 30 2C 31 34 2E 30 2C 31 35 2E 30 2C 31 36 2E 30 2C 31 37 2E 30 2C 31 38 2E 30 2C 31 39 2E 30 2C 32 30 2E 30 2C 32 31 2E 30 2C 32 32 2E 30 2C 32 33 2E 30 2C 32 34 2E 30 2C 32 35 2E 30 2C 32 36 2E 30 2C 32 37 2E 30 2C 32 38 2E 30 2C 32 39 2E 30 2C 33 30 2E 30 5D 2C 22 49 73 55 70 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 55 70 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 49 73 44 6F 77 6E 48 65 61 74 22 3A 5B 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 2C 31 2C 30 5D 2C 22 44 6F 77 6E 54 65 6D 70 22 3A 5B 32 35 2E 30 2C 32 35 2E 30 2C 33 30 2E 30 2C 34 30 2E 30 2C 35 30 2E 30 2C 36 30 2E 30 2C 37 30 2E 30 2C 38 30 2E 30 2C 39 30 2E 30 2C 31 30 30 2E 30 2C 31 31 30 2E 30 2C 31 32 30 2E 30 2C 31 33 30 2E 30 2C 31 34 30 2E 30 2C 31 35 30 2E 30 2C 31 36 30 2E 30 2C 31 37 30 2E 30 2C 31 38 30 2E 30 2C 31 39 30 2E 30 2C 32 30 30 2E 30 2C 32 31 30 2E 30 2C 32 32 30 2E 30 2C 32 33 30 2E 30 2C 32 34 30 2E 30 2C 32 35 30 2E 30 2C 32 36 30 2E 30 2C 32 37 30 2E 30 2C 32 38 30 2E 30 2C 32 39 30 2E 30 2C 33 30 30 2E 30 5D 2C 22 4B 54 69 6D 65 22 3A 5B 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 2C 36 30 30 5D 7D 0A 6D
+  [trace] setMixDataJson             param=json=1077B (原值写回)  ret=true  out="-" err="No error" 214.6 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 D0 66 91 3E D4 6D 21 41 B4 25 91 40 58 02 00 00 F4 01 00 00 00 41
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 C0 99 11 3F D4 6D 21 41 B4 25 91 40 58 02 00 00 F4 01 00 00 00 E5
+[hex] TX cmd=0x1522 len=14 : 30 55 45 17 B4 A4 63 E4 15 22 00 01 01 B9
+[hex] RX cmd=0x1522 len=14 : 30 55 45 17 B4 A4 63 E4 15 22 00 01 01 B9
+  [trace] setStartHeat               param=true                       ret=true  out="-" err="No error" 46.3 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 C0 99 11 3F D4 6D 21 41 B4 25 91 40 58 02 00 00 F4 01 00 00 00 E5
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 C0 99 11 3F D4 6D 21 41 B4 25 91 40 58 02 00 00 F4 01 00 00 00 E5
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 9A 9F 72 3F D4 6D 21 41 B4 25 91 40 58 02 00 00 F4 01 00 00 00 26
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 9A 9F 72 3F D4 6D 21 41 B4 25 91 40 58 02 00 00 F4 01 00 00 00 26
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 9A 9F 72 3F D4 6D 21 41 B4 25 91 40 58 02 00 00 F4 01 00 00 00 26
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 6B 66 B5 3F 08 5A FE 40 FB 76 B9 40 58 02 00 00 F4 01 00 00 00 C0
+[hex] TX cmd=0x1522 len=14 : 30 55 45 17 B4 A4 63 E4 15 22 00 01 00 B8
+[hex] RX cmd=0x1522 len=14 : 30 55 45 17 B4 A4 63 E4 15 22 00 01 00 B8
+  [trace] setStartHeat               param=false                      ret=true  out="-" err="No error" 61.6 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 6B 66 B5 3F 08 5A FE 40 FB 76 B9 40 58 02 00 00 F4 01 00 00 00 C0
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 6B 66 B5 3F 08 5A FE 40 FB 76 B9 40 58 02 00 00 F4 01 00 00 00 C0
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 FF 76 FC 3F 08 5A FE 40 FB 76 B9 40 58 02 00 00 F4 01 00 00 00 AB
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 FF 76 FC 3F 08 5A FE 40 FB 76 B9 40 58 02 00 00 F4 01 00 00 00 AB
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 E8 E5 26 40 08 5A FE 40 FB 76 B9 40 58 02 00 00 F4 01 00 00 00 2E
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 E8 E5 26 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 7A
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 E8 E5 26 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 7A
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 6A 4A 54 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 8F
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 6A 4A 54 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 8F
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 74 FA 82 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 77
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 74 FA 82 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 77
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 74 FA 82 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 77
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 2D B3 9D 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 04
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 2D B3 9D 40 60 E5 C0 40 32 AF E5 40 58 02 00 00 00 00 00 00 00 04
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 08 0B BA 40 E1 1A 8B 40 9F AE 0A 41 58 02 00 00 00 00 00 00 00 67
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 08 0B BA 40 E1 1A 8B 40 9F AE 0A 41 58 02 00 00 00 00 00 00 00 67
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 08 0B BA 40 E1 1A 8B 40 9F AE 0A 41 58 02 00 00 00 00 00 00 00 67
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 84 B9 D7 40 E1 1A 8B 40 9F AE 0A 41 58 02 00 00 00 00 00 00 00 AE
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 84 B9 D7 40 E1 1A 8B 40 9F AE 0A 41 58 02 00 00 00 00 00 00 00 AE
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 B8 72 F6 40 E1 1A 8B 40 9F AE 0A 41 58 02 00 00 00 00 00 00 00 BA
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 02 00 00 B8 72 F6 40 E1 1A 8B 40 9F AE 0A 41 58 02 00 00 00 00 00 00 00 BA
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 B8 72 F6 40 4B 08 3B 40 97 03 24 41 58 02 00 00 F4 01 00 00 00 1C
+  [check] setStartHeat flag on=ok off=ok
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 B8 72 F6 40 4B 08 3B 40 97 03 24 41 58 02 00 00 F4 01 00 00 00 1C
+[hex] TX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 01 B8
+[hex] RX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 01 B8
+  [trace] setPressing                param=true                       ret=true  out="-" err="No error" 46.9 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 06 F4 0A 41 4B 08 3B 40 97 03 24 41 58 02 00 00 F4 01 00 00 00 01
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 06 F4 0A 41 4B 08 3B 40 97 03 24 41 58 02 00 00 F4 01 00 00 00 01
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 06 F4 0A 41 4B 08 3B 40 97 03 24 41 58 02 00 00 F4 01 00 00 00 01
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 00 00 86 E4 1A 41 4B 08 3B 40 97 03 24 41 58 02 00 00 F4 01 00 00 00 82
+[hex] TX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 00 B7
+[hex] RX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 00 B7
+  [trace] setPressing                param=false                      ret=true  out="-" err="No error" 46.6 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 01 00 14 61 4A 41 20 57 E2 3F B2 95 3E 41 58 02 00 00 F4 01 00 00 00 4F
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 01 00 F3 91 59 41 20 57 E2 3F B2 95 3E 41 58 02 00 00 F4 01 00 00 00 6D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 01 00 F3 91 59 41 20 57 E2 3F B2 95 3E 41 58 02 00 00 F4 01 00 00 00 6D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 00 00 91 2F 68 41 20 57 E2 3F B2 95 3E 41 00 00 00 00 F4 01 00 00 00 5D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 00 00 91 2F 68 41 20 57 E2 3F B2 95 3E 41 00 00 00 00 F4 01 00 00 00 5D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 00 00 91 2F 68 41 20 57 E2 3F B2 95 3E 41 00 00 00 00 F4 01 00 00 00 5D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 8C 14 76 41 20 57 E2 3F B2 95 3E 41 58 02 00 00 F4 01 00 00 00 A4
+  [check] setPressing flag on=ok off=ok
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 8C 14 76 41 20 57 E2 3F B2 95 3E 41 58 02 00 00 F4 01 00 00 00 A4
+[hex] TX cmd=0x1523 len=14 : 30 55 45 17 B4 A4 63 E4 15 23 00 01 01 BA
+[hex] RX cmd=0x1523 len=18 : 30 55 45 17 B4 A4 63 E4 FF FF 00 05 65 72 72 6F 72 AD
+  [trace] setDemolding               param=true                       ret=false out="-" err="Command mismatch" 46.6 ms
+[hex] TX cmd=0x1523 len=14 : 30 55 45 17 B4 A4 63 E4 15 23 00 01 00 B9
+[hex] RX cmd=0x1523 len=18 : 30 55 45 17 B4 A4 63 E4 FF FF 00 05 65 72 72 6F 72 AD
+  [trace] setDemolding               param=false                      ret=false out="-" err="Command mismatch" 61.5 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 8C 14 76 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 F4
+[hex] TX cmd=0x1511 len=14 : 30 55 45 17 B4 A4 63 E4 15 11 00 01 01 A8
+[hex] RX cmd=0x1511 len=14 : 30 55 45 17 B4 A4 63 E4 15 11 00 01 01 A8
+  [trace] setStart                   param=true                       ret=true  out="-" err="No error" 46.1 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 8C 14 76 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 F4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 AD 8E 81 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 9A
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 AD 8E 81 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 9A
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 53 94 87 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 4C
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 53 94 87 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 4C
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 53 94 87 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 4C
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 CF 0B 8D 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 45
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 CF 0B 8D 41 E4 71 65 3F FA 20 5A 41 58 02 00 00 F4 01 00 00 00 45
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 26 E7 91 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 D0
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 26 E7 91 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 D0
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 26 E7 91 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 D0
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 ED 19 96 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 CE
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 ED 19 96 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 CE
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 66 99 99 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 CA
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 66 99 99 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 CA
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 66 99 99 41 C4 4E A1 3E FC 5E 76 41 58 02 00 00 F4 01 00 00 00 CA
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 9F 5C 9C 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 66
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 9F 5C 9C 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 66
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 86 5C 9E 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 4F
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 86 5C 9E 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 4F
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 86 5C 9E 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 4F
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 FF 93 9F 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 00
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 FF 93 9F 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 00
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 EC FF 9F 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 59
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 EC FF 9F 41 00 60 F9 3C BD 83 89 41 58 02 00 00 F4 01 00 00 00 59
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 EC FF 9F 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 D6
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 3A 9F 9F 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 C4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 3A 9F 9F 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 C4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 3A 9F 9F 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 C4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 E1 72 9E 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 3D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 E1 72 9E 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 3D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 DF 7D 9C 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 44
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 DF 7D 9C 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 44
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 DF 7D 9C 41 E0 74 39 3D 92 E8 97 41 58 02 00 00 F4 01 00 00 00 44
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 37 C5 99 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 F4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 37 C5 99 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 F4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 DF 4F 96 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 23
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 DF 4F 96 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 23
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 DF 4F 96 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 23
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 AE 26 92 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 C5
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 AE 26 92 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 C5
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 4B 54 8D 41 E8 04 B8 3E 2D 39 A6 41 58 02 00 00 F4 01 00 00 00 8B
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 4B 54 8D 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 6B
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 4B 54 8D 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 6B
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 09 E5 87 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 B4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 09 E5 87 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 B4
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 D0 E6 81 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 76
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 D0 E6 81 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 76
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 D0 E6 81 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 76
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 E7 D1 76 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 6D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 E7 D1 76 41 E6 3E 78 3F EF 50 B4 41 58 02 00 00 F4 01 00 00 00 6D
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 1D F8 68 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 98
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 1D F8 68 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 98
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 1D F8 68 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 98
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 AF 63 5A 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 87
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 AF 63 5A 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 87
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 AF 63 5A 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 87
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 E8 39 4B 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 87
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 E8 39 4B 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 87
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 91 A1 3B 41 84 5E EF 3F CD 0B C2 41 58 02 00 00 F4 01 00 00 00 88
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 91 A1 3B 41 C3 4B 43 40 A7 46 CF 41 58 02 00 00 F4 01 00 00 00 2B
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 91 A1 3B 41 C3 4B 43 40 A7 46 CF 41 58 02 00 00 F4 01 00 00 00 2B
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 8E C2 2B 41 C3 4B 43 40 A7 46 CF 41 58 02 00 00 F4 01 00 00 00 39
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 8E C2 2B 41 C3 4B 43 40 A7 46 CF 41 58 02 00 00 F4 01 00 00 00 39
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 76 C5 1B 41 C3 4B 43 40 A7 46 CF 41 58 02 00 00 F4 01 00 00 00 14
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 76 C5 1B 41 C3 4B 43 40 A7 46 CF 41 58 02 00 00 F4 01 00 00 00 14
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 76 C5 1B 41 C3 4B 43 40 A7 46 CF 41 58 02 00 00 F4 01 00 00 00 14
+[hex] TX cmd=0x1511 len=14 : 30 55 45 17 B4 A4 63 E4 15 11 00 01 00 A7
+[hex] RX cmd=0x1511 len=14 : 30 55 45 17 B4 A4 63 E4 15 11 00 01 00 A7
+  [trace] setStart                   param=false                      ret=true  out="-" err="No error" 31.3 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 03 29 F8 40 EC 11 90 40 A8 DF DB 41 58 02 00 00 F4 01 00 00 00 C3
+  [check] setStart active=none idle=ok
+[hex] TX cmd=0x1507 len=14 : 30 55 45 17 B4 A4 63 E4 15 07 00 01 02 9F
+[hex] RX cmd=0x1507 len=14 : 30 55 45 17 B4 A4 63 E4 15 07 00 01 01 9E
+  [trace] selectModelState           param=target=2 (恢复原模式) ret=true  out="-" err="No error" 61.5 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 6A 63 D9 40 EC 11 90 40 A8 DF DB 41 58 02 00 00 F4 01 00 00 00 45
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 6A 63 D9 40 EC 11 90 40 A8 DF DB 41 58 02 00 00 F4 01 00 00 00 45
+
+  trace summary: 100 calls, 2 failed
