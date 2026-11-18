@@ -215,6 +215,79 @@ PRESS_C_EXPORT const char* cpress_get_real_time_data_json(CPressContext* handle,
 //! @param isPressing   0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
 PRESS_C_EXPORT int cpress_set_pressing(CPressContext* handle, int isPressing);
 
+/* ---------------------------------------------------------------------------
+ * Pressure single-value / indexed commands
+ * 压力单值 / 索引命令
+ * All getters return 1 on success and 0 on failure.
+ * 所有读取函数成功返回 1，失败返回 0。
+ * ------------------------------------------------------------------------- */
+PRESS_C_EXPORT int cpress_get_press_step_count(CPressContext* handle, uint8_t* step);
+PRESS_C_EXPORT int cpress_set_press_step_count(CPressContext* handle, uint8_t step);
+PRESS_C_EXPORT int cpress_get_calibration_value(CPressContext* handle, float* value);
+PRESS_C_EXPORT int cpress_set_calibration_value(CPressContext* handle, float value);
+PRESS_C_EXPORT int cpress_get_mode_type(CPressContext* handle, uint8_t* type);
+PRESS_C_EXPORT int cpress_set_mode_type(CPressContext* handle, uint8_t type);
+PRESS_C_EXPORT int cpress_get_circle(CPressContext* handle, float* diameter);
+PRESS_C_EXPORT int cpress_set_circle(CPressContext* handle, float diameter);
+PRESS_C_EXPORT int cpress_get_rectangle(CPressContext* handle, float* a, float* b);
+PRESS_C_EXPORT int cpress_set_rectangle(CPressContext* handle, float a, float b);
+PRESS_C_EXPORT int cpress_get_air_time(CPressContext* handle, uint8_t* seconds);
+PRESS_C_EXPORT int cpress_set_air_time(CPressContext* handle, uint8_t seconds);
+PRESS_C_EXPORT int cpress_get_press_value_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_press_value_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_after_value_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_after_value_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_keep_press_time(CPressContext* handle, uint8_t index, int32_t* ms);
+PRESS_C_EXPORT int cpress_set_keep_press_time(CPressContext* handle, uint8_t index, int32_t ms);
+
+/* ---------------------------------------------------------------------------
+ * Temperature single-value / indexed commands
+ * 温度单值 / 索引命令
+ * ------------------------------------------------------------------------- */
+PRESS_C_EXPORT int cpress_get_temp_step_count(CPressContext* handle, uint8_t* step);
+PRESS_C_EXPORT int cpress_set_temp_step_count(CPressContext* handle, uint8_t step);
+PRESS_C_EXPORT int cpress_get_temp_speed_mold(CPressContext* handle, uint8_t* mold);
+PRESS_C_EXPORT int cpress_set_temp_speed_mold(CPressContext* handle, uint8_t mold);
+PRESS_C_EXPORT int cpress_get_start_temp_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_temp_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_temp_speed_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_temp_speed_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_keep_temp_time(CPressContext* handle, uint8_t index, int32_t* ms);
+PRESS_C_EXPORT int cpress_set_keep_temp_time(CPressContext* handle, uint8_t index, int32_t ms);
+PRESS_C_EXPORT int cpress_get_max_water_value(CPressContext* handle, float* value);
+PRESS_C_EXPORT int cpress_set_max_water_value(CPressContext* handle, float value);
+PRESS_C_EXPORT int cpress_get_min_water_value(CPressContext* handle, float* value);
+PRESS_C_EXPORT int cpress_set_min_water_value(CPressContext* handle, float value);
+
+/* ---------------------------------------------------------------------------
+ * Mixed-mode single-value / indexed commands
+ * 混合模式单值 / 索引命令
+ * ------------------------------------------------------------------------- */
+PRESS_C_EXPORT int cpress_get_mix_step_count(CPressContext* handle, uint8_t* step);
+PRESS_C_EXPORT int cpress_set_mix_step_count(CPressContext* handle, uint8_t step);
+PRESS_C_EXPORT int cpress_get_mix_mold_type(CPressContext* handle, uint8_t* type);
+PRESS_C_EXPORT int cpress_set_mix_mold_type(CPressContext* handle, uint8_t type);
+PRESS_C_EXPORT int cpress_get_mix_rectangle(CPressContext* handle, float* a, float* b);
+PRESS_C_EXPORT int cpress_set_mix_rectangle(CPressContext* handle, float a, float b);
+PRESS_C_EXPORT int cpress_get_mix_circle(CPressContext* handle, float* diameter);
+PRESS_C_EXPORT int cpress_set_mix_circle(CPressContext* handle, float diameter);
+PRESS_C_EXPORT int cpress_get_mix_is_press_index(CPressContext* handle, uint8_t index, int* isPress);
+PRESS_C_EXPORT int cpress_set_mix_is_press_index(CPressContext* handle, uint8_t index, int isPress);
+PRESS_C_EXPORT int cpress_get_mix_press_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_mix_press_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_mix_after_press_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_mix_after_press_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_mix_is_heat_up_index(CPressContext* handle, uint8_t index, int* isHeatUp);
+PRESS_C_EXPORT int cpress_set_mix_is_heat_up_index(CPressContext* handle, uint8_t index, int isHeatUp);
+PRESS_C_EXPORT int cpress_get_mix_heat_up_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_mix_heat_up_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_mix_is_heat_down_index(CPressContext* handle, uint8_t index, int* isHeatDown);
+PRESS_C_EXPORT int cpress_set_mix_is_heat_down_index(CPressContext* handle, uint8_t index, int isHeatDown);
+PRESS_C_EXPORT int cpress_get_mix_heat_down_index(CPressContext* handle, uint8_t index, float* value);
+PRESS_C_EXPORT int cpress_set_mix_heat_down_index(CPressContext* handle, uint8_t index, float value);
+PRESS_C_EXPORT int cpress_get_mix_keep_time(CPressContext* handle, uint8_t index, int32_t* ms);
+PRESS_C_EXPORT int cpress_set_mix_keep_time(CPressContext* handle, uint8_t index, int32_t ms);
+
 //! Start or stop the demolding action only / 启动或停止单独的脱模动作
 //! @param isDemolding  0 = stop, non-zero = start / 0 表示停止，非 0 表示启动
 PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding);

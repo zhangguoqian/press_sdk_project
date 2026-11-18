@@ -301,6 +301,354 @@ PRESS_C_EXPORT int cpress_set_pressing(CPressContext* handle, int isPressing)
     return handle->impl->setPressing(isPressing != 0) ? 1 : 0;
 }
 
+// ==================== 压力单值 / 索引命令 ====================
+PRESS_C_EXPORT int cpress_get_press_step_count(CPressContext* handle, uint8_t* step)
+{
+    if (handle == nullptr || handle->impl == nullptr || step == nullptr) return 0;
+    return handle->impl->getPressStepCount(*step) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_press_step_count(CPressContext* handle, uint8_t step)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setPressStepCount(step) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_calibration_value(CPressContext* handle, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getCalibrationValue(*value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_calibration_value(CPressContext* handle, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setCalibrationValue(value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mode_type(CPressContext* handle, uint8_t* type)
+{
+    if (handle == nullptr || handle->impl == nullptr || type == nullptr) return 0;
+    return handle->impl->getModeType(*type) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mode_type(CPressContext* handle, uint8_t type)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setModeType(type) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_circle(CPressContext* handle, float* diameter)
+{
+    if (handle == nullptr || handle->impl == nullptr || diameter == nullptr) return 0;
+    return handle->impl->getCircle(*diameter) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_circle(CPressContext* handle, float diameter)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setCircle(diameter) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_rectangle(CPressContext* handle, float* a, float* b)
+{
+    if (handle == nullptr || handle->impl == nullptr || a == nullptr || b == nullptr) return 0;
+    return handle->impl->getRectangle(*a, *b) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_rectangle(CPressContext* handle, float a, float b)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setRectangle(a, b) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_air_time(CPressContext* handle, uint8_t* seconds)
+{
+    if (handle == nullptr || handle->impl == nullptr || seconds == nullptr) return 0;
+    return handle->impl->getAirTime(*seconds) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_air_time(CPressContext* handle, uint8_t seconds)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setAirTime(seconds) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_press_value_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getPressValueIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_press_value_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setPressValueIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_after_value_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getAfterValueIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_after_value_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setAfterValueIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_keep_press_time(CPressContext* handle, uint8_t index, int32_t* ms)
+{
+    if (handle == nullptr || handle->impl == nullptr || ms == nullptr) return 0;
+    return handle->impl->getKeepPressTime(index, *ms) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_keep_press_time(CPressContext* handle, uint8_t index, int32_t ms)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setKeepPressTime(index, ms) ? 1 : 0;
+}
+
+// ==================== 温度单值 / 索引命令 ====================
+PRESS_C_EXPORT int cpress_get_temp_step_count(CPressContext* handle, uint8_t* step)
+{
+    if (handle == nullptr || handle->impl == nullptr || step == nullptr) return 0;
+    return handle->impl->getTempStepCount(*step) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_temp_step_count(CPressContext* handle, uint8_t step)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setTempStepCount(step) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_temp_speed_mold(CPressContext* handle, uint8_t* mold)
+{
+    if (handle == nullptr || handle->impl == nullptr || mold == nullptr) return 0;
+    return handle->impl->getTempSpeedMold(*mold) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_temp_speed_mold(CPressContext* handle, uint8_t mold)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setTempSpeedMold(mold) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_start_temp_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getStartTempIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_temp_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setTempIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_temp_speed_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getTempSpeedIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_temp_speed_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setTempSpeedIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_keep_temp_time(CPressContext* handle, uint8_t index, int32_t* ms)
+{
+    if (handle == nullptr || handle->impl == nullptr || ms == nullptr) return 0;
+    return handle->impl->getKeepTempTime(index, *ms) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_keep_temp_time(CPressContext* handle, uint8_t index, int32_t ms)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setKeepTempTime(index, ms) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_max_water_value(CPressContext* handle, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getMaxWaterValue(*value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_max_water_value(CPressContext* handle, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMaxWaterValue(value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_min_water_value(CPressContext* handle, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getMinWaterValue(*value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_min_water_value(CPressContext* handle, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMinWaterValue(value) ? 1 : 0;
+}
+
+// ==================== 混合模式单值 / 索引命令 ====================
+PRESS_C_EXPORT int cpress_get_mix_step_count(CPressContext* handle, uint8_t* step)
+{
+    if (handle == nullptr || handle->impl == nullptr || step == nullptr) return 0;
+    return handle->impl->getMixStepCount(*step) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_step_count(CPressContext* handle, uint8_t step)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixStepCount(step) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_mold_type(CPressContext* handle, uint8_t* type)
+{
+    if (handle == nullptr || handle->impl == nullptr || type == nullptr) return 0;
+    return handle->impl->getMixMoldType(*type) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_mold_type(CPressContext* handle, uint8_t type)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixMoldType(type) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_rectangle(CPressContext* handle, float* a, float* b)
+{
+    if (handle == nullptr || handle->impl == nullptr || a == nullptr || b == nullptr) return 0;
+    return handle->impl->getMixRectangle(*a, *b) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_rectangle(CPressContext* handle, float a, float b)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixRectangle(a, b) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_circle(CPressContext* handle, float* diameter)
+{
+    if (handle == nullptr || handle->impl == nullptr || diameter == nullptr) return 0;
+    return handle->impl->getMixCircle(*diameter) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_circle(CPressContext* handle, float diameter)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixCircle(diameter) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_is_press_index(CPressContext* handle, uint8_t index, int* isPress)
+{
+    if (handle == nullptr || handle->impl == nullptr || isPress == nullptr) return 0;
+    bool value = false;
+    if (!handle->impl->getMixIsPressIndex(index, value)) return 0;
+    *isPress = value ? 1 : 0;
+    return 1;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_is_press_index(CPressContext* handle, uint8_t index, int isPress)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixIsPressIndex(index, isPress != 0) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_press_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getMixPressIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_press_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixPressIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_after_press_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getMixAfterPressIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_after_press_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixAfterPressIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_is_heat_up_index(CPressContext* handle, uint8_t index, int* isHeatUp)
+{
+    if (handle == nullptr || handle->impl == nullptr || isHeatUp == nullptr) return 0;
+    bool value = false;
+    if (!handle->impl->getMixIsHeatUpIndex(index, value)) return 0;
+    *isHeatUp = value ? 1 : 0;
+    return 1;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_is_heat_up_index(CPressContext* handle, uint8_t index, int isHeatUp)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixIsHeatUpIndex(index, isHeatUp != 0) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_heat_up_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getMixHeatUpIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_heat_up_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixHeatUpIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_is_heat_down_index(CPressContext* handle, uint8_t index, int* isHeatDown)
+{
+    if (handle == nullptr || handle->impl == nullptr || isHeatDown == nullptr) return 0;
+    bool value = false;
+    if (!handle->impl->getMixIsHeatDownIndex(index, value)) return 0;
+    *isHeatDown = value ? 1 : 0;
+    return 1;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_is_heat_down_index(CPressContext* handle, uint8_t index, int isHeatDown)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixIsHeatDownIndex(index, isHeatDown != 0) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_heat_down_index(CPressContext* handle, uint8_t index, float* value)
+{
+    if (handle == nullptr || handle->impl == nullptr || value == nullptr) return 0;
+    return handle->impl->getMixHeatDownIndex(index, *value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_heat_down_index(CPressContext* handle, uint8_t index, float value)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixHeatDownIndex(index, value) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_get_mix_keep_time(CPressContext* handle, uint8_t index, int32_t* ms)
+{
+    if (handle == nullptr || handle->impl == nullptr || ms == nullptr) return 0;
+    return handle->impl->getMixKeepTime(index, *ms) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_set_mix_keep_time(CPressContext* handle, uint8_t index, int32_t ms)
+{
+    if (handle == nullptr || handle->impl == nullptr) return 0;
+    return handle->impl->setMixKeepTime(index, ms) ? 1 : 0;
+}
+
 PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding)
 {
     if (handle == nullptr || handle->impl == nullptr)

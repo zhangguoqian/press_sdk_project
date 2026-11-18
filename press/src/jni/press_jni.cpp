@@ -488,6 +488,686 @@ extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_set_request_timeout(JNIEnv
     cpress_set_request_timeout(reinterpret_cast<CPressContext*>(handle), static_cast<unsigned int>(ms));
 }
 
+// ==================== 压力单值 / 索引命令 ====================
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_press_step_count(JNIEnv* env, jclass, jlong handle, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    uint8_t step = 0;
+    if (cpress_get_press_step_count(reinterpret_cast<CPressContext*>(handle), &step) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(step);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_press_step_count(JNIEnv* env, jclass, jlong handle, jint step)
+{
+    (void)env;
+    return cpress_set_press_step_count(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(step));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_calibration_value(JNIEnv* env, jclass, jlong handle, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_calibration_value(reinterpret_cast<CPressContext*>(handle), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_calibration_value(JNIEnv* env, jclass, jlong handle, jfloat value)
+{
+    (void)env;
+    return cpress_set_calibration_value(reinterpret_cast<CPressContext*>(handle), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mode_type(JNIEnv* env, jclass, jlong handle, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    uint8_t type = 0;
+    if (cpress_get_mode_type(reinterpret_cast<CPressContext*>(handle), &type) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(type);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mode_type(JNIEnv* env, jclass, jlong handle, jint type)
+{
+    (void)env;
+    return cpress_set_mode_type(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(type));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_circle(JNIEnv* env, jclass, jlong handle, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float diameter = 0.0f;
+    if (cpress_get_circle(reinterpret_cast<CPressContext*>(handle), &diameter) == 0)
+    {
+        return 0;
+    }
+
+    jfloat value = static_cast<jfloat>(diameter);
+    env->SetFloatArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_circle(JNIEnv* env, jclass, jlong handle, jfloat diameter)
+{
+    (void)env;
+    return cpress_set_circle(reinterpret_cast<CPressContext*>(handle), static_cast<float>(diameter));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_rectangle(JNIEnv* env, jclass, jlong handle, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 2)
+    {
+        return 0;
+    }
+
+    float a = 0.0f;
+    float b = 0.0f;
+    if (cpress_get_rectangle(reinterpret_cast<CPressContext*>(handle), &a, &b) == 0)
+    {
+        return 0;
+    }
+
+    jfloat values[2] = {static_cast<jfloat>(a), static_cast<jfloat>(b)};
+    env->SetFloatArrayRegion(out, 0, 2, values);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_rectangle(JNIEnv* env, jclass, jlong handle, jfloat a, jfloat b)
+{
+    (void)env;
+    return cpress_set_rectangle(reinterpret_cast<CPressContext*>(handle), static_cast<float>(a), static_cast<float>(b));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_air_time(JNIEnv* env, jclass, jlong handle, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    uint8_t seconds = 0;
+    if (cpress_get_air_time(reinterpret_cast<CPressContext*>(handle), &seconds) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(seconds);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_air_time(JNIEnv* env, jclass, jlong handle, jint seconds)
+{
+    (void)env;
+    return cpress_set_air_time(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(seconds));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_press_value_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_press_value_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_press_value_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_press_value_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_after_value_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_after_value_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_after_value_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_after_value_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_keep_press_time(JNIEnv* env, jclass, jlong handle, jint index, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    int32_t ms = 0;
+    if (cpress_get_keep_press_time(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &ms) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(ms);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_keep_press_time(JNIEnv* env, jclass, jlong handle, jint index, jint ms)
+{
+    (void)env;
+    return cpress_set_keep_press_time(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<int32_t>(ms));
+}
+
+// ==================== 温度单值 / 索引命令 ====================
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_temp_step_count(JNIEnv* env, jclass, jlong handle, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    uint8_t step = 0;
+    if (cpress_get_temp_step_count(reinterpret_cast<CPressContext*>(handle), &step) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(step);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_temp_step_count(JNIEnv* env, jclass, jlong handle, jint step)
+{
+    (void)env;
+    return cpress_set_temp_step_count(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(step));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_temp_speed_mold(JNIEnv* env, jclass, jlong handle, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    uint8_t mold = 0;
+    if (cpress_get_temp_speed_mold(reinterpret_cast<CPressContext*>(handle), &mold) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(mold);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_temp_speed_mold(JNIEnv* env, jclass, jlong handle, jint mold)
+{
+    (void)env;
+    return cpress_set_temp_speed_mold(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(mold));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_start_temp_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_start_temp_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_temp_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_temp_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_temp_speed_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_temp_speed_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_temp_speed_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_temp_speed_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_keep_temp_time(JNIEnv* env, jclass, jlong handle, jint index, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    int32_t ms = 0;
+    if (cpress_get_keep_temp_time(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &ms) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(ms);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_keep_temp_time(JNIEnv* env, jclass, jlong handle, jint index, jint ms)
+{
+    (void)env;
+    return cpress_set_keep_temp_time(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<int32_t>(ms));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_max_water_value(JNIEnv* env, jclass, jlong handle, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_max_water_value(reinterpret_cast<CPressContext*>(handle), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_max_water_value(JNIEnv* env, jclass, jlong handle, jfloat value)
+{
+    (void)env;
+    return cpress_set_max_water_value(reinterpret_cast<CPressContext*>(handle), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_min_water_value(JNIEnv* env, jclass, jlong handle, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_min_water_value(reinterpret_cast<CPressContext*>(handle), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_min_water_value(JNIEnv* env, jclass, jlong handle, jfloat value)
+{
+    (void)env;
+    return cpress_set_min_water_value(reinterpret_cast<CPressContext*>(handle), static_cast<float>(value));
+}
+
+// ==================== 混合模式单值 / 索引命令 ====================
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_step_count(JNIEnv* env, jclass, jlong handle, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    uint8_t step = 0;
+    if (cpress_get_mix_step_count(reinterpret_cast<CPressContext*>(handle), &step) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(step);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_step_count(JNIEnv* env, jclass, jlong handle, jint step)
+{
+    (void)env;
+    return cpress_set_mix_step_count(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(step));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_mold_type(JNIEnv* env, jclass, jlong handle, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    uint8_t type = 0;
+    if (cpress_get_mix_mold_type(reinterpret_cast<CPressContext*>(handle), &type) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(type);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_mold_type(JNIEnv* env, jclass, jlong handle, jint type)
+{
+    (void)env;
+    return cpress_set_mix_mold_type(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(type));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_rectangle(JNIEnv* env, jclass, jlong handle, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 2)
+    {
+        return 0;
+    }
+
+    float a = 0.0f;
+    float b = 0.0f;
+    if (cpress_get_mix_rectangle(reinterpret_cast<CPressContext*>(handle), &a, &b) == 0)
+    {
+        return 0;
+    }
+
+    jfloat values[2] = {static_cast<jfloat>(a), static_cast<jfloat>(b)};
+    env->SetFloatArrayRegion(out, 0, 2, values);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_rectangle(JNIEnv* env, jclass, jlong handle, jfloat a, jfloat b)
+{
+    (void)env;
+    return cpress_set_mix_rectangle(reinterpret_cast<CPressContext*>(handle), static_cast<float>(a), static_cast<float>(b));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_circle(JNIEnv* env, jclass, jlong handle, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float diameter = 0.0f;
+    if (cpress_get_mix_circle(reinterpret_cast<CPressContext*>(handle), &diameter) == 0)
+    {
+        return 0;
+    }
+
+    jfloat value = static_cast<jfloat>(diameter);
+    env->SetFloatArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_circle(JNIEnv* env, jclass, jlong handle, jfloat diameter)
+{
+    (void)env;
+    return cpress_set_mix_circle(reinterpret_cast<CPressContext*>(handle), static_cast<float>(diameter));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_is_press_index(JNIEnv* env, jclass, jlong handle, jint index, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    int isPress = 0;
+    if (cpress_get_mix_is_press_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &isPress) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(isPress);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_is_press_index(JNIEnv* env, jclass, jlong handle, jint index, jint isPress)
+{
+    (void)env;
+    return cpress_set_mix_is_press_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<int>(isPress));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_press_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_mix_press_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_press_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_mix_press_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_after_press_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_mix_after_press_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_after_press_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_mix_after_press_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_is_heat_up_index(JNIEnv* env, jclass, jlong handle, jint index, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    int isHeatUp = 0;
+    if (cpress_get_mix_is_heat_up_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &isHeatUp) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(isHeatUp);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_is_heat_up_index(JNIEnv* env, jclass, jlong handle, jint index, jint isHeatUp)
+{
+    (void)env;
+    return cpress_set_mix_is_heat_up_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<int>(isHeatUp));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_heat_up_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_mix_heat_up_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_heat_up_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_mix_heat_up_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_is_heat_down_index(JNIEnv* env, jclass, jlong handle, jint index, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    int isHeatDown = 0;
+    if (cpress_get_mix_is_heat_down_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &isHeatDown) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(isHeatDown);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_is_heat_down_index(JNIEnv* env, jclass, jlong handle, jint index, jint isHeatDown)
+{
+    (void)env;
+    return cpress_set_mix_is_heat_down_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<int>(isHeatDown));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_heat_down_index(JNIEnv* env, jclass, jlong handle, jint index, jfloatArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    float value = 0.0f;
+    if (cpress_get_mix_heat_down_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &value) == 0)
+    {
+        return 0;
+    }
+
+    jfloat jvalue = static_cast<jfloat>(value);
+    env->SetFloatArrayRegion(out, 0, 1, &jvalue);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_heat_down_index(JNIEnv* env, jclass, jlong handle, jint index, jfloat value)
+{
+    (void)env;
+    return cpress_set_mix_heat_down_index(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<float>(value));
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mix_keep_time(JNIEnv* env, jclass, jlong handle, jint index, jintArray out)
+{
+    if (out == nullptr || env->GetArrayLength(out) < 1)
+    {
+        return 0;
+    }
+
+    int32_t ms = 0;
+    if (cpress_get_mix_keep_time(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), &ms) == 0)
+    {
+        return 0;
+    }
+
+    jint value = static_cast<jint>(ms);
+    env->SetIntArrayRegion(out, 0, 1, &value);
+    return 1;
+}
+
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mix_keep_time(JNIEnv* env, jclass, jlong handle, jint index, jint ms)
+{
+    (void)env;
+    return cpress_set_mix_keep_time(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(index), static_cast<int32_t>(ms));
+}
+
 extern "C" JNIEXPORT void JNICALL Java_PressSdk_press_register_data_interface(JNIEnv* env,
                                                                                jclass,
                                                                                jlong handle,

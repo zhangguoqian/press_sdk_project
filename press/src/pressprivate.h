@@ -45,6 +45,18 @@ static constexpr uint16_t GET_INDEX_KPTIME_V             = CMDID_INDEX_KPTIME;
 static constexpr uint16_t GET_INDEX_PSTEP_PARAMETER_V    = CMDID_INDEX_PSTEP_PARAMETER;
 static constexpr uint16_t GET_INDEX_TSTEP_PARAMETER_V    = CMDID_INDEX_TSTEP_PARAMETER;
 static constexpr uint16_t GET_MIX_INDEX_STEP_PARAMETER_V = CMDID_MIX_INDEX_STEP_PARAMETER;
+static constexpr uint16_t GET_MIX_STEP_V                 = CMDID_MIX_STEP;
+static constexpr uint16_t GET_MIX_MOLD_TYPE_V            = CMDID_MIX_MOLD_TYPE;
+static constexpr uint16_t GET_MIX_CIRCLE_D_V             = CMDID_MIX_CIRCLE_D;
+static constexpr uint16_t GET_MIX_RECT_AB_V              = CMDID_MIX_RECT_AB;
+static constexpr uint16_t GET_MIX_INDEX_ISPRESS_V        = CMDID_MIX_INDEX_ISPRESS;
+static constexpr uint16_t GET_MIX_INDEX_PRESS_V          = CMDID_MIX_INDEX_PRESS;
+static constexpr uint16_t GET_MIX_INDEX_AFTER_V          = CMDID_MIX_INDEX_AFTER;
+static constexpr uint16_t GET_MIX_INDEX_ISHEAT_UP_V      = CMDID_MIX_INDEX_ISHEAT_UP;
+static constexpr uint16_t GET_MIX_INDEX_TEMP_UP_V        = CMDID_MIX_INDEX_TEMP_UP;
+static constexpr uint16_t GET_MIX_INDEX_ISHEAT_DOWN_V    = CMDID_MIX_INDEX_ISHEAT_DOWN;
+static constexpr uint16_t GET_MIX_INDEX_TEMP_DOWN_V      = CMDID_MIX_INDEX_TEMP_DOWN;
+static constexpr uint16_t GET_MIX_INDEX_KTIME_V          = CMDID_MIX_INDEX_KTIME;
 static constexpr uint16_t GET_DATE_TIME_V                = CMDID_DATE_TIME;
 static constexpr uint16_t GET_BRIGHTNESS_V               = CMDID_BRIGHTNESS;
 static constexpr uint16_t GET_BUTTON_SOUND_V             = CMDID_BUTTON_SOUND;
@@ -81,6 +93,18 @@ static constexpr uint16_t SET_WATER_DOWN_V               = SET_CMD(CMDID_WATER_D
 static constexpr uint16_t SET_INDEX_PSTEP_PARAMETER_V    = SET_CMD(CMDID_INDEX_PSTEP_PARAMETER);
 static constexpr uint16_t SET_INDEX_TSTEP_PARAMETER_V    = SET_CMD(CMDID_INDEX_TSTEP_PARAMETER);
 static constexpr uint16_t SET_MIX_INDEX_STEP_PARAMETER_V = SET_CMD(CMDID_MIX_INDEX_STEP_PARAMETER);
+static constexpr uint16_t SET_MIX_STEP_V                 = SET_CMD(CMDID_MIX_STEP);
+static constexpr uint16_t SET_MIX_MOLD_TYPE_V            = SET_CMD(CMDID_MIX_MOLD_TYPE);
+static constexpr uint16_t SET_MIX_CIRCLE_D_V             = SET_CMD(CMDID_MIX_CIRCLE_D);
+static constexpr uint16_t SET_MIX_RECT_AB_V              = SET_CMD(CMDID_MIX_RECT_AB);
+static constexpr uint16_t SET_MIX_INDEX_ISPRESS_V        = SET_CMD(CMDID_MIX_INDEX_ISPRESS);
+static constexpr uint16_t SET_MIX_INDEX_PRESS_V          = SET_CMD(CMDID_MIX_INDEX_PRESS);
+static constexpr uint16_t SET_MIX_INDEX_AFTER_V          = SET_CMD(CMDID_MIX_INDEX_AFTER);
+static constexpr uint16_t SET_MIX_INDEX_ISHEAT_UP_V      = SET_CMD(CMDID_MIX_INDEX_ISHEAT_UP);
+static constexpr uint16_t SET_MIX_INDEX_TEMP_UP_V        = SET_CMD(CMDID_MIX_INDEX_TEMP_UP);
+static constexpr uint16_t SET_MIX_INDEX_ISHEAT_DOWN_V    = SET_CMD(CMDID_MIX_INDEX_ISHEAT_DOWN);
+static constexpr uint16_t SET_MIX_INDEX_TEMP_DOWN_V      = SET_CMD(CMDID_MIX_INDEX_TEMP_DOWN);
+static constexpr uint16_t SET_MIX_INDEX_KTIME_V          = SET_CMD(CMDID_MIX_INDEX_KTIME);
 static constexpr uint16_t SET_DATE_TIME_V                = SET_CMD(CMDID_DATE_TIME);
 static constexpr uint16_t SET_BRIGHTNESS_V               = SET_CMD(CMDID_BRIGHTNESS);
 static constexpr uint16_t SET_BUTTON_SOUND_V             = SET_CMD(CMDID_BUTTON_SOUND);
@@ -186,6 +210,32 @@ public:
     bool setMaxWaterValue(float value);
     bool getMinWaterValue(float& value);                            //!< CMDID_WATER_DOWN
     bool setMinWaterValue(float value);
+
+    // ==================== 混合模式参数命令（单值/索引） ====================
+    bool getMixStepCount(uint8_t& step);                            //!< CMDID_MIX_STEP
+    bool setMixStepCount(uint8_t step);
+    bool getMixMoldType(uint8_t& type);                             //!< CMDID_MIX_MOLD_TYPE
+    bool setMixMoldType(uint8_t type);
+    bool getMixRectangle(float& a, float& b);                       //!< CMDID_MIX_RECT_AB
+    bool setMixRectangle(float a, float b);
+    bool getMixCircle(float& diameter);                             //!< CMDID_MIX_CIRCLE_D
+    bool setMixCircle(float diameter);
+    bool getMixIsPressIndex(uint8_t index, bool& isPress);          //!< CMDID_MIX_INDEX_ISPRESS
+    bool setMixIsPressIndex(uint8_t index, bool isPress);
+    bool getMixPressIndex(uint8_t index, float& value);             //!< CMDID_MIX_INDEX_PRESS
+    bool setMixPressIndex(uint8_t index, float value);
+    bool getMixAfterPressIndex(uint8_t index, float& value);        //!< CMDID_MIX_INDEX_AFTER
+    bool setMixAfterPressIndex(uint8_t index, float value);
+    bool getMixIsHeatUpIndex(uint8_t index, bool& isHeatUp);        //!< CMDID_MIX_INDEX_ISHEAT_UP
+    bool setMixIsHeatUpIndex(uint8_t index, bool isHeatUp);
+    bool getMixHeatUpIndex(uint8_t index, float& value);            //!< CMDID_MIX_INDEX_TEMP_UP
+    bool setMixHeatUpIndex(uint8_t index, float value);
+    bool getMixIsHeatDownIndex(uint8_t index, bool& isHeatDown);    //!< CMDID_MIX_INDEX_ISHEAT_DOWN
+    bool setMixIsHeatDownIndex(uint8_t index, bool isHeatDown);
+    bool getMixHeatDownIndex(uint8_t index, float& value);          //!< CMDID_MIX_INDEX_TEMP_DOWN
+    bool setMixHeatDownIndex(uint8_t index, float value);
+    bool getMixKeepTime(uint8_t index, int32_t& time);              //!< CMDID_MIX_INDEX_KTIME（毫秒）
+    bool setMixKeepTime(uint8_t index, int32_t time);
 
     // ==================== 段参数命令 ====================
     bool getPressStepParameter(uint8_t index, PressStepParameter& param);   //!< 0x010A

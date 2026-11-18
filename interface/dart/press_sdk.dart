@@ -323,6 +323,885 @@ class PressSdk {
     return setDemolding(_handle, isDemolding ? 1 : 0) != 0;
   }
 
+  // ==================== Pressure / 压力 ====================
+
+  /// Read the pressure step count.
+  /// 读取压力段数。
+  int? getPressStepCount() {
+    _ensureNotDisposed();
+    final getPressStepCount = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Uint8>),
+          int Function(Pointer<Void>, Pointer<Uint8>)
+        >('cpress_get_press_step_count');
+
+    final step = malloc<Uint8>();
+    try {
+      return getPressStepCount(_handle, step) != 0 ? step.value : null;
+    } finally {
+      malloc.free(step);
+    }
+  }
+
+  /// Write the pressure step count.
+  /// 设置压力段数。
+  bool setPressStepCount(int step) {
+    _ensureNotDisposed();
+    final setPressStepCount = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8),
+          int Function(Pointer<Void>, int)
+        >('cpress_set_press_step_count');
+    return setPressStepCount(_handle, step) != 0;
+  }
+
+  /// Read the calibration value.
+  /// 读取校准值。
+  double? getCalibrationValue() {
+    _ensureNotDisposed();
+    final getCalibrationValue = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Float>),
+          int Function(Pointer<Void>, Pointer<Float>)
+        >('cpress_get_calibration_value');
+
+    final value = malloc<Float>();
+    try {
+      return getCalibrationValue(_handle, value) != 0 ? value.value : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the calibration value.
+  /// 设置校准值。
+  bool setCalibrationValue(double value) {
+    _ensureNotDisposed();
+    final setCalibrationValue = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Float),
+          int Function(Pointer<Void>, double)
+        >('cpress_set_calibration_value');
+    return setCalibrationValue(_handle, value) != 0;
+  }
+
+  /// Read the mode type.
+  /// 读取模式类型。
+  int? getModeType() {
+    _ensureNotDisposed();
+    final getModeType = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Uint8>),
+          int Function(Pointer<Void>, Pointer<Uint8>)
+        >('cpress_get_mode_type');
+
+    final type = malloc<Uint8>();
+    try {
+      return getModeType(_handle, type) != 0 ? type.value : null;
+    } finally {
+      malloc.free(type);
+    }
+  }
+
+  /// Write the mode type.
+  /// 设置模式类型。
+  bool setModeType(int type) {
+    _ensureNotDisposed();
+    final setModeType = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8),
+          int Function(Pointer<Void>, int)
+        >('cpress_set_mode_type');
+    return setModeType(_handle, type) != 0;
+  }
+
+  /// Read the circle diameter.
+  /// 读取圆形直径。
+  double? getCircle() {
+    _ensureNotDisposed();
+    final getCircle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Float>),
+          int Function(Pointer<Void>, Pointer<Float>)
+        >('cpress_get_circle');
+
+    final diameter = malloc<Float>();
+    try {
+      return getCircle(_handle, diameter) != 0 ? diameter.value : null;
+    } finally {
+      malloc.free(diameter);
+    }
+  }
+
+  /// Write the circle diameter.
+  /// 设置圆形直径。
+  bool setCircle(double diameter) {
+    _ensureNotDisposed();
+    final setCircle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Float),
+          int Function(Pointer<Void>, double)
+        >('cpress_set_circle');
+    return setCircle(_handle, diameter) != 0;
+  }
+
+  /// Read the rectangle size as [a, b].
+  /// 读取矩形尺寸，返回 [a, b]。
+  List<double>? getRectangle() {
+    _ensureNotDisposed();
+    final getRectangle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Float>, Pointer<Float>),
+          int Function(Pointer<Void>, Pointer<Float>, Pointer<Float>)
+        >('cpress_get_rectangle');
+
+    final a = malloc<Float>();
+    final b = malloc<Float>();
+    try {
+      if (getRectangle(_handle, a, b) == 0) {
+        return null;
+      }
+      return <double>[a.value, b.value];
+    } finally {
+      malloc.free(a);
+      malloc.free(b);
+    }
+  }
+
+  /// Write the rectangle size.
+  /// 设置矩形尺寸。
+  bool setRectangle(double a, double b) {
+    _ensureNotDisposed();
+    final setRectangle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Float, Float),
+          int Function(Pointer<Void>, double, double)
+        >('cpress_set_rectangle');
+    return setRectangle(_handle, a, b) != 0;
+  }
+
+  /// Read the air time in seconds.
+  /// 读取排气时间（秒）。
+  int? getAirTime() {
+    _ensureNotDisposed();
+    final getAirTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Uint8>),
+          int Function(Pointer<Void>, Pointer<Uint8>)
+        >('cpress_get_air_time');
+
+    final seconds = malloc<Uint8>();
+    try {
+      return getAirTime(_handle, seconds) != 0 ? seconds.value : null;
+    } finally {
+      malloc.free(seconds);
+    }
+  }
+
+  /// Write the air time in seconds.
+  /// 设置排气时间（秒）。
+  bool setAirTime(int seconds) {
+    _ensureNotDisposed();
+    final setAirTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8),
+          int Function(Pointer<Void>, int)
+        >('cpress_set_air_time');
+    return setAirTime(_handle, seconds) != 0;
+  }
+
+  /// Read the press value of one step.
+  /// 读取指定段的压力值。
+  double? getPressValueIndex(int index) {
+    _ensureNotDisposed();
+    final getPressValueIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_press_value_index');
+
+    final value = malloc<Float>();
+    try {
+      return getPressValueIndex(_handle, index, value) != 0
+          ? value.value
+          : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the press value of one step.
+  /// 设置指定段的压力值。
+  bool setPressValueIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setPressValueIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_press_value_index');
+    return setPressValueIndex(_handle, index, value) != 0;
+  }
+
+  /// Read the after-press value of one step.
+  /// 读取指定段的保压后值。
+  double? getAfterValueIndex(int index) {
+    _ensureNotDisposed();
+    final getAfterValueIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_after_value_index');
+
+    final value = malloc<Float>();
+    try {
+      return getAfterValueIndex(_handle, index, value) != 0
+          ? value.value
+          : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the after-press value of one step.
+  /// 设置指定段的保压后值。
+  bool setAfterValueIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setAfterValueIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_after_value_index');
+    return setAfterValueIndex(_handle, index, value) != 0;
+  }
+
+  /// Read the keep-press time of one step in milliseconds.
+  /// 读取指定段的保压时间（毫秒）。
+  int? getKeepPressTime(int index) {
+    _ensureNotDisposed();
+    final getKeepPressTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Int32>),
+          int Function(Pointer<Void>, int, Pointer<Int32>)
+        >('cpress_get_keep_press_time');
+
+    final ms = malloc<Int32>();
+    try {
+      return getKeepPressTime(_handle, index, ms) != 0 ? ms.value : null;
+    } finally {
+      malloc.free(ms);
+    }
+  }
+
+  /// Write the keep-press time of one step in milliseconds.
+  /// 设置指定段的保压时间（毫秒）。
+  bool setKeepPressTime(int index, int ms) {
+    _ensureNotDisposed();
+    final setKeepPressTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Int32),
+          int Function(Pointer<Void>, int, int)
+        >('cpress_set_keep_press_time');
+    return setKeepPressTime(_handle, index, ms) != 0;
+  }
+
+  // ==================== Temperature / 温度 ====================
+
+  /// Read the temperature step count.
+  /// 读取温度段数。
+  int? getTempStepCount() {
+    _ensureNotDisposed();
+    final getTempStepCount = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Uint8>),
+          int Function(Pointer<Void>, Pointer<Uint8>)
+        >('cpress_get_temp_step_count');
+
+    final step = malloc<Uint8>();
+    try {
+      return getTempStepCount(_handle, step) != 0 ? step.value : null;
+    } finally {
+      malloc.free(step);
+    }
+  }
+
+  /// Write the temperature step count.
+  /// 设置温度段数。
+  bool setTempStepCount(int step) {
+    _ensureNotDisposed();
+    final setTempStepCount = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8),
+          int Function(Pointer<Void>, int)
+        >('cpress_set_temp_step_count');
+    return setTempStepCount(_handle, step) != 0;
+  }
+
+  /// Read the temperature speed mold.
+  /// 读取温度速率模具。
+  int? getTempSpeedMold() {
+    _ensureNotDisposed();
+    final getTempSpeedMold = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Uint8>),
+          int Function(Pointer<Void>, Pointer<Uint8>)
+        >('cpress_get_temp_speed_mold');
+
+    final mold = malloc<Uint8>();
+    try {
+      return getTempSpeedMold(_handle, mold) != 0 ? mold.value : null;
+    } finally {
+      malloc.free(mold);
+    }
+  }
+
+  /// Write the temperature speed mold.
+  /// 设置温度速率模具。
+  bool setTempSpeedMold(int mold) {
+    _ensureNotDisposed();
+    final setTempSpeedMold = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8),
+          int Function(Pointer<Void>, int)
+        >('cpress_set_temp_speed_mold');
+    return setTempSpeedMold(_handle, mold) != 0;
+  }
+
+  /// Read the start temperature of one step.
+  /// 读取指定段的起始温度。
+  double? getStartTempIndex(int index) {
+    _ensureNotDisposed();
+    final getStartTempIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_start_temp_index');
+
+    final value = malloc<Float>();
+    try {
+      return getStartTempIndex(_handle, index, value) != 0
+          ? value.value
+          : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the start temperature of one step.
+  /// 设置指定段的起始温度。
+  bool setTempIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setTempIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_temp_index');
+    return setTempIndex(_handle, index, value) != 0;
+  }
+
+  /// Read the temperature speed of one step.
+  /// 读取指定段的温度速率。
+  double? getTempSpeedIndex(int index) {
+    _ensureNotDisposed();
+    final getTempSpeedIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_temp_speed_index');
+
+    final value = malloc<Float>();
+    try {
+      return getTempSpeedIndex(_handle, index, value) != 0
+          ? value.value
+          : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the temperature speed of one step.
+  /// 设置指定段的温度速率。
+  bool setTempSpeedIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setTempSpeedIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_temp_speed_index');
+    return setTempSpeedIndex(_handle, index, value) != 0;
+  }
+
+  /// Read the keep-temperature time of one step in milliseconds.
+  /// 读取指定段的保温时间（毫秒）。
+  int? getKeepTempTime(int index) {
+    _ensureNotDisposed();
+    final getKeepTempTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Int32>),
+          int Function(Pointer<Void>, int, Pointer<Int32>)
+        >('cpress_get_keep_temp_time');
+
+    final ms = malloc<Int32>();
+    try {
+      return getKeepTempTime(_handle, index, ms) != 0 ? ms.value : null;
+    } finally {
+      malloc.free(ms);
+    }
+  }
+
+  /// Write the keep-temperature time of one step in milliseconds.
+  /// 设置指定段的保温时间（毫秒）。
+  bool setKeepTempTime(int index, int ms) {
+    _ensureNotDisposed();
+    final setKeepTempTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Int32),
+          int Function(Pointer<Void>, int, int)
+        >('cpress_set_keep_temp_time');
+    return setKeepTempTime(_handle, index, ms) != 0;
+  }
+
+  /// Read the maximum water value.
+  /// 读取最大水量值。
+  double? getMaxWaterValue() {
+    _ensureNotDisposed();
+    final getMaxWaterValue = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Float>),
+          int Function(Pointer<Void>, Pointer<Float>)
+        >('cpress_get_max_water_value');
+
+    final value = malloc<Float>();
+    try {
+      return getMaxWaterValue(_handle, value) != 0 ? value.value : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the maximum water value.
+  /// 设置最大水量值。
+  bool setMaxWaterValue(double value) {
+    _ensureNotDisposed();
+    final setMaxWaterValue = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Float),
+          int Function(Pointer<Void>, double)
+        >('cpress_set_max_water_value');
+    return setMaxWaterValue(_handle, value) != 0;
+  }
+
+  /// Read the minimum water value.
+  /// 读取最小水量值。
+  double? getMinWaterValue() {
+    _ensureNotDisposed();
+    final getMinWaterValue = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Float>),
+          int Function(Pointer<Void>, Pointer<Float>)
+        >('cpress_get_min_water_value');
+
+    final value = malloc<Float>();
+    try {
+      return getMinWaterValue(_handle, value) != 0 ? value.value : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the minimum water value.
+  /// 设置最小水量值。
+  bool setMinWaterValue(double value) {
+    _ensureNotDisposed();
+    final setMinWaterValue = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Float),
+          int Function(Pointer<Void>, double)
+        >('cpress_set_min_water_value');
+    return setMinWaterValue(_handle, value) != 0;
+  }
+
+  // ==================== Mixing / 混合 ====================
+
+  /// Read the mixing step count.
+  /// 读取混合段数。
+  int? getMixStepCount() {
+    _ensureNotDisposed();
+    final getMixStepCount = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Uint8>),
+          int Function(Pointer<Void>, Pointer<Uint8>)
+        >('cpress_get_mix_step_count');
+
+    final step = malloc<Uint8>();
+    try {
+      return getMixStepCount(_handle, step) != 0 ? step.value : null;
+    } finally {
+      malloc.free(step);
+    }
+  }
+
+  /// Write the mixing step count.
+  /// 设置混合段数。
+  bool setMixStepCount(int step) {
+    _ensureNotDisposed();
+    final setMixStepCount = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8),
+          int Function(Pointer<Void>, int)
+        >('cpress_set_mix_step_count');
+    return setMixStepCount(_handle, step) != 0;
+  }
+
+  /// Read the mixing mold type.
+  /// 读取混合模具类型。
+  int? getMixMoldType() {
+    _ensureNotDisposed();
+    final getMixMoldType = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Uint8>),
+          int Function(Pointer<Void>, Pointer<Uint8>)
+        >('cpress_get_mix_mold_type');
+
+    final type = malloc<Uint8>();
+    try {
+      return getMixMoldType(_handle, type) != 0 ? type.value : null;
+    } finally {
+      malloc.free(type);
+    }
+  }
+
+  /// Write the mixing mold type.
+  /// 设置混合模具类型。
+  bool setMixMoldType(int type) {
+    _ensureNotDisposed();
+    final setMixMoldType = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8),
+          int Function(Pointer<Void>, int)
+        >('cpress_set_mix_mold_type');
+    return setMixMoldType(_handle, type) != 0;
+  }
+
+  /// Read the mixing rectangle size as [a, b].
+  /// 读取混合矩形尺寸，返回 [a, b]。
+  List<double>? getMixRectangle() {
+    _ensureNotDisposed();
+    final getMixRectangle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Float>, Pointer<Float>),
+          int Function(Pointer<Void>, Pointer<Float>, Pointer<Float>)
+        >('cpress_get_mix_rectangle');
+
+    final a = malloc<Float>();
+    final b = malloc<Float>();
+    try {
+      if (getMixRectangle(_handle, a, b) == 0) {
+        return null;
+      }
+      return <double>[a.value, b.value];
+    } finally {
+      malloc.free(a);
+      malloc.free(b);
+    }
+  }
+
+  /// Write the mixing rectangle size.
+  /// 设置混合矩形尺寸。
+  bool setMixRectangle(double a, double b) {
+    _ensureNotDisposed();
+    final setMixRectangle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Float, Float),
+          int Function(Pointer<Void>, double, double)
+        >('cpress_set_mix_rectangle');
+    return setMixRectangle(_handle, a, b) != 0;
+  }
+
+  /// Read the mixing circle diameter.
+  /// 读取混合圆形直径。
+  double? getMixCircle() {
+    _ensureNotDisposed();
+    final getMixCircle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<Float>),
+          int Function(Pointer<Void>, Pointer<Float>)
+        >('cpress_get_mix_circle');
+
+    final diameter = malloc<Float>();
+    try {
+      return getMixCircle(_handle, diameter) != 0 ? diameter.value : null;
+    } finally {
+      malloc.free(diameter);
+    }
+  }
+
+  /// Write the mixing circle diameter.
+  /// 设置混合圆形直径。
+  bool setMixCircle(double diameter) {
+    _ensureNotDisposed();
+    final setMixCircle = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Float),
+          int Function(Pointer<Void>, double)
+        >('cpress_set_mix_circle');
+    return setMixCircle(_handle, diameter) != 0;
+  }
+
+  /// Read whether one step presses.
+  /// 读取指定段是否加压。
+  bool? getMixIsPressIndex(int index) {
+    _ensureNotDisposed();
+    final getMixIsPressIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Int32>),
+          int Function(Pointer<Void>, int, Pointer<Int32>)
+        >('cpress_get_mix_is_press_index');
+
+    final isPress = malloc<Int32>();
+    try {
+      if (getMixIsPressIndex(_handle, index, isPress) == 0) {
+        return null;
+      }
+      return isPress.value != 0;
+    } finally {
+      malloc.free(isPress);
+    }
+  }
+
+  /// Write whether one step presses.
+  /// 设置指定段是否加压。
+  bool setMixIsPressIndex(int index, bool isPress) {
+    _ensureNotDisposed();
+    final setMixIsPressIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Int32),
+          int Function(Pointer<Void>, int, int)
+        >('cpress_set_mix_is_press_index');
+    return setMixIsPressIndex(_handle, index, isPress ? 1 : 0) != 0;
+  }
+
+  /// Read the mixing press value of one step.
+  /// 读取指定段的混合压力值。
+  double? getMixPressIndex(int index) {
+    _ensureNotDisposed();
+    final getMixPressIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_mix_press_index');
+
+    final value = malloc<Float>();
+    try {
+      return getMixPressIndex(_handle, index, value) != 0 ? value.value : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the mixing press value of one step.
+  /// 设置指定段的混合压力值。
+  bool setMixPressIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setMixPressIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_mix_press_index');
+    return setMixPressIndex(_handle, index, value) != 0;
+  }
+
+  /// Read the mixing after-press value of one step.
+  /// 读取指定段的混合保压后值。
+  double? getMixAfterPressIndex(int index) {
+    _ensureNotDisposed();
+    final getMixAfterPressIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_mix_after_press_index');
+
+    final value = malloc<Float>();
+    try {
+      return getMixAfterPressIndex(_handle, index, value) != 0
+          ? value.value
+          : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the mixing after-press value of one step.
+  /// 设置指定段的混合保压后值。
+  bool setMixAfterPressIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setMixAfterPressIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_mix_after_press_index');
+    return setMixAfterPressIndex(_handle, index, value) != 0;
+  }
+
+  /// Read whether one step heats up.
+  /// 读取指定段是否升温。
+  bool? getMixIsHeatUpIndex(int index) {
+    _ensureNotDisposed();
+    final getMixIsHeatUpIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Int32>),
+          int Function(Pointer<Void>, int, Pointer<Int32>)
+        >('cpress_get_mix_is_heat_up_index');
+
+    final isHeatUp = malloc<Int32>();
+    try {
+      if (getMixIsHeatUpIndex(_handle, index, isHeatUp) == 0) {
+        return null;
+      }
+      return isHeatUp.value != 0;
+    } finally {
+      malloc.free(isHeatUp);
+    }
+  }
+
+  /// Write whether one step heats up.
+  /// 设置指定段是否升温。
+  bool setMixIsHeatUpIndex(int index, bool isHeatUp) {
+    _ensureNotDisposed();
+    final setMixIsHeatUpIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Int32),
+          int Function(Pointer<Void>, int, int)
+        >('cpress_set_mix_is_heat_up_index');
+    return setMixIsHeatUpIndex(_handle, index, isHeatUp ? 1 : 0) != 0;
+  }
+
+  /// Read the mixing heat-up value of one step.
+  /// 读取指定段的升温值。
+  double? getMixHeatUpIndex(int index) {
+    _ensureNotDisposed();
+    final getMixHeatUpIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_mix_heat_up_index');
+
+    final value = malloc<Float>();
+    try {
+      return getMixHeatUpIndex(_handle, index, value) != 0
+          ? value.value
+          : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the mixing heat-up value of one step.
+  /// 设置指定段的升温值。
+  bool setMixHeatUpIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setMixHeatUpIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_mix_heat_up_index');
+    return setMixHeatUpIndex(_handle, index, value) != 0;
+  }
+
+  /// Read whether one step cools down.
+  /// 读取指定段是否降温。
+  bool? getMixIsHeatDownIndex(int index) {
+    _ensureNotDisposed();
+    final getMixIsHeatDownIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Int32>),
+          int Function(Pointer<Void>, int, Pointer<Int32>)
+        >('cpress_get_mix_is_heat_down_index');
+
+    final isHeatDown = malloc<Int32>();
+    try {
+      if (getMixIsHeatDownIndex(_handle, index, isHeatDown) == 0) {
+        return null;
+      }
+      return isHeatDown.value != 0;
+    } finally {
+      malloc.free(isHeatDown);
+    }
+  }
+
+  /// Write whether one step cools down.
+  /// 设置指定段是否降温。
+  bool setMixIsHeatDownIndex(int index, bool isHeatDown) {
+    _ensureNotDisposed();
+    final setMixIsHeatDownIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Int32),
+          int Function(Pointer<Void>, int, int)
+        >('cpress_set_mix_is_heat_down_index');
+    return setMixIsHeatDownIndex(_handle, index, isHeatDown ? 1 : 0) != 0;
+  }
+
+  /// Read the mixing cool-down value of one step.
+  /// 读取指定段的降温值。
+  double? getMixHeatDownIndex(int index) {
+    _ensureNotDisposed();
+    final getMixHeatDownIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Float>),
+          int Function(Pointer<Void>, int, Pointer<Float>)
+        >('cpress_get_mix_heat_down_index');
+
+    final value = malloc<Float>();
+    try {
+      return getMixHeatDownIndex(_handle, index, value) != 0
+          ? value.value
+          : null;
+    } finally {
+      malloc.free(value);
+    }
+  }
+
+  /// Write the mixing cool-down value of one step.
+  /// 设置指定段的降温值。
+  bool setMixHeatDownIndex(int index, double value) {
+    _ensureNotDisposed();
+    final setMixHeatDownIndex = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Float),
+          int Function(Pointer<Void>, int, double)
+        >('cpress_set_mix_heat_down_index');
+    return setMixHeatDownIndex(_handle, index, value) != 0;
+  }
+
+  /// Read the mixing keep time of one step in milliseconds.
+  /// 读取指定段的混合保持时间（毫秒）。
+  int? getMixKeepTime(int index) {
+    _ensureNotDisposed();
+    final getMixKeepTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Pointer<Int32>),
+          int Function(Pointer<Void>, int, Pointer<Int32>)
+        >('cpress_get_mix_keep_time');
+
+    final ms = malloc<Int32>();
+    try {
+      return getMixKeepTime(_handle, index, ms) != 0 ? ms.value : null;
+    } finally {
+      malloc.free(ms);
+    }
+  }
+
+  /// Write the mixing keep time of one step in milliseconds.
+  /// 设置指定段的混合保持时间（毫秒）。
+  bool setMixKeepTime(int index, int ms) {
+    _ensureNotDisposed();
+    final setMixKeepTime = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Uint8, Int32),
+          int Function(Pointer<Void>, int, int)
+        >('cpress_set_mix_keep_time');
+    return setMixKeepTime(_handle, index, ms) != 0;
+  }
+
   /// Fetch the SDK version string from the native library.
   /// 从原生库中获取 SDK 版本字符串。
   static String version() {

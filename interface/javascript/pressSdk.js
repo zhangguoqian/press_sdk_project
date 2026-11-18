@@ -105,8 +105,70 @@ const pressLib = ffi.Library(resolveLibraryPath(), {
   cpress_set_pressing: ['int', ['void*', 'int']],
   cpress_set_demolding: ['int', ['void*', 'int']],
 
+  // Pressure single value / index commands / 压力单值 / 索引命令
+  cpress_get_press_step_count: ['int', ['void*', 'pointer']],
+  cpress_set_press_step_count: ['int', ['void*', 'uint8']],
+  cpress_get_calibration_value: ['int', ['void*', 'pointer']],
+  cpress_set_calibration_value: ['int', ['void*', 'float']],
+  cpress_get_mode_type: ['int', ['void*', 'pointer']],
+  cpress_set_mode_type: ['int', ['void*', 'uint8']],
+  cpress_get_circle: ['int', ['void*', 'pointer']],
+  cpress_set_circle: ['int', ['void*', 'float']],
+  cpress_get_rectangle: ['int', ['void*', 'pointer', 'pointer']],
+  cpress_set_rectangle: ['int', ['void*', 'float', 'float']],
+  cpress_get_air_time: ['int', ['void*', 'pointer']],
+  cpress_set_air_time: ['int', ['void*', 'uint8']],
+  cpress_get_press_value_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_press_value_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_after_value_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_after_value_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_keep_press_time: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_keep_press_time: ['int', ['void*', 'uint8', 'int32']],
+
+  // Temperature single value / index commands / 温度单值 / 索引命令
+  cpress_get_temp_step_count: ['int', ['void*', 'pointer']],
+  cpress_set_temp_step_count: ['int', ['void*', 'uint8']],
+  cpress_get_temp_speed_mold: ['int', ['void*', 'pointer']],
+  cpress_set_temp_speed_mold: ['int', ['void*', 'uint8']],
+  cpress_get_start_temp_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_temp_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_temp_speed_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_temp_speed_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_keep_temp_time: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_keep_temp_time: ['int', ['void*', 'uint8', 'int32']],
+  cpress_get_max_water_value: ['int', ['void*', 'pointer']],
+  cpress_set_max_water_value: ['int', ['void*', 'float']],
+  cpress_get_min_water_value: ['int', ['void*', 'pointer']],
+  cpress_set_min_water_value: ['int', ['void*', 'float']],
+
+  // Mixing single value / index commands / 混合单值 / 索引命令
+  cpress_get_mix_step_count: ['int', ['void*', 'pointer']],
+  cpress_set_mix_step_count: ['int', ['void*', 'uint8']],
+  cpress_get_mix_mold_type: ['int', ['void*', 'pointer']],
+  cpress_set_mix_mold_type: ['int', ['void*', 'uint8']],
+  cpress_get_mix_rectangle: ['int', ['void*', 'pointer', 'pointer']],
+  cpress_set_mix_rectangle: ['int', ['void*', 'float', 'float']],
+  cpress_get_mix_circle: ['int', ['void*', 'pointer']],
+  cpress_set_mix_circle: ['int', ['void*', 'float']],
+  cpress_get_mix_is_press_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_is_press_index: ['int', ['void*', 'uint8', 'int']],
+  cpress_get_mix_press_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_press_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_mix_after_press_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_after_press_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_mix_is_heat_up_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_is_heat_up_index: ['int', ['void*', 'uint8', 'int']],
+  cpress_get_mix_heat_up_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_heat_up_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_mix_is_heat_down_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_is_heat_down_index: ['int', ['void*', 'uint8', 'int']],
+  cpress_get_mix_heat_down_index: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_heat_down_index: ['int', ['void*', 'uint8', 'float']],
+  cpress_get_mix_keep_time: ['int', ['void*', 'uint8', 'pointer']],
+  cpress_set_mix_keep_time: ['int', ['void*', 'uint8', 'int32']],
+
   // Callback / 回调
-  cpress_register_data_interface: ['void', ['void*', 'pointer']],
+  cpress_register_data_interface: ['void', ['void*', 'pointer', 'int']],
   cpress_unregister_data_interface: ['void', ['void*']],
   cpress_version: ['string', []],
 });
@@ -183,6 +245,30 @@ const PressCDataCallbacks = StructType({
   onTempData: 'pointer',
   onMixData: 'pointer',
 });
+
+// Read a single scalar value through a native out-parameter. ref.alloc returns
+// a garbage-collected Buffer, so no manual free is required, and the temporary
+// memory is dropped as soon as the getter returns.
+// 通过原生出参读取单个标量值。ref.alloc 返回由 GC 管理的 Buffer，无需手工释放，
+// getter 返回后临时内存即可被回收。
+function readScalarValue(refType, invoke) {
+  const buffer = ref.alloc(refType);
+  if (invoke(buffer) === 0) {
+    return null;
+  }
+  return ref.deref(buffer);
+}
+
+// Read a rectangle (a, b) through two native out-parameters.
+// 通过两个原生出参读取矩形尺寸 (a, b)。
+function readRectangleValue(invoke) {
+  const a = ref.alloc('float');
+  const b = ref.alloc('float');
+  if (invoke(a, b) === 0) {
+    return null;
+  }
+  return { a: ref.deref(a), b: ref.deref(b) };
+}
 
 class PressSdk {
   // High-level SDK wrapper / 高层 SDK 封装
@@ -294,8 +380,325 @@ class PressSdk {
     return pressLib.cpress_set_demolding(this.handle, isDemolding ? 1 : 0) !== 0;
   }
 
+  // ==================== Pressure / 压力 ====================
+
+  // Get/set the pressure step count / 读取或设置压力段数
+  getPressStepCount() {
+    this._assertHandle();
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_press_step_count(this.handle, out));
+  }
+
+  setPressStepCount(step) {
+    this._assertHandle();
+    return pressLib.cpress_set_press_step_count(this.handle, step) !== 0;
+  }
+
+  // Get/set the calibration value / 读取或设置校准值
+  getCalibrationValue() {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_calibration_value(this.handle, out));
+  }
+
+  setCalibrationValue(value) {
+    this._assertHandle();
+    return pressLib.cpress_set_calibration_value(this.handle, value) !== 0;
+  }
+
+  // Get/set the mode type / 读取或设置模式类型
+  getModeType() {
+    this._assertHandle();
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_mode_type(this.handle, out));
+  }
+
+  setModeType(type) {
+    this._assertHandle();
+    return pressLib.cpress_set_mode_type(this.handle, type) !== 0;
+  }
+
+  // Get/set the circle diameter / 读取或设置圆形直径
+  getCircle() {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_circle(this.handle, out));
+  }
+
+  setCircle(diameter) {
+    this._assertHandle();
+    return pressLib.cpress_set_circle(this.handle, diameter) !== 0;
+  }
+
+  // Get/set the rectangle size / 读取或设置矩形尺寸
+  getRectangle() {
+    this._assertHandle();
+    return readRectangleValue((a, b) => pressLib.cpress_get_rectangle(this.handle, a, b));
+  }
+
+  setRectangle(a, b) {
+    this._assertHandle();
+    return pressLib.cpress_set_rectangle(this.handle, a, b) !== 0;
+  }
+
+  // Get/set the air time / 读取或设置排气时间
+  getAirTime() {
+    this._assertHandle();
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_air_time(this.handle, out));
+  }
+
+  setAirTime(seconds) {
+    this._assertHandle();
+    return pressLib.cpress_set_air_time(this.handle, seconds) !== 0;
+  }
+
+  // Get/set the press value of one step / 读取或设置指定段的压力值
+  getPressValueIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_press_value_index(this.handle, index, out));
+  }
+
+  setPressValueIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_press_value_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set the after-press value of one step / 读取或设置指定段的保压后值
+  getAfterValueIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_after_value_index(this.handle, index, out));
+  }
+
+  setAfterValueIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_after_value_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set the keep-press time of one step (ms) / 读取或设置指定段的保压时间（毫秒）
+  getKeepPressTime(index) {
+    this._assertHandle();
+    return readScalarValue('int32', (out) => pressLib.cpress_get_keep_press_time(this.handle, index, out));
+  }
+
+  setKeepPressTime(index, ms) {
+    this._assertHandle();
+    return pressLib.cpress_set_keep_press_time(this.handle, index, ms) !== 0;
+  }
+
+  // ==================== Temperature / 温度 ====================
+
+  // Get/set the temperature step count / 读取或设置温度段数
+  getTempStepCount() {
+    this._assertHandle();
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_temp_step_count(this.handle, out));
+  }
+
+  setTempStepCount(step) {
+    this._assertHandle();
+    return pressLib.cpress_set_temp_step_count(this.handle, step) !== 0;
+  }
+
+  // Get/set the temperature speed mold / 读取或设置温度速率模具
+  getTempSpeedMold() {
+    this._assertHandle();
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_temp_speed_mold(this.handle, out));
+  }
+
+  setTempSpeedMold(mold) {
+    this._assertHandle();
+    return pressLib.cpress_set_temp_speed_mold(this.handle, mold) !== 0;
+  }
+
+  // Get/set the start temperature of one step / 读取或设置指定段的起始温度
+  getStartTempIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_start_temp_index(this.handle, index, out));
+  }
+
+  setTempIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_temp_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set the temperature speed of one step / 读取或设置指定段的温度速率
+  getTempSpeedIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_temp_speed_index(this.handle, index, out));
+  }
+
+  setTempSpeedIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_temp_speed_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set the keep-temperature time of one step (ms) / 读取或设置指定段的保温时间（毫秒）
+  getKeepTempTime(index) {
+    this._assertHandle();
+    return readScalarValue('int32', (out) => pressLib.cpress_get_keep_temp_time(this.handle, index, out));
+  }
+
+  setKeepTempTime(index, ms) {
+    this._assertHandle();
+    return pressLib.cpress_set_keep_temp_time(this.handle, index, ms) !== 0;
+  }
+
+  // Get/set the maximum water value / 读取或设置最大水量值
+  getMaxWaterValue() {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_max_water_value(this.handle, out));
+  }
+
+  setMaxWaterValue(value) {
+    this._assertHandle();
+    return pressLib.cpress_set_max_water_value(this.handle, value) !== 0;
+  }
+
+  // Get/set the minimum water value / 读取或设置最小水量值
+  getMinWaterValue() {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_min_water_value(this.handle, out));
+  }
+
+  setMinWaterValue(value) {
+    this._assertHandle();
+    return pressLib.cpress_set_min_water_value(this.handle, value) !== 0;
+  }
+
+  // ==================== Mixing / 混合 ====================
+
+  // Get/set the mixing step count / 读取或设置混合段数
+  getMixStepCount() {
+    this._assertHandle();
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_mix_step_count(this.handle, out));
+  }
+
+  setMixStepCount(step) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_step_count(this.handle, step) !== 0;
+  }
+
+  // Get/set the mixing mold type / 读取或设置混合模具类型
+  getMixMoldType() {
+    this._assertHandle();
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_mix_mold_type(this.handle, out));
+  }
+
+  setMixMoldType(type) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_mold_type(this.handle, type) !== 0;
+  }
+
+  // Get/set the mixing rectangle size / 读取或设置混合矩形尺寸
+  getMixRectangle() {
+    this._assertHandle();
+    return readRectangleValue((a, b) => pressLib.cpress_get_mix_rectangle(this.handle, a, b));
+  }
+
+  setMixRectangle(a, b) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_rectangle(this.handle, a, b) !== 0;
+  }
+
+  // Get/set the mixing circle diameter / 读取或设置混合圆形直径
+  getMixCircle() {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_mix_circle(this.handle, out));
+  }
+
+  setMixCircle(diameter) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_circle(this.handle, diameter) !== 0;
+  }
+
+  // Get/set whether one step presses / 读取或设置指定段是否加压
+  getMixIsPressIndex(index) {
+    this._assertHandle();
+    const value = readScalarValue('int', (out) => pressLib.cpress_get_mix_is_press_index(this.handle, index, out));
+    return value === null ? null : value !== 0;
+  }
+
+  setMixIsPressIndex(index, isPress) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_is_press_index(this.handle, index, isPress ? 1 : 0) !== 0;
+  }
+
+  // Get/set the mixing press value of one step / 读取或设置指定段的混合压力值
+  getMixPressIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_mix_press_index(this.handle, index, out));
+  }
+
+  setMixPressIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_press_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set the mixing after-press value of one step / 读取或设置指定段的混合保压后值
+  getMixAfterPressIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_mix_after_press_index(this.handle, index, out));
+  }
+
+  setMixAfterPressIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_after_press_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set whether one step heats up / 读取或设置指定段是否升温
+  getMixIsHeatUpIndex(index) {
+    this._assertHandle();
+    const value = readScalarValue('int', (out) => pressLib.cpress_get_mix_is_heat_up_index(this.handle, index, out));
+    return value === null ? null : value !== 0;
+  }
+
+  setMixIsHeatUpIndex(index, isHeatUp) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_is_heat_up_index(this.handle, index, isHeatUp ? 1 : 0) !== 0;
+  }
+
+  // Get/set the mixing heat-up value of one step / 读取或设置指定段的升温值
+  getMixHeatUpIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_mix_heat_up_index(this.handle, index, out));
+  }
+
+  setMixHeatUpIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_heat_up_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set whether one step cools down / 读取或设置指定段是否降温
+  getMixIsHeatDownIndex(index) {
+    this._assertHandle();
+    const value = readScalarValue('int', (out) => pressLib.cpress_get_mix_is_heat_down_index(this.handle, index, out));
+    return value === null ? null : value !== 0;
+  }
+
+  setMixIsHeatDownIndex(index, isHeatDown) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_is_heat_down_index(this.handle, index, isHeatDown ? 1 : 0) !== 0;
+  }
+
+  // Get/set the mixing cool-down value of one step / 读取或设置指定段的降温值
+  getMixHeatDownIndex(index) {
+    this._assertHandle();
+    return readScalarValue('float', (out) => pressLib.cpress_get_mix_heat_down_index(this.handle, index, out));
+  }
+
+  setMixHeatDownIndex(index, value) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_heat_down_index(this.handle, index, value) !== 0;
+  }
+
+  // Get/set the mixing keep time of one step (ms) / 读取或设置指定段的混合保持时间（毫秒）
+  getMixKeepTime(index) {
+    this._assertHandle();
+    return readScalarValue('int32', (out) => pressLib.cpress_get_mix_keep_time(this.handle, index, out));
+  }
+
+  setMixKeepTime(index, ms) {
+    this._assertHandle();
+    return pressLib.cpress_set_mix_keep_time(this.handle, index, ms) !== 0;
+  }
+
   // Register callback interface / 注册回调接口
-  registerDataInterface(callbacks) {
+  registerDataInterface(callbacks, intervalSeconds = 1) {
     this._assertHandle();
 
     if (!callbacks) {
@@ -353,7 +756,7 @@ class PressSdk {
     });
 
     this._callbackRefs = callbackRefs;
-    pressLib.cpress_register_data_interface(this.handle, table.ref());
+    pressLib.cpress_register_data_interface(this.handle, table.ref(), intervalSeconds);
   }
 
   // Unregister callback interface / 注销回调接口

@@ -286,6 +286,126 @@ bool Press::setMinWaterValue(float value)
     return mpPrivate->setMinWaterValue(value);
 }
 
+bool Press::getMixStepCount(uint8_t& step)
+{
+    return mpPrivate->getMixStepCount(step);
+}
+
+bool Press::setMixStepCount(uint8_t step)
+{
+    return mpPrivate->setMixStepCount(step);
+}
+
+bool Press::getMixMoldType(uint8_t& type)
+{
+    return mpPrivate->getMixMoldType(type);
+}
+
+bool Press::setMixMoldType(uint8_t type)
+{
+    return mpPrivate->setMixMoldType(type);
+}
+
+bool Press::getMixRectangle(float& a, float& b)
+{
+    return mpPrivate->getMixRectangle(a, b);
+}
+
+bool Press::setMixRectangle(float a, float b)
+{
+    return mpPrivate->setMixRectangle(a, b);
+}
+
+bool Press::getMixCircle(float& radius)
+{
+    return mpPrivate->getMixCircle(radius);
+}
+
+bool Press::setMixCircle(float radius)
+{
+    return mpPrivate->setMixCircle(radius);
+}
+
+bool Press::getMixIsPressIndex(uint8_t index, bool& isPress)
+{
+    return mpPrivate->getMixIsPressIndex(index, isPress);
+}
+
+bool Press::setMixIsPressIndex(uint8_t index, bool isPress)
+{
+    return mpPrivate->setMixIsPressIndex(index, isPress);
+}
+
+bool Press::getMixPressIndex(uint8_t index, float& value)
+{
+    return mpPrivate->getMixPressIndex(index, value);
+}
+
+bool Press::setMixPressIndex(uint8_t index, float value)
+{
+    return mpPrivate->setMixPressIndex(index, value);
+}
+
+bool Press::getMixAfterPressIndex(uint8_t index, float& value)
+{
+    return mpPrivate->getMixAfterPressIndex(index, value);
+}
+
+bool Press::setMixAfterPressIndex(uint8_t index, float value)
+{
+    return mpPrivate->setMixAfterPressIndex(index, value);
+}
+
+bool Press::getMixIsHeatUpIndex(uint8_t index, bool& isHeatUp)
+{
+    return mpPrivate->getMixIsHeatUpIndex(index, isHeatUp);
+}
+
+bool Press::setMixIsHeatUpIndex(uint8_t index, bool isHeatUp)
+{
+    return mpPrivate->setMixIsHeatUpIndex(index, isHeatUp);
+}
+
+bool Press::getMixHeatUpIndex(uint8_t index, float& value)
+{
+    return mpPrivate->getMixHeatUpIndex(index, value);
+}
+
+bool Press::setMixHeatUpIndex(uint8_t index, float value)
+{
+    return mpPrivate->setMixHeatUpIndex(index, value);
+}
+
+bool Press::getMixIsHeatDownIndex(uint8_t index, bool& isHeatDown)
+{
+    return mpPrivate->getMixIsHeatDownIndex(index, isHeatDown);
+}
+
+bool Press::setMixIsHeatDownIndex(uint8_t index, bool isHeatDown)
+{
+    return mpPrivate->setMixIsHeatDownIndex(index, isHeatDown);
+}
+
+bool Press::getMixHeatDownIndex(uint8_t index, float& value)
+{
+    return mpPrivate->getMixHeatDownIndex(index, value);
+}
+
+bool Press::setMixHeatDownIndex(uint8_t index, float value)
+{
+    return mpPrivate->setMixHeatDownIndex(index, value);
+}
+
+bool Press::getMixKeepTime(uint8_t index, int32_t& time)
+{
+    return mpPrivate->getMixKeepTime(index, time);
+}
+
+bool Press::setMixKeepTime(uint8_t index, int32_t time)
+{
+    return mpPrivate->setMixKeepTime(index, time);
+}
+
 bool Press::getPressStepParameter(uint8_t index, PressStepParameter& param)
 {
     return mpPrivate->getPressStepParameter(index, param);

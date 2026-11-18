@@ -230,7 +230,166 @@ class PressSdk:
     _lib.cpress_set_demolding.argtypes = [ctypes.c_void_p, ctypes.c_int]
     _lib.cpress_set_demolding.restype = ctypes.c_int
 
-    _lib.cpress_register_data_interface.argtypes = [ctypes.c_void_p, ctypes.POINTER(PressCDataCallbacks)]
+    # ==================== 压力单值 / 索引命令 ====================
+    _lib.cpress_get_press_step_count.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_press_step_count.restype = ctypes.c_int
+    _lib.cpress_set_press_step_count.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_press_step_count.restype = ctypes.c_int
+
+    _lib.cpress_get_calibration_value.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_calibration_value.restype = ctypes.c_int
+    _lib.cpress_set_calibration_value.argtypes = [ctypes.c_void_p, ctypes.c_float]
+    _lib.cpress_set_calibration_value.restype = ctypes.c_int
+
+    _lib.cpress_get_mode_type.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_mode_type.restype = ctypes.c_int
+    _lib.cpress_set_mode_type.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_mode_type.restype = ctypes.c_int
+
+    _lib.cpress_get_circle.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_circle.restype = ctypes.c_int
+    _lib.cpress_set_circle.argtypes = [ctypes.c_void_p, ctypes.c_float]
+    _lib.cpress_set_circle.restype = ctypes.c_int
+
+    _lib.cpress_get_rectangle.argtypes = [
+        ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_rectangle.restype = ctypes.c_int
+    _lib.cpress_set_rectangle.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float]
+    _lib.cpress_set_rectangle.restype = ctypes.c_int
+
+    _lib.cpress_get_air_time.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_air_time.restype = ctypes.c_int
+    _lib.cpress_set_air_time.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_air_time.restype = ctypes.c_int
+
+    _lib.cpress_get_press_value_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_press_value_index.restype = ctypes.c_int
+    _lib.cpress_set_press_value_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_press_value_index.restype = ctypes.c_int
+
+    _lib.cpress_get_after_value_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_after_value_index.restype = ctypes.c_int
+    _lib.cpress_set_after_value_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_after_value_index.restype = ctypes.c_int
+
+    _lib.cpress_get_keep_press_time.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_int32)]
+    _lib.cpress_get_keep_press_time.restype = ctypes.c_int
+    _lib.cpress_set_keep_press_time.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int32]
+    _lib.cpress_set_keep_press_time.restype = ctypes.c_int
+
+    # ==================== 温度单值 / 索引命令 ====================
+    _lib.cpress_get_temp_step_count.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_temp_step_count.restype = ctypes.c_int
+    _lib.cpress_set_temp_step_count.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_temp_step_count.restype = ctypes.c_int
+
+    _lib.cpress_get_temp_speed_mold.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_temp_speed_mold.restype = ctypes.c_int
+    _lib.cpress_set_temp_speed_mold.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_temp_speed_mold.restype = ctypes.c_int
+
+    _lib.cpress_get_start_temp_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_start_temp_index.restype = ctypes.c_int
+    _lib.cpress_set_temp_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_temp_index.restype = ctypes.c_int
+
+    _lib.cpress_get_temp_speed_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_temp_speed_index.restype = ctypes.c_int
+    _lib.cpress_set_temp_speed_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_temp_speed_index.restype = ctypes.c_int
+
+    _lib.cpress_get_keep_temp_time.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_int32)]
+    _lib.cpress_get_keep_temp_time.restype = ctypes.c_int
+    _lib.cpress_set_keep_temp_time.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int32]
+    _lib.cpress_set_keep_temp_time.restype = ctypes.c_int
+
+    _lib.cpress_get_max_water_value.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_max_water_value.restype = ctypes.c_int
+    _lib.cpress_set_max_water_value.argtypes = [ctypes.c_void_p, ctypes.c_float]
+    _lib.cpress_set_max_water_value.restype = ctypes.c_int
+
+    _lib.cpress_get_min_water_value.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_min_water_value.restype = ctypes.c_int
+    _lib.cpress_set_min_water_value.argtypes = [ctypes.c_void_p, ctypes.c_float]
+    _lib.cpress_set_min_water_value.restype = ctypes.c_int
+
+    # ==================== 混合模式单值 / 索引命令 ====================
+    _lib.cpress_get_mix_step_count.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_mix_step_count.restype = ctypes.c_int
+    _lib.cpress_set_mix_step_count.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_mix_step_count.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_mold_type.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_mix_mold_type.restype = ctypes.c_int
+    _lib.cpress_set_mix_mold_type.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_mix_mold_type.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_rectangle.argtypes = [
+        ctypes.c_void_p, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_mix_rectangle.restype = ctypes.c_int
+    _lib.cpress_set_mix_rectangle.argtypes = [ctypes.c_void_p, ctypes.c_float, ctypes.c_float]
+    _lib.cpress_set_mix_rectangle.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_circle.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_mix_circle.restype = ctypes.c_int
+    _lib.cpress_set_mix_circle.argtypes = [ctypes.c_void_p, ctypes.c_float]
+    _lib.cpress_set_mix_circle.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_is_press_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_int)]
+    _lib.cpress_get_mix_is_press_index.restype = ctypes.c_int
+    _lib.cpress_set_mix_is_press_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int]
+    _lib.cpress_set_mix_is_press_index.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_press_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_mix_press_index.restype = ctypes.c_int
+    _lib.cpress_set_mix_press_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_mix_press_index.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_after_press_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_mix_after_press_index.restype = ctypes.c_int
+    _lib.cpress_set_mix_after_press_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_mix_after_press_index.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_is_heat_up_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_int)]
+    _lib.cpress_get_mix_is_heat_up_index.restype = ctypes.c_int
+    _lib.cpress_set_mix_is_heat_up_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int]
+    _lib.cpress_set_mix_is_heat_up_index.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_heat_up_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_mix_heat_up_index.restype = ctypes.c_int
+    _lib.cpress_set_mix_heat_up_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_mix_heat_up_index.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_is_heat_down_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_int)]
+    _lib.cpress_get_mix_is_heat_down_index.restype = ctypes.c_int
+    _lib.cpress_set_mix_is_heat_down_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int]
+    _lib.cpress_set_mix_is_heat_down_index.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_heat_down_index.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_float)]
+    _lib.cpress_get_mix_heat_down_index.restype = ctypes.c_int
+    _lib.cpress_set_mix_heat_down_index.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_float]
+    _lib.cpress_set_mix_heat_down_index.restype = ctypes.c_int
+
+    _lib.cpress_get_mix_keep_time.argtypes = [
+        ctypes.c_void_p, ctypes.c_ubyte, ctypes.POINTER(ctypes.c_int32)]
+    _lib.cpress_get_mix_keep_time.restype = ctypes.c_int
+    _lib.cpress_set_mix_keep_time.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int32]
+    _lib.cpress_set_mix_keep_time.restype = ctypes.c_int
+
+    _lib.cpress_register_data_interface.argtypes = [ctypes.c_void_p, ctypes.POINTER(PressCDataCallbacks), ctypes.c_int]
     _lib.cpress_unregister_data_interface.argtypes = [ctypes.c_void_p]
     _lib.cpress_version.restype = ctypes.c_char_p
 
@@ -304,9 +463,269 @@ class PressSdk:
     def set_demolding(self, is_demolding: bool) -> bool:
         return self._lib.cpress_set_demolding(self._handle, 1 if is_demolding else 0) != 0
 
-    def register_data_interface(self, callbacks: PressCDataCallbacks) -> None:
+    # ==================== 压力单值 / 索引命令 ====================
+
+    def get_press_step_count(self) -> int:
+        value = ctypes.c_ubyte()
+        if self._lib.cpress_get_press_step_count(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_press_step_count(self, step: int) -> bool:
+        return self._lib.cpress_set_press_step_count(self._handle, step) != 0
+
+    def get_calibration_value(self) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_calibration_value(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_calibration_value(self, value: float) -> bool:
+        return self._lib.cpress_set_calibration_value(self._handle, value) != 0
+
+    def get_mode_type(self) -> int:
+        value = ctypes.c_ubyte()
+        if self._lib.cpress_get_mode_type(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_mode_type(self, mode_type: int) -> bool:
+        return self._lib.cpress_set_mode_type(self._handle, mode_type) != 0
+
+    def get_circle(self) -> float:
+        diameter = ctypes.c_float()
+        if self._lib.cpress_get_circle(self._handle, ctypes.byref(diameter)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return diameter.value
+
+    def set_circle(self, diameter: float) -> bool:
+        return self._lib.cpress_set_circle(self._handle, diameter) != 0
+
+    def get_rectangle(self) -> tuple[float, float]:
+        a = ctypes.c_float()
+        b = ctypes.c_float()
+        if self._lib.cpress_get_rectangle(self._handle, ctypes.byref(a), ctypes.byref(b)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return a.value, b.value
+
+    def set_rectangle(self, a: float, b: float) -> bool:
+        return self._lib.cpress_set_rectangle(self._handle, a, b) != 0
+
+    def get_air_time(self) -> int:
+        seconds = ctypes.c_ubyte()
+        if self._lib.cpress_get_air_time(self._handle, ctypes.byref(seconds)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return seconds.value
+
+    def set_air_time(self, seconds: int) -> bool:
+        return self._lib.cpress_set_air_time(self._handle, seconds) != 0
+
+    def get_press_value_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_press_value_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_press_value_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_press_value_index(self._handle, index, value) != 0
+
+    def get_after_value_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_after_value_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_after_value_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_after_value_index(self._handle, index, value) != 0
+
+    def get_keep_press_time(self, index: int) -> int:
+        ms = ctypes.c_int32()
+        if self._lib.cpress_get_keep_press_time(self._handle, index, ctypes.byref(ms)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return ms.value
+
+    def set_keep_press_time(self, index: int, ms: int) -> bool:
+        return self._lib.cpress_set_keep_press_time(self._handle, index, ms) != 0
+
+    # ==================== 温度单值 / 索引命令 ====================
+
+    def get_temp_step_count(self) -> int:
+        value = ctypes.c_ubyte()
+        if self._lib.cpress_get_temp_step_count(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_temp_step_count(self, step: int) -> bool:
+        return self._lib.cpress_set_temp_step_count(self._handle, step) != 0
+
+    def get_temp_speed_mold(self) -> int:
+        value = ctypes.c_ubyte()
+        if self._lib.cpress_get_temp_speed_mold(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_temp_speed_mold(self, mold: int) -> bool:
+        return self._lib.cpress_set_temp_speed_mold(self._handle, mold) != 0
+
+    def get_start_temp_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_start_temp_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_temp_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_temp_index(self._handle, index, value) != 0
+
+    def get_temp_speed_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_temp_speed_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_temp_speed_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_temp_speed_index(self._handle, index, value) != 0
+
+    def get_keep_temp_time(self, index: int) -> int:
+        ms = ctypes.c_int32()
+        if self._lib.cpress_get_keep_temp_time(self._handle, index, ctypes.byref(ms)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return ms.value
+
+    def set_keep_temp_time(self, index: int, ms: int) -> bool:
+        return self._lib.cpress_set_keep_temp_time(self._handle, index, ms) != 0
+
+    def get_max_water_value(self) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_max_water_value(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_max_water_value(self, value: float) -> bool:
+        return self._lib.cpress_set_max_water_value(self._handle, value) != 0
+
+    def get_min_water_value(self) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_min_water_value(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_min_water_value(self, value: float) -> bool:
+        return self._lib.cpress_set_min_water_value(self._handle, value) != 0
+
+    # ==================== 混合模式单值 / 索引命令 ====================
+
+    def get_mix_step_count(self) -> int:
+        value = ctypes.c_ubyte()
+        if self._lib.cpress_get_mix_step_count(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_mix_step_count(self, step: int) -> bool:
+        return self._lib.cpress_set_mix_step_count(self._handle, step) != 0
+
+    def get_mix_mold_type(self) -> int:
+        value = ctypes.c_ubyte()
+        if self._lib.cpress_get_mix_mold_type(self._handle, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_mix_mold_type(self, mold_type: int) -> bool:
+        return self._lib.cpress_set_mix_mold_type(self._handle, mold_type) != 0
+
+    def get_mix_rectangle(self) -> tuple[float, float]:
+        a = ctypes.c_float()
+        b = ctypes.c_float()
+        if self._lib.cpress_get_mix_rectangle(self._handle, ctypes.byref(a), ctypes.byref(b)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return a.value, b.value
+
+    def set_mix_rectangle(self, a: float, b: float) -> bool:
+        return self._lib.cpress_set_mix_rectangle(self._handle, a, b) != 0
+
+    def get_mix_circle(self) -> float:
+        diameter = ctypes.c_float()
+        if self._lib.cpress_get_mix_circle(self._handle, ctypes.byref(diameter)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return diameter.value
+
+    def set_mix_circle(self, diameter: float) -> bool:
+        return self._lib.cpress_set_mix_circle(self._handle, diameter) != 0
+
+    def get_mix_is_press_index(self, index: int) -> bool:
+        value = ctypes.c_int()
+        if self._lib.cpress_get_mix_is_press_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value != 0
+
+    def set_mix_is_press_index(self, index: int, is_press: bool) -> bool:
+        return self._lib.cpress_set_mix_is_press_index(self._handle, index, 1 if is_press else 0) != 0
+
+    def get_mix_press_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_mix_press_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_mix_press_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_mix_press_index(self._handle, index, value) != 0
+
+    def get_mix_after_press_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_mix_after_press_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_mix_after_press_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_mix_after_press_index(self._handle, index, value) != 0
+
+    def get_mix_is_heat_up_index(self, index: int) -> bool:
+        value = ctypes.c_int()
+        if self._lib.cpress_get_mix_is_heat_up_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value != 0
+
+    def set_mix_is_heat_up_index(self, index: int, is_heat_up: bool) -> bool:
+        return self._lib.cpress_set_mix_is_heat_up_index(self._handle, index, 1 if is_heat_up else 0) != 0
+
+    def get_mix_heat_up_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_mix_heat_up_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_mix_heat_up_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_mix_heat_up_index(self._handle, index, value) != 0
+
+    def get_mix_is_heat_down_index(self, index: int) -> bool:
+        value = ctypes.c_int()
+        if self._lib.cpress_get_mix_is_heat_down_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value != 0
+
+    def set_mix_is_heat_down_index(self, index: int, is_heat_down: bool) -> bool:
+        return self._lib.cpress_set_mix_is_heat_down_index(self._handle, index, 1 if is_heat_down else 0) != 0
+
+    def get_mix_heat_down_index(self, index: int) -> float:
+        value = ctypes.c_float()
+        if self._lib.cpress_get_mix_heat_down_index(self._handle, index, ctypes.byref(value)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return value.value
+
+    def set_mix_heat_down_index(self, index: int, value: float) -> bool:
+        return self._lib.cpress_set_mix_heat_down_index(self._handle, index, value) != 0
+
+    def get_mix_keep_time(self, index: int) -> int:
+        ms = ctypes.c_int32()
+        if self._lib.cpress_get_mix_keep_time(self._handle, index, ctypes.byref(ms)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return ms.value
+
+    def set_mix_keep_time(self, index: int, ms: int) -> bool:
+        return self._lib.cpress_set_mix_keep_time(self._handle, index, ms) != 0
+
+    def register_data_interface(self, callbacks: PressCDataCallbacks, interval_seconds: int = 1) -> None:
         """Register low-level native callbacks if the app wants to receive updates."""
-        self._lib.cpress_register_data_interface(self._handle, ctypes.byref(callbacks))
+        self._lib.cpress_register_data_interface(self._handle, ctypes.byref(callbacks), interval_seconds)
 
     def unregister_data_interface(self) -> None:
         self._lib.cpress_unregister_data_interface(self._handle)

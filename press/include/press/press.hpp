@@ -429,7 +429,6 @@ public:
     //! 写入最小水冷。
     bool setMinWaterValue(float value);
     
-
     //! Read one temperature step parameter (CMDID_INDEX_TSTEP_PARAMETER, index + 12 bytes).
     //! 读取温度段参数（索引 + 12 字节）。
     bool getTempStepParameter(uint8_t index, TempStepParameter& param);
@@ -437,6 +436,97 @@ public:
     //! Write one temperature step parameter / 写入温度段参数。
     bool setTempStepParameter(uint8_t index, const TempStepParameter& param);
 
+    
+    /**************************************************************************
+     * mix data exchange / 混合模式数据段参数接口
+    *************************************************************************/
+    
+    //! Read mixed-mode step count (CMDID_MIX_STEP, 1 byte).
+    //! 读取混合模式段数量。
+    bool getMixStepCount(uint8_t& step);
+
+    //! Write mixed-mode step count (CMDID_MIX_STEP with SET bit).
+    //! 写入混合模式段数量。
+    bool setMixStepCount(uint8_t step);
+
+    //! Read mixed-mode mold type (CMDID_MIX_MOLD_TYPE, 1 byte).
+    //! 读取混合模式模具类型。
+    bool getMixMoldType(uint8_t& type);
+    
+    //! Write mixed-mode mold type (CMDID_MIX_MOLD_TYPE with SET bit).
+    //! 写入混合模式模具类型。
+    bool setMixMoldType(uint8_t type);
+
+    //! Read mixed-mode rectangle A/B (CMDID_MIX_RECT_AB, 2 x float32).
+    //! 读取混合模式矩形尺寸 A/B。
+    bool getMixRectangle(float& a,float& b);
+
+    //! Write mixed-mode rectangle A/B / 写入混合模式矩形尺寸 A/B。
+    bool setMixRectangle(float a,float b);
+
+    //! Read mixed-mode circle diameter (CMDID_MIX_CIRCLE_D, float32).
+    //! 读取混合模式圆形容器直径。
+    bool getMixCircle(float& radius);
+
+    //! Write mixed-mode circle diameter / 写入混合模式圆形容器直径。
+    bool setMixCircle(float radius);
+
+    //! Read per-step is-press flag (CMDID_MIX_INDEX_ISPRESS, index + 1 byte).
+    //! 读取指定段是否加压。
+    bool getMixIsPressIndex(uint8_t index, bool& isPress);
+
+    //! Write per-step is-press flag / 写入指定段是否加压。
+    bool setMixIsPressIndex(uint8_t index, bool isPress);
+
+    //! Read per-step pressure value (CMDID_MIX_INDEX_PRESS, index + float32).
+    //! 读取指定段压力值。
+    bool getMixPressIndex(uint8_t index, float& value);
+
+    //! Write per-step pressure value / 写入指定段压力值。
+    bool setMixPressIndex(uint8_t index, float value);
+
+    //! Read per-step hold-pressure value (CMDID_MIX_INDEX_AFTER, index + float32).
+    //! 读取指定段保压值。
+    bool getMixAfterPressIndex(uint8_t index, float& value);
+    
+    //! Write per-step hold-pressure value / 写入指定段保压值。
+    bool setMixAfterPressIndex(uint8_t index, float value);
+
+    //! Read per-step heat-up flag (CMDID_MIX_INDEX_ISHEAT_UP, index + 1 byte).
+    //! 读取指定段是否加热。
+    bool getMixIsHeatUpIndex(uint8_t index, bool& isHeatUp);
+
+    //! Write per-step heat-up flag / 写入指定段是否加热。
+    bool setMixIsHeatUpIndex(uint8_t index, bool isHeatUp);
+
+    //! Read per-step heat-up temperature (CMDID_MIX_INDEX_TEMP_UP, index + float32).
+    //! 读取指定段加热温度。
+    bool getMixHeatUpIndex(uint8_t index, float& value);
+    
+    //! Write per-step heat-up temperature / 写入指定段加热温度。
+    bool setMixHeatUpIndex(uint8_t index, float value);
+
+    //! Read per-step heat-down flag (CMDID_MIX_INDEX_ISHEAT_DOWN, index + 1 byte).
+    //! 读取指定段是否冷却。
+    bool getMixIsHeatDownIndex(uint8_t index, bool& isHeatDown);
+    
+    //! Write per-step heat-down flag / 写入指定段是否冷却。
+    bool setMixIsHeatDownIndex(uint8_t index, bool isHeatDown);
+
+    //! Read per-step heat-down temperature (CMDID_MIX_INDEX_TEMP_DOWN, index + float32).
+    //! 读取指定段冷却温度。
+    bool getMixHeatDownIndex(uint8_t index, float& value);
+    
+    //! Write per-step heat-down temperature / 写入指定段冷却温度。
+    bool setMixHeatDownIndex(uint8_t index, float value);
+
+    //! Read per-step keep time (CMDID_MIX_INDEX_KTIME, index + int32 ms).
+    //! 读取指定段保持时间（毫秒）。
+    bool getMixKeepTime(uint8_t index, int32_t& time);
+    
+    //! Write per-step keep time / 写入指定段保持时间（毫秒）。
+    bool setMixKeepTime(uint8_t index, int32_t time);
+    
     //! Read one mixed-mode step parameter (CMDID_MIX_INDEX_STEP_PARAMETER).
     //! Note: firmware length check macro is 23 while the actual layout is 24
     //! bytes (index + 23); if firmware rejects the write, fix the macro there.

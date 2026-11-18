@@ -284,8 +284,182 @@ namespace PressSdk.Interop
         [DllImport("press", EntryPoint = "cpress_set_demolding", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeSetDemolding(IntPtr handle, int isDemolding);
 
+        // ==================== 压力单值 / 索引命令 ====================
+
+        [DllImport("press", EntryPoint = "cpress_get_press_step_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetPressStepCount(IntPtr handle, out byte step);
+
+        [DllImport("press", EntryPoint = "cpress_set_press_step_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetPressStepCount(IntPtr handle, byte step);
+
+        [DllImport("press", EntryPoint = "cpress_get_calibration_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetCalibrationValue(IntPtr handle, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_calibration_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetCalibrationValue(IntPtr handle, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_mode_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetModeType(IntPtr handle, out byte type);
+
+        [DllImport("press", EntryPoint = "cpress_set_mode_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetModeType(IntPtr handle, byte type);
+
+        [DllImport("press", EntryPoint = "cpress_get_circle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetCircle(IntPtr handle, out float diameter);
+
+        [DllImport("press", EntryPoint = "cpress_set_circle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetCircle(IntPtr handle, float diameter);
+
+        [DllImport("press", EntryPoint = "cpress_get_rectangle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetRectangle(IntPtr handle, out float a, out float b);
+
+        [DllImport("press", EntryPoint = "cpress_set_rectangle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetRectangle(IntPtr handle, float a, float b);
+
+        [DllImport("press", EntryPoint = "cpress_get_air_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetAirTime(IntPtr handle, out byte seconds);
+
+        [DllImport("press", EntryPoint = "cpress_set_air_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetAirTime(IntPtr handle, byte seconds);
+
+        [DllImport("press", EntryPoint = "cpress_get_press_value_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetPressValueIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_press_value_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetPressValueIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_after_value_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetAfterValueIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_after_value_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetAfterValueIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_keep_press_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetKeepPressTime(IntPtr handle, byte index, out int ms);
+
+        [DllImport("press", EntryPoint = "cpress_set_keep_press_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetKeepPressTime(IntPtr handle, byte index, int ms);
+
+        // ==================== 温度单值 / 索引命令 ====================
+
+        [DllImport("press", EntryPoint = "cpress_get_temp_step_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetTempStepCount(IntPtr handle, out byte step);
+
+        [DllImport("press", EntryPoint = "cpress_set_temp_step_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetTempStepCount(IntPtr handle, byte step);
+
+        [DllImport("press", EntryPoint = "cpress_get_temp_speed_mold", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetTempSpeedMold(IntPtr handle, out byte mold);
+
+        [DllImport("press", EntryPoint = "cpress_set_temp_speed_mold", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetTempSpeedMold(IntPtr handle, byte mold);
+
+        [DllImport("press", EntryPoint = "cpress_get_start_temp_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetStartTempIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_temp_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetTempIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_temp_speed_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetTempSpeedIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_temp_speed_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetTempSpeedIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_keep_temp_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetKeepTempTime(IntPtr handle, byte index, out int ms);
+
+        [DllImport("press", EntryPoint = "cpress_set_keep_temp_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetKeepTempTime(IntPtr handle, byte index, int ms);
+
+        [DllImport("press", EntryPoint = "cpress_get_max_water_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMaxWaterValue(IntPtr handle, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_max_water_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMaxWaterValue(IntPtr handle, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_min_water_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMinWaterValue(IntPtr handle, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_min_water_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMinWaterValue(IntPtr handle, float value);
+
+        // ==================== 混合模式单值 / 索引命令 ====================
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_step_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixStepCount(IntPtr handle, out byte step);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_step_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixStepCount(IntPtr handle, byte step);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_mold_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixMoldType(IntPtr handle, out byte type);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_mold_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixMoldType(IntPtr handle, byte type);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_rectangle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixRectangle(IntPtr handle, out float a, out float b);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_rectangle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixRectangle(IntPtr handle, float a, float b);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_circle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixCircle(IntPtr handle, out float diameter);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_circle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixCircle(IntPtr handle, float diameter);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_is_press_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixIsPressIndex(IntPtr handle, byte index, out int isPress);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_is_press_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixIsPressIndex(IntPtr handle, byte index, int isPress);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_press_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixPressIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_press_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixPressIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_after_press_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixAfterPressIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_after_press_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixAfterPressIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_is_heat_up_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixIsHeatUpIndex(IntPtr handle, byte index, out int isHeatUp);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_is_heat_up_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixIsHeatUpIndex(IntPtr handle, byte index, int isHeatUp);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_heat_up_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixHeatUpIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_heat_up_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixHeatUpIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_is_heat_down_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixIsHeatDownIndex(IntPtr handle, byte index, out int isHeatDown);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_is_heat_down_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixIsHeatDownIndex(IntPtr handle, byte index, int isHeatDown);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_heat_down_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixHeatDownIndex(IntPtr handle, byte index, out float value);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_heat_down_index", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixHeatDownIndex(IntPtr handle, byte index, float value);
+
+        [DllImport("press", EntryPoint = "cpress_get_mix_keep_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMixKeepTime(IntPtr handle, byte index, out int ms);
+
+        [DllImport("press", EntryPoint = "cpress_set_mix_keep_time", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMixKeepTime(IntPtr handle, byte index, int ms);
+
         [DllImport("press", EntryPoint = "cpress_register_data_interface", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern void NativeRegisterDataInterface(IntPtr handle, ref PressCDataCallbacks callbacks);
+        private static extern void NativeRegisterDataInterface(IntPtr handle, ref PressCDataCallbacks callbacks, int intervalSeconds);
 
         [DllImport("press", EntryPoint = "cpress_unregister_data_interface", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern void NativeUnregisterDataInterface(IntPtr handle);
@@ -400,6 +574,299 @@ namespace PressSdk.Interop
             return NativeSetDemolding(_handle, isDemolding ? 1 : 0) != 0;
         }
 
+        // ==================== 压力单值 / 索引命令 ====================
+
+        public bool GetPressStepCount(out byte step)
+        {
+            return NativeGetPressStepCount(_handle, out step) != 0;
+        }
+
+        public bool SetPressStepCount(byte step)
+        {
+            return NativeSetPressStepCount(_handle, step) != 0;
+        }
+
+        public bool GetCalibrationValue(out float value)
+        {
+            return NativeGetCalibrationValue(_handle, out value) != 0;
+        }
+
+        public bool SetCalibrationValue(float value)
+        {
+            return NativeSetCalibrationValue(_handle, value) != 0;
+        }
+
+        public bool GetModeType(out byte type)
+        {
+            return NativeGetModeType(_handle, out type) != 0;
+        }
+
+        public bool SetModeType(byte type)
+        {
+            return NativeSetModeType(_handle, type) != 0;
+        }
+
+        public bool GetCircle(out float diameter)
+        {
+            return NativeGetCircle(_handle, out diameter) != 0;
+        }
+
+        public bool SetCircle(float diameter)
+        {
+            return NativeSetCircle(_handle, diameter) != 0;
+        }
+
+        public bool GetRectangle(out float a, out float b)
+        {
+            return NativeGetRectangle(_handle, out a, out b) != 0;
+        }
+
+        public bool SetRectangle(float a, float b)
+        {
+            return NativeSetRectangle(_handle, a, b) != 0;
+        }
+
+        public bool GetAirTime(out byte seconds)
+        {
+            return NativeGetAirTime(_handle, out seconds) != 0;
+        }
+
+        public bool SetAirTime(byte seconds)
+        {
+            return NativeSetAirTime(_handle, seconds) != 0;
+        }
+
+        public bool GetPressValueIndex(byte index, out float value)
+        {
+            return NativeGetPressValueIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetPressValueIndex(byte index, float value)
+        {
+            return NativeSetPressValueIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetAfterValueIndex(byte index, out float value)
+        {
+            return NativeGetAfterValueIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetAfterValueIndex(byte index, float value)
+        {
+            return NativeSetAfterValueIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetKeepPressTime(byte index, out int ms)
+        {
+            return NativeGetKeepPressTime(_handle, index, out ms) != 0;
+        }
+
+        public bool SetKeepPressTime(byte index, int ms)
+        {
+            return NativeSetKeepPressTime(_handle, index, ms) != 0;
+        }
+
+        // ==================== 温度单值 / 索引命令 ====================
+
+        public bool GetTempStepCount(out byte step)
+        {
+            return NativeGetTempStepCount(_handle, out step) != 0;
+        }
+
+        public bool SetTempStepCount(byte step)
+        {
+            return NativeSetTempStepCount(_handle, step) != 0;
+        }
+
+        public bool GetTempSpeedMold(out byte mold)
+        {
+            return NativeGetTempSpeedMold(_handle, out mold) != 0;
+        }
+
+        public bool SetTempSpeedMold(byte mold)
+        {
+            return NativeSetTempSpeedMold(_handle, mold) != 0;
+        }
+
+        /// <summary>Read the start temperature at the given step index. / 读取指定段起始温度。</summary>
+        public bool GetStartTempIndex(byte index, out float value)
+        {
+            return NativeGetStartTempIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetTempIndex(byte index, float value)
+        {
+            return NativeSetTempIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetTempSpeedIndex(byte index, out float value)
+        {
+            return NativeGetTempSpeedIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetTempSpeedIndex(byte index, float value)
+        {
+            return NativeSetTempSpeedIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetKeepTempTime(byte index, out int ms)
+        {
+            return NativeGetKeepTempTime(_handle, index, out ms) != 0;
+        }
+
+        public bool SetKeepTempTime(byte index, int ms)
+        {
+            return NativeSetKeepTempTime(_handle, index, ms) != 0;
+        }
+
+        public bool GetMaxWaterValue(out float value)
+        {
+            return NativeGetMaxWaterValue(_handle, out value) != 0;
+        }
+
+        public bool SetMaxWaterValue(float value)
+        {
+            return NativeSetMaxWaterValue(_handle, value) != 0;
+        }
+
+        public bool GetMinWaterValue(out float value)
+        {
+            return NativeGetMinWaterValue(_handle, out value) != 0;
+        }
+
+        public bool SetMinWaterValue(float value)
+        {
+            return NativeSetMinWaterValue(_handle, value) != 0;
+        }
+
+        // ==================== 混合模式单值 / 索引命令 ====================
+
+        public bool GetMixStepCount(out byte step)
+        {
+            return NativeGetMixStepCount(_handle, out step) != 0;
+        }
+
+        public bool SetMixStepCount(byte step)
+        {
+            return NativeSetMixStepCount(_handle, step) != 0;
+        }
+
+        public bool GetMixMoldType(out byte type)
+        {
+            return NativeGetMixMoldType(_handle, out type) != 0;
+        }
+
+        public bool SetMixMoldType(byte type)
+        {
+            return NativeSetMixMoldType(_handle, type) != 0;
+        }
+
+        public bool GetMixRectangle(out float a, out float b)
+        {
+            return NativeGetMixRectangle(_handle, out a, out b) != 0;
+        }
+
+        public bool SetMixRectangle(float a, float b)
+        {
+            return NativeSetMixRectangle(_handle, a, b) != 0;
+        }
+
+        public bool GetMixCircle(out float diameter)
+        {
+            return NativeGetMixCircle(_handle, out diameter) != 0;
+        }
+
+        public bool SetMixCircle(float diameter)
+        {
+            return NativeSetMixCircle(_handle, diameter) != 0;
+        }
+
+        public bool GetMixIsPressIndex(byte index, out bool isPress)
+        {
+            bool succeeded = NativeGetMixIsPressIndex(_handle, index, out int raw) != 0;
+            isPress = raw != 0;
+            return succeeded;
+        }
+
+        public bool SetMixIsPressIndex(byte index, bool isPress)
+        {
+            return NativeSetMixIsPressIndex(_handle, index, isPress ? 1 : 0) != 0;
+        }
+
+        public bool GetMixPressIndex(byte index, out float value)
+        {
+            return NativeGetMixPressIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetMixPressIndex(byte index, float value)
+        {
+            return NativeSetMixPressIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetMixAfterPressIndex(byte index, out float value)
+        {
+            return NativeGetMixAfterPressIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetMixAfterPressIndex(byte index, float value)
+        {
+            return NativeSetMixAfterPressIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetMixIsHeatUpIndex(byte index, out bool isHeatUp)
+        {
+            bool succeeded = NativeGetMixIsHeatUpIndex(_handle, index, out int raw) != 0;
+            isHeatUp = raw != 0;
+            return succeeded;
+        }
+
+        public bool SetMixIsHeatUpIndex(byte index, bool isHeatUp)
+        {
+            return NativeSetMixIsHeatUpIndex(_handle, index, isHeatUp ? 1 : 0) != 0;
+        }
+
+        public bool GetMixHeatUpIndex(byte index, out float value)
+        {
+            return NativeGetMixHeatUpIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetMixHeatUpIndex(byte index, float value)
+        {
+            return NativeSetMixHeatUpIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetMixIsHeatDownIndex(byte index, out bool isHeatDown)
+        {
+            bool succeeded = NativeGetMixIsHeatDownIndex(_handle, index, out int raw) != 0;
+            isHeatDown = raw != 0;
+            return succeeded;
+        }
+
+        public bool SetMixIsHeatDownIndex(byte index, bool isHeatDown)
+        {
+            return NativeSetMixIsHeatDownIndex(_handle, index, isHeatDown ? 1 : 0) != 0;
+        }
+
+        public bool GetMixHeatDownIndex(byte index, out float value)
+        {
+            return NativeGetMixHeatDownIndex(_handle, index, out value) != 0;
+        }
+
+        public bool SetMixHeatDownIndex(byte index, float value)
+        {
+            return NativeSetMixHeatDownIndex(_handle, index, value) != 0;
+        }
+
+        public bool GetMixKeepTime(byte index, out int ms)
+        {
+            return NativeGetMixKeepTime(_handle, index, out ms) != 0;
+        }
+
+        public bool SetMixKeepTime(byte index, int ms)
+        {
+            return NativeSetMixKeepTime(_handle, index, ms) != 0;
+        }
+
         public void RegisterDataInterface(
             PressCReadOnlyDataCallback? onReadOnlyData = null,
             PressCRealTimeDataCallback? onRealTimeData = null,
@@ -407,7 +874,8 @@ namespace PressSdk.Interop
             PressCTempDataCallback? onTempData = null,
             PressCMixDataCallback? onMixData = null,
             PressCErrorCallback? onError = null,
-            IntPtr? userData = null)
+            IntPtr? userData = null,
+            int intervalSeconds = 1)
         {
             lock (_syncRoot)
             {
@@ -435,7 +903,7 @@ namespace PressSdk.Interop
                 };
 
                 _callbackHandle = GCHandle.Alloc(state, GCHandleType.Normal);
-                NativeRegisterDataInterface(_handle, ref state);
+                NativeRegisterDataInterface(_handle, ref state, intervalSeconds);
             }
         }
 

@@ -824,6 +824,106 @@ int main(int argc, char* argv[])
         }
     }
 
+    // ==================== 7.1 混合模式参数命令（单值/索引）====================
+    {
+        uint8_t mixStep = 0;
+        bool ok = press.getMixStepCount(mixStep);
+        report("getMixStepCount", ok, press);
+        if (ok)
+        {
+            std::printf("  mix step count = %u\n", mixStep);
+        }
+
+        uint8_t mixMold = 0;
+        ok = press.getMixMoldType(mixMold);
+        report("getMixMoldType", ok, press);
+        if (ok)
+        {
+            std::printf("  mix mold type = %u\n", mixMold);
+        }
+
+        float mixD = 0.0f;
+        ok = press.getMixCircle(mixD);
+        report("getMixCircle", ok, press);
+        if (ok)
+        {
+            std::printf("  mix circle diameter = %.3f\n", mixD);
+        }
+
+        float mixA = 0.0f;
+        float mixB = 0.0f;
+        ok = press.getMixRectangle(mixA, mixB);
+        report("getMixRectangle", ok, press);
+        if (ok)
+        {
+            std::printf("  mix rectangle A=%.3f B=%.3f\n", mixA, mixB);
+        }
+
+        bool mixIsPress = false;
+        ok = press.getMixIsPressIndex(0, mixIsPress);
+        report("getMixIsPressIndex(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] isPress = %d\n", mixIsPress ? 1 : 0);
+        }
+
+        float mixPress = 0.0f;
+        ok = press.getMixPressIndex(0, mixPress);
+        report("getMixPressIndex(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] pressure = %.3f\n", mixPress);
+        }
+
+        float mixAfter = 0.0f;
+        ok = press.getMixAfterPressIndex(0, mixAfter);
+        report("getMixAfterPressIndex(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] after-pressure = %.3f\n", mixAfter);
+        }
+
+        bool mixIsUp = false;
+        ok = press.getMixIsHeatUpIndex(0, mixIsUp);
+        report("getMixIsHeatUpIndex(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] isHeatUp = %d\n", mixIsUp ? 1 : 0);
+        }
+
+        float mixUp = 0.0f;
+        ok = press.getMixHeatUpIndex(0, mixUp);
+        report("getMixHeatUpIndex(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] heat-up temperature = %.3f\n", mixUp);
+        }
+
+        bool mixIsDown = false;
+        ok = press.getMixIsHeatDownIndex(0, mixIsDown);
+        report("getMixIsHeatDownIndex(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] isHeatDown = %d\n", mixIsDown ? 1 : 0);
+        }
+
+        float mixDown = 0.0f;
+        ok = press.getMixHeatDownIndex(0, mixDown);
+        report("getMixHeatDownIndex(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] heat-down temperature = %.3f\n", mixDown);
+        }
+
+        int32_t mixKTime = 0;
+        ok = press.getMixKeepTime(0, mixKTime);
+        report("getMixKeepTime(0)", ok, press);
+        if (ok)
+        {
+            std::printf("  step[0] keep time = %d ms\n", mixKTime);
+        }
+    }
+
     // ==================== 8. 系统命令 ====================
     {
         DateTimeInfo dt{};
@@ -929,6 +1029,29 @@ int main(int argc, char* argv[])
                 std::printf("  write-back value = %d\n", value);
             }
         };
+        auto testIndexedBool = [&](const char* name, auto get, auto set) {
+            bool value = false;
+            bool back = false;
+            const bool ok = get(0, value) && set(0, value) && get(0, back) && back == value;
+            report(name, ok, press);
+            if (ok)
+            {
+                std::printf("  write-back value = %d\n", value ? 1 : 0);
+            }
+        };
+        auto testRect = [&](const char* name, auto get, auto set) {
+            float a = 0.0f;
+            float b = 0.0f;
+            float a2 = 0.0f;
+            float b2 = 0.0f;
+            const bool ok = get(a, b) && set(a, b) && get(a2, b2) &&
+                            std::fabs(a2 - a) <= 0.001f && std::fabs(b2 - b) <= 0.001f;
+            report(name, ok, press);
+            if (ok)
+            {
+                std::printf("  write-back A=%.3f B=%.3f\n", a, b);
+            }
+        };
 
         // ---- 压力参数 ----
         testByte("setPressStepCount(read-back)",
@@ -994,6 +1117,44 @@ int main(int argc, char* argv[])
         testFloat("setMinWaterValue(read-back)",
                   [&](float& v) { return press.getMinWaterValue(v); },
                   [&](float v) { return press.setMinWaterValue(v); });
+
+        // ---- 混合模式参数 ----
+        testByte("setMixStepCount(read-back)",
+                 [&](uint8_t& v) { return press.getMixStepCount(v); },
+                 [&](uint8_t v) { return press.setMixStepCount(v); });
+        testByte("setMixMoldType(read-back)",
+                 [&](uint8_t& v) { return press.getMixMoldType(v); },
+                 [&](uint8_t v) { return press.setMixMoldType(v); });
+        testFloat("setMixCircle(read-back)",
+                  [&](float& v) { return press.getMixCircle(v); },
+                  [&](float v) { return press.setMixCircle(v); });
+        testRect("setMixRectangle(read-back)",
+                 [&](float& a, float& b) { return press.getMixRectangle(a, b); },
+                 [&](float a, float b) { return press.setMixRectangle(a, b); });
+        testIndexedBool("setMixIsPressIndex(0)(read-back)",
+                        [&](uint8_t i, bool& v) { return press.getMixIsPressIndex(i, v); },
+                        [&](uint8_t i, bool v) { return press.setMixIsPressIndex(i, v); });
+        testIndexedFloat("setMixPressIndex(0)(read-back)",
+                         [&](uint8_t i, float& v) { return press.getMixPressIndex(i, v); },
+                         [&](uint8_t i, float v) { return press.setMixPressIndex(i, v); });
+        testIndexedFloat("setMixAfterPressIndex(0)(read-back)",
+                         [&](uint8_t i, float& v) { return press.getMixAfterPressIndex(i, v); },
+                         [&](uint8_t i, float v) { return press.setMixAfterPressIndex(i, v); });
+        testIndexedBool("setMixIsHeatUpIndex(0)(read-back)",
+                        [&](uint8_t i, bool& v) { return press.getMixIsHeatUpIndex(i, v); },
+                        [&](uint8_t i, bool v) { return press.setMixIsHeatUpIndex(i, v); });
+        testIndexedFloat("setMixHeatUpIndex(0)(read-back)",
+                         [&](uint8_t i, float& v) { return press.getMixHeatUpIndex(i, v); },
+                         [&](uint8_t i, float v) { return press.setMixHeatUpIndex(i, v); });
+        testIndexedBool("setMixIsHeatDownIndex(0)(read-back)",
+                        [&](uint8_t i, bool& v) { return press.getMixIsHeatDownIndex(i, v); },
+                        [&](uint8_t i, bool v) { return press.setMixIsHeatDownIndex(i, v); });
+        testIndexedFloat("setMixHeatDownIndex(0)(read-back)",
+                         [&](uint8_t i, float& v) { return press.getMixHeatDownIndex(i, v); },
+                         [&](uint8_t i, float v) { return press.setMixHeatDownIndex(i, v); });
+        testIndexedInt32("setMixKeepTime(0)(read-back)",
+                         [&](uint8_t i, int32_t& v) { return press.getMixKeepTime(i, v); },
+                         [&](uint8_t i, int32_t v) { return press.setMixKeepTime(i, v); });
 
         // ---- 系统参数 ----
         {
@@ -1334,6 +1495,18 @@ int main(int argc, char* argv[])
         bench("getTempStepParameter", "get", 5, [&] { TempStepParameter p{}; return press.getTempStepParameter(0, p); });
 
         // ---- 混合模式 ----
+        bench("getMixStepCount", "get", 10, [&] { uint8_t v = 0; return press.getMixStepCount(v); });
+        bench("getMixMoldType", "get", 10, [&] { uint8_t v = 0; return press.getMixMoldType(v); });
+        bench("getMixCircle", "get", 10, [&] { float v = 0; return press.getMixCircle(v); });
+        bench("getMixRectangle", "get", 10, [&] { float a = 0, b = 0; return press.getMixRectangle(a, b); });
+        bench("getMixIsPressIndex", "get", 10, [&] { bool v = false; return press.getMixIsPressIndex(0, v); });
+        bench("getMixPressIndex", "get", 10, [&] { float v = 0; return press.getMixPressIndex(0, v); });
+        bench("getMixAfterPressIndex", "get", 10, [&] { float v = 0; return press.getMixAfterPressIndex(0, v); });
+        bench("getMixIsHeatUpIndex", "get", 10, [&] { bool v = false; return press.getMixIsHeatUpIndex(0, v); });
+        bench("getMixHeatUpIndex", "get", 10, [&] { float v = 0; return press.getMixHeatUpIndex(0, v); });
+        bench("getMixIsHeatDownIndex", "get", 10, [&] { bool v = false; return press.getMixIsHeatDownIndex(0, v); });
+        bench("getMixHeatDownIndex", "get", 10, [&] { float v = 0; return press.getMixHeatDownIndex(0, v); });
+        bench("getMixKeepTime", "get", 10, [&] { int32_t v = 0; return press.getMixKeepTime(0, v); });
         bench("getMixStepParameter", "get", 5, [&] { MixStepParameter p{}; return press.getMixStepParameter(0, p); });
 
         // ---- 系统 ----
@@ -1415,6 +1588,48 @@ int main(int argc, char* argv[])
         benchFloatSetter(press, "setMinWaterValue",
                          [&](float& v) { return press.getMinWaterValue(v); },
                          [&](float v) { return press.setMinWaterValue(v); });
+
+        benchSetter(press, "setMixStepCount",
+                    [&](uint8_t& v) { return press.getMixStepCount(v); },
+                    [&](uint8_t v) { return press.setMixStepCount(v); });
+        benchSetter(press, "setMixMoldType",
+                    [&](uint8_t& v) { return press.getMixMoldType(v); },
+                    [&](uint8_t v) { return press.setMixMoldType(v); });
+        benchFloatSetter(press, "setMixCircle",
+                         [&](float& v) { return press.getMixCircle(v); },
+                         [&](float v) { return press.setMixCircle(v); });
+        bench("setMixRectangle", "set", 5, [&] {
+            float a = 0.0f;
+            float b = 0.0f;
+            return press.getMixRectangle(a, b) && press.setMixRectangle(a, b);
+        }, "原值写回");
+        bench("setMixIsPressIndex", "set", 5, [&] {
+            bool v = false;
+            return press.getMixIsPressIndex(0, v) && press.setMixIsPressIndex(0, v);
+        }, "index=0 原值写回");
+        benchIndexedFloatSetter(press, "setMixPressIndex",
+                                [&](uint8_t i, float& v) { return press.getMixPressIndex(i, v); },
+                                [&](uint8_t i, float v) { return press.setMixPressIndex(i, v); });
+        benchIndexedFloatSetter(press, "setMixAfterPressIndex",
+                                [&](uint8_t i, float& v) { return press.getMixAfterPressIndex(i, v); },
+                                [&](uint8_t i, float v) { return press.setMixAfterPressIndex(i, v); });
+        bench("setMixIsHeatUpIndex", "set", 5, [&] {
+            bool v = false;
+            return press.getMixIsHeatUpIndex(0, v) && press.setMixIsHeatUpIndex(0, v);
+        }, "index=0 原值写回");
+        benchIndexedFloatSetter(press, "setMixHeatUpIndex",
+                                [&](uint8_t i, float& v) { return press.getMixHeatUpIndex(i, v); },
+                                [&](uint8_t i, float v) { return press.setMixHeatUpIndex(i, v); });
+        bench("setMixIsHeatDownIndex", "set", 5, [&] {
+            bool v = false;
+            return press.getMixIsHeatDownIndex(0, v) && press.setMixIsHeatDownIndex(0, v);
+        }, "index=0 原值写回");
+        benchIndexedFloatSetter(press, "setMixHeatDownIndex",
+                                [&](uint8_t i, float& v) { return press.getMixHeatDownIndex(i, v); },
+                                [&](uint8_t i, float v) { return press.setMixHeatDownIndex(i, v); });
+        benchIndexedInt32Setter(press, "setMixKeepTime",
+                                [&](uint8_t i, int32_t& v) { return press.getMixKeepTime(i, v); },
+                                [&](uint8_t i, int32_t v) { return press.setMixKeepTime(i, v); });
         {
             TempStepParameter p{};
             if (press.getTempStepParameter(0, p))

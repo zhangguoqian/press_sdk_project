@@ -420,6 +420,460 @@ public final class PressSdk implements AutoCloseable {
         press_set_request_timeout(this.handle, ms);
     }
 
+    // ==================== 压力单值 / 索引命令 ====================
+
+    /** Read pressure step count; null on failure. / 读取压力段数量，失败返回 null。 */
+    public Integer getPressStepCount() {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_press_step_count(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write pressure step count. / 写入压力段数量。 */
+    public boolean setPressStepCount(int step) {
+        ensureOpen();
+        return press_set_press_step_count(this.handle, step) != 0;
+    }
+
+    /** Read pressure calibration value; null on failure. / 读取压力校准值，失败返回 null。 */
+    public Float getCalibrationValue() {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_calibration_value(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write pressure calibration value. / 写入压力校准值。 */
+    public boolean setCalibrationValue(float value) {
+        ensureOpen();
+        return press_set_calibration_value(this.handle, value) != 0;
+    }
+
+    /** Read mold type; null on failure. / 读取模具类型，失败返回 null。 */
+    public Integer getModeType() {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_mode_type(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write mold type. / 写入模具类型。 */
+    public boolean setModeType(int type) {
+        ensureOpen();
+        return press_set_mode_type(this.handle, type) != 0;
+    }
+
+    /** Read circular mold diameter; null on failure. / 读取圆形容器直径，失败返回 null。 */
+    public Float getCircle() {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_circle(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write circular mold diameter. / 写入圆形容器直径。 */
+    public boolean setCircle(float diameter) {
+        ensureOpen();
+        return press_set_circle(this.handle, diameter) != 0;
+    }
+
+    /** Read rectangular mold A/B dimensions as [a, b]; null on failure. / 读取矩形容器 A/B 尺寸，失败返回 null。 */
+    public float[] getRectangle() {
+        ensureOpen();
+        float[] out = new float[2];
+        if (press_get_rectangle(this.handle, out) == 0) {
+            return null;
+        }
+        return out;
+    }
+
+    /** Write rectangular mold A/B dimensions. / 写入矩形容器 A/B 尺寸。 */
+    public boolean setRectangle(float a, float b) {
+        ensureOpen();
+        return press_set_rectangle(this.handle, a, b) != 0;
+    }
+
+    /** Read air (exhaust) time in seconds; null on failure. / 读取排气时间（秒），失败返回 null。 */
+    public Integer getAirTime() {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_air_time(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write air (exhaust) time in seconds. / 写入排气时间（秒）。 */
+    public boolean setAirTime(int seconds) {
+        ensureOpen();
+        return press_set_air_time(this.handle, seconds) != 0;
+    }
+
+    /** Read the target pressure of one step; null on failure. / 读取指定压力段的设定压力，失败返回 null。 */
+    public Float getPressValueIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_press_value_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write the target pressure of one step. / 写入指定压力段的设定压力。 */
+    public boolean setPressValueIndex(int index, float value) {
+        ensureOpen();
+        return press_set_press_value_index(this.handle, index, value) != 0;
+    }
+
+    /** Read the hold pressure of one step; null on failure. / 读取指定压力段的保压值，失败返回 null。 */
+    public Float getAfterValueIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_after_value_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write the hold pressure of one step. / 写入指定压力段的保压值。 */
+    public boolean setAfterValueIndex(int index, float value) {
+        ensureOpen();
+        return press_set_after_value_index(this.handle, index, value) != 0;
+    }
+
+    /** Read the keep-pressure time of one step in milliseconds; null on failure. / 读取指定压力段的保压时间（毫秒），失败返回 null。 */
+    public Integer getKeepPressTime(int index) {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_keep_press_time(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write the keep-pressure time of one step in milliseconds. / 写入指定压力段的保压时间（毫秒）。 */
+    public boolean setKeepPressTime(int index, int ms) {
+        ensureOpen();
+        return press_set_keep_press_time(this.handle, index, ms) != 0;
+    }
+
+    // ==================== 温度单值 / 索引命令 ====================
+
+    /** Read temperature step count; null on failure. / 读取温度段数量，失败返回 null。 */
+    public Integer getTempStepCount() {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_temp_step_count(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write temperature step count. / 写入温度段数量。 */
+    public boolean setTempStepCount(int step) {
+        ensureOpen();
+        return press_set_temp_step_count(this.handle, step) != 0;
+    }
+
+    /** Read temperature speed mold; null on failure. / 读取温度速度模式，失败返回 null。 */
+    public Integer getTempSpeedMold() {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_temp_speed_mold(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write temperature speed mold. / 写入温度速度模式。 */
+    public boolean setTempSpeedMold(int mold) {
+        ensureOpen();
+        return press_set_temp_speed_mold(this.handle, mold) != 0;
+    }
+
+    /** Read the temperature value of one step; null on failure. / 读取指定温度段的温度值，失败返回 null。 */
+    public Float getStartTempIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_start_temp_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write the temperature value of one step. / 写入指定温度段的温度值。 */
+    public boolean setTempIndex(int index, float value) {
+        ensureOpen();
+        return press_set_temp_index(this.handle, index, value) != 0;
+    }
+
+    /** Read the speed value of one step; null on failure. / 读取指定温度段的速度值，失败返回 null。 */
+    public Float getTempSpeedIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_temp_speed_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write the speed value of one step. / 写入指定温度段的速度值。 */
+    public boolean setTempSpeedIndex(int index, float value) {
+        ensureOpen();
+        return press_set_temp_speed_index(this.handle, index, value) != 0;
+    }
+
+    /** Read the keep-temperature time of one step in milliseconds; null on failure. / 读取指定温度段的保温时间（毫秒），失败返回 null。 */
+    public Integer getKeepTempTime(int index) {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_keep_temp_time(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write the keep-temperature time of one step in milliseconds. / 写入指定温度段的保温时间（毫秒）。 */
+    public boolean setKeepTempTime(int index, int ms) {
+        ensureOpen();
+        return press_set_keep_temp_time(this.handle, index, ms) != 0;
+    }
+
+    /** Read max water value; null on failure. / 读取最大水冷，失败返回 null。 */
+    public Float getMaxWaterValue() {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_max_water_value(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write max water value. / 写入最大水冷。 */
+    public boolean setMaxWaterValue(float value) {
+        ensureOpen();
+        return press_set_max_water_value(this.handle, value) != 0;
+    }
+
+    /** Read min water value; null on failure. / 读取最小水冷，失败返回 null。 */
+    public Float getMinWaterValue() {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_min_water_value(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write min water value. / 写入最小水冷。 */
+    public boolean setMinWaterValue(float value) {
+        ensureOpen();
+        return press_set_min_water_value(this.handle, value) != 0;
+    }
+
+    // ==================== 混合模式单值 / 索引命令 ====================
+
+    /** Read mixed-mode step count; null on failure. / 读取混合模式段数量，失败返回 null。 */
+    public Integer getMixStepCount() {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_mix_step_count(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write mixed-mode step count. / 写入混合模式段数量。 */
+    public boolean setMixStepCount(int step) {
+        ensureOpen();
+        return press_set_mix_step_count(this.handle, step) != 0;
+    }
+
+    /** Read mixed-mode mold type; null on failure. / 读取混合模式模具类型，失败返回 null。 */
+    public Integer getMixMoldType() {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_mix_mold_type(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write mixed-mode mold type. / 写入混合模式模具类型。 */
+    public boolean setMixMoldType(int type) {
+        ensureOpen();
+        return press_set_mix_mold_type(this.handle, type) != 0;
+    }
+
+    /** Read mixed-mode rectangle A/B dimensions as [a, b]; null on failure. / 读取混合模式矩形尺寸 A/B，失败返回 null。 */
+    public float[] getMixRectangle() {
+        ensureOpen();
+        float[] out = new float[2];
+        if (press_get_mix_rectangle(this.handle, out) == 0) {
+            return null;
+        }
+        return out;
+    }
+
+    /** Write mixed-mode rectangle A/B dimensions. / 写入混合模式矩形尺寸 A/B。 */
+    public boolean setMixRectangle(float a, float b) {
+        ensureOpen();
+        return press_set_mix_rectangle(this.handle, a, b) != 0;
+    }
+
+    /** Read mixed-mode circle diameter; null on failure. / 读取混合模式圆形容器直径，失败返回 null。 */
+    public Float getMixCircle() {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_mix_circle(this.handle, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write mixed-mode circle diameter. / 写入混合模式圆形容器直径。 */
+    public boolean setMixCircle(float diameter) {
+        ensureOpen();
+        return press_set_mix_circle(this.handle, diameter) != 0;
+    }
+
+    /** Read per-step is-press flag; null on failure. / 读取指定段是否加压，失败返回 null。 */
+    public Boolean getMixIsPressIndex(int index) {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_mix_is_press_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0] != 0;
+    }
+
+    /** Write per-step is-press flag. / 写入指定段是否加压。 */
+    public boolean setMixIsPressIndex(int index, boolean isPress) {
+        ensureOpen();
+        return press_set_mix_is_press_index(this.handle, index, isPress ? 1 : 0) != 0;
+    }
+
+    /** Read per-step pressure value; null on failure. / 读取指定段压力值，失败返回 null。 */
+    public Float getMixPressIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_mix_press_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write per-step pressure value. / 写入指定段压力值。 */
+    public boolean setMixPressIndex(int index, float value) {
+        ensureOpen();
+        return press_set_mix_press_index(this.handle, index, value) != 0;
+    }
+
+    /** Read per-step hold-pressure value; null on failure. / 读取指定段保压值，失败返回 null。 */
+    public Float getMixAfterPressIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_mix_after_press_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write per-step hold-pressure value. / 写入指定段保压值。 */
+    public boolean setMixAfterPressIndex(int index, float value) {
+        ensureOpen();
+        return press_set_mix_after_press_index(this.handle, index, value) != 0;
+    }
+
+    /** Read per-step heat-up flag; null on failure. / 读取指定段是否加热，失败返回 null。 */
+    public Boolean getMixIsHeatUpIndex(int index) {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_mix_is_heat_up_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0] != 0;
+    }
+
+    /** Write per-step heat-up flag. / 写入指定段是否加热。 */
+    public boolean setMixIsHeatUpIndex(int index, boolean isHeatUp) {
+        ensureOpen();
+        return press_set_mix_is_heat_up_index(this.handle, index, isHeatUp ? 1 : 0) != 0;
+    }
+
+    /** Read per-step heat-up temperature; null on failure. / 读取指定段加热温度，失败返回 null。 */
+    public Float getMixHeatUpIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_mix_heat_up_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write per-step heat-up temperature. / 写入指定段加热温度。 */
+    public boolean setMixHeatUpIndex(int index, float value) {
+        ensureOpen();
+        return press_set_mix_heat_up_index(this.handle, index, value) != 0;
+    }
+
+    /** Read per-step heat-down flag; null on failure. / 读取指定段是否冷却，失败返回 null。 */
+    public Boolean getMixIsHeatDownIndex(int index) {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_mix_is_heat_down_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0] != 0;
+    }
+
+    /** Write per-step heat-down flag. / 写入指定段是否冷却。 */
+    public boolean setMixIsHeatDownIndex(int index, boolean isHeatDown) {
+        ensureOpen();
+        return press_set_mix_is_heat_down_index(this.handle, index, isHeatDown ? 1 : 0) != 0;
+    }
+
+    /** Read per-step heat-down temperature; null on failure. / 读取指定段冷却温度，失败返回 null。 */
+    public Float getMixHeatDownIndex(int index) {
+        ensureOpen();
+        float[] out = new float[1];
+        if (press_get_mix_heat_down_index(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write per-step heat-down temperature. / 写入指定段冷却温度。 */
+    public boolean setMixHeatDownIndex(int index, float value) {
+        ensureOpen();
+        return press_set_mix_heat_down_index(this.handle, index, value) != 0;
+    }
+
+    /** Read the keep time of one mixed-mode step in milliseconds; null on failure. / 读取指定混合段的保持时间（毫秒），失败返回 null。 */
+    public Integer getMixKeepTime(int index) {
+        ensureOpen();
+        int[] out = new int[1];
+        if (press_get_mix_keep_time(this.handle, index, out) == 0) {
+            return null;
+        }
+        return out[0];
+    }
+
+    /** Write the keep time of one mixed-mode step in milliseconds. / 写入指定混合段的保持时间（毫秒）。 */
+    public boolean setMixKeepTime(int index, int ms) {
+        ensureOpen();
+        return press_set_mix_keep_time(this.handle, index, ms) != 0;
+    }
+
     /**
      * Register a callback handler to receive asynchronous data push from the native SDK.
      * 注册回调处理器，用于接收底层 SDK 的异步数据推送。
@@ -488,6 +942,68 @@ public final class PressSdk implements AutoCloseable {
     public static native String press_version();
     public static native String press_get_serial_number(long handle);
     public static native void press_set_request_timeout(long handle, int ms);
+
+    // 压力单值 / 索引命令 / Pressure single-value / indexed commands
+    public static native int press_get_press_step_count(long handle, int[] out);
+    public static native int press_set_press_step_count(long handle, int step);
+    public static native int press_get_calibration_value(long handle, float[] out);
+    public static native int press_set_calibration_value(long handle, float value);
+    public static native int press_get_mode_type(long handle, int[] out);
+    public static native int press_set_mode_type(long handle, int type);
+    public static native int press_get_circle(long handle, float[] out);
+    public static native int press_set_circle(long handle, float diameter);
+    public static native int press_get_rectangle(long handle, float[] out);
+    public static native int press_set_rectangle(long handle, float a, float b);
+    public static native int press_get_air_time(long handle, int[] out);
+    public static native int press_set_air_time(long handle, int seconds);
+    public static native int press_get_press_value_index(long handle, int index, float[] out);
+    public static native int press_set_press_value_index(long handle, int index, float value);
+    public static native int press_get_after_value_index(long handle, int index, float[] out);
+    public static native int press_set_after_value_index(long handle, int index, float value);
+    public static native int press_get_keep_press_time(long handle, int index, int[] out);
+    public static native int press_set_keep_press_time(long handle, int index, int ms);
+
+    // 温度单值 / 索引命令 / Temperature single-value / indexed commands
+    public static native int press_get_temp_step_count(long handle, int[] out);
+    public static native int press_set_temp_step_count(long handle, int step);
+    public static native int press_get_temp_speed_mold(long handle, int[] out);
+    public static native int press_set_temp_speed_mold(long handle, int mold);
+    public static native int press_get_start_temp_index(long handle, int index, float[] out);
+    public static native int press_set_temp_index(long handle, int index, float value);
+    public static native int press_get_temp_speed_index(long handle, int index, float[] out);
+    public static native int press_set_temp_speed_index(long handle, int index, float value);
+    public static native int press_get_keep_temp_time(long handle, int index, int[] out);
+    public static native int press_set_keep_temp_time(long handle, int index, int ms);
+    public static native int press_get_max_water_value(long handle, float[] out);
+    public static native int press_set_max_water_value(long handle, float value);
+    public static native int press_get_min_water_value(long handle, float[] out);
+    public static native int press_set_min_water_value(long handle, float value);
+
+    // 混合模式单值 / 索引命令 / Mixed-mode single-value / indexed commands
+    public static native int press_get_mix_step_count(long handle, int[] out);
+    public static native int press_set_mix_step_count(long handle, int step);
+    public static native int press_get_mix_mold_type(long handle, int[] out);
+    public static native int press_set_mix_mold_type(long handle, int type);
+    public static native int press_get_mix_rectangle(long handle, float[] out);
+    public static native int press_set_mix_rectangle(long handle, float a, float b);
+    public static native int press_get_mix_circle(long handle, float[] out);
+    public static native int press_set_mix_circle(long handle, float diameter);
+    public static native int press_get_mix_is_press_index(long handle, int index, int[] out);
+    public static native int press_set_mix_is_press_index(long handle, int index, int isPress);
+    public static native int press_get_mix_press_index(long handle, int index, float[] out);
+    public static native int press_set_mix_press_index(long handle, int index, float value);
+    public static native int press_get_mix_after_press_index(long handle, int index, float[] out);
+    public static native int press_set_mix_after_press_index(long handle, int index, float value);
+    public static native int press_get_mix_is_heat_up_index(long handle, int index, int[] out);
+    public static native int press_set_mix_is_heat_up_index(long handle, int index, int isHeatUp);
+    public static native int press_get_mix_heat_up_index(long handle, int index, float[] out);
+    public static native int press_set_mix_heat_up_index(long handle, int index, float value);
+    public static native int press_get_mix_is_heat_down_index(long handle, int index, int[] out);
+    public static native int press_set_mix_is_heat_down_index(long handle, int index, int isHeatDown);
+    public static native int press_get_mix_heat_down_index(long handle, int index, float[] out);
+    public static native int press_set_mix_heat_down_index(long handle, int index, float value);
+    public static native int press_get_mix_keep_time(long handle, int index, int[] out);
+    public static native int press_set_mix_keep_time(long handle, int index, int ms);
 
     public static void main(String[] args) {
         try (PressSdk sdk = new PressSdk()) {

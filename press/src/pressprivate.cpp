@@ -1726,6 +1726,450 @@ bool PressPrivate::setTempStepParameter(uint8_t index, const TempStepParameter& 
     return true;
 }
 
+bool PressPrivate::getMixStepCount(uint8_t& step)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_STEP_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_STEP_V, responseListData);
+        return false;
+    }
+    if (!MIX_STEP_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_STEP_V, responseListData);
+        return false;
+    }
+    step = responseListData[0];
+    return true;
+}
+
+bool PressPrivate::setMixStepCount(uint8_t step)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_STEP_V, {step}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_STEP_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != step)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_STEP_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixMoldType(uint8_t& type)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_MOLD_TYPE_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    if (!MIX_MOLD_TYPE_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    type = responseListData[0];
+    return true;
+}
+
+bool PressPrivate::setMixMoldType(uint8_t type)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_MOLD_TYPE_V, {type}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 1 || responseListData[0] != type)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_MOLD_TYPE_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixRectangle(float& a, float& b)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_RECT_AB_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_RECT_AB_V, responseListData);
+        return false;
+    }
+    if (!MIX_RECT_AB_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_RECT_AB_V, responseListData);
+        return false;
+    }
+    a = _readHostFloat(responseListData, 0);
+    b = _readHostFloat(responseListData, 4);
+    return true;
+}
+
+bool PressPrivate::setMixRectangle(float a, float b)
+{
+    std::vector<uint8_t> requestListData;
+    _appendHostFloat(requestListData, a);
+    _appendHostFloat(requestListData, b);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_RECT_AB_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_RECT_AB_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 8)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_RECT_AB_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixCircle(float& diameter)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_CIRCLE_D_V, {0x00}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    if (!MIX_CIRCLE_D_BOOL(responseListData.size()))
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    diameter = _readHostFloat(responseListData, 0);
+    return true;
+}
+
+bool PressPrivate::setMixCircle(float diameter)
+{
+    std::vector<uint8_t> requestListData;
+    _appendHostFloat(requestListData, diameter);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_CIRCLE_D_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 4)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_CIRCLE_D_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixIsPressIndex(uint8_t index, bool& isPress)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_ISPRESS_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_ISPRESS_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_ISPRESS_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_ISPRESS_V, responseListData);
+        return false;
+    }
+    isPress = responseListData[1] != 0;
+    return true;
+}
+
+bool PressPrivate::setMixIsPressIndex(uint8_t index, bool isPress)
+{
+    std::vector<uint8_t> requestListData{index, static_cast<uint8_t>(isPress ? 1 : 0)};
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_ISPRESS_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_ISPRESS_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 2 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_ISPRESS_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixPressIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_PRESS_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_PRESS_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setMixPressIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_PRESS_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_PRESS_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixAfterPressIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_AFTER_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_AFTER_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setMixAfterPressIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_AFTER_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_AFTER_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixIsHeatUpIndex(uint8_t index, bool& isHeatUp)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_ISHEAT_UP_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_ISHEAT_UP_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_ISHEAT_UP_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_ISHEAT_UP_V, responseListData);
+        return false;
+    }
+    isHeatUp = responseListData[1] != 0;
+    return true;
+}
+
+bool PressPrivate::setMixIsHeatUpIndex(uint8_t index, bool isHeatUp)
+{
+    std::vector<uint8_t> requestListData{index, static_cast<uint8_t>(isHeatUp ? 1 : 0)};
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_ISHEAT_UP_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_ISHEAT_UP_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 2 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_ISHEAT_UP_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixHeatUpIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_TEMP_UP_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_TEMP_UP_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_TEMP_UP_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_TEMP_UP_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setMixHeatUpIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_TEMP_UP_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_TEMP_UP_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_TEMP_UP_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixIsHeatDownIndex(uint8_t index, bool& isHeatDown)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_ISHEAT_DOWN_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_ISHEAT_DOWN_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_ISHEAT_DOWN_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_ISHEAT_DOWN_V, responseListData);
+        return false;
+    }
+    isHeatDown = responseListData[1] != 0;
+    return true;
+}
+
+bool PressPrivate::setMixIsHeatDownIndex(uint8_t index, bool isHeatDown)
+{
+    std::vector<uint8_t> requestListData{index, static_cast<uint8_t>(isHeatDown ? 1 : 0)};
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_ISHEAT_DOWN_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_ISHEAT_DOWN_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 2 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_ISHEAT_DOWN_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixHeatDownIndex(uint8_t index, float& value)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_TEMP_DOWN_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_TEMP_DOWN_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_TEMP_DOWN_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_TEMP_DOWN_V, responseListData);
+        return false;
+    }
+    value = _readHostFloat(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setMixHeatDownIndex(uint8_t index, float value)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostFloat(requestListData, value);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_TEMP_DOWN_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_TEMP_DOWN_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_TEMP_DOWN_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
+bool PressPrivate::getMixKeepTime(uint8_t index, int32_t& time)
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(GET_MIX_INDEX_KTIME_V, {index}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_KTIME_V, responseListData);
+        return false;
+    }
+    if (!MIX_INDEX_KTIME_BOOL(responseListData.size()) || responseListData[0] != index)
+    {
+        _setError(MachineError::ResponseTooShort);
+        if (auto iface = _safeGetInterface()) iface->onError(GET_MIX_INDEX_KTIME_V, responseListData);
+        return false;
+    }
+    time = _readHostInt32(responseListData, 1);
+    return true;
+}
+
+bool PressPrivate::setMixKeepTime(uint8_t index, int32_t time)
+{
+    std::vector<uint8_t> requestListData;
+    requestListData.push_back(index);
+    _appendHostInt32(requestListData, time);
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_MIX_INDEX_KTIME_V, requestListData, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_KTIME_V, responseListData);
+        return false;
+    }
+    if (responseListData.size() != 5 || responseListData[0] != index)
+    {
+        _setError(MachineError::UnknownError);
+        if (auto iface = _safeGetInterface()) iface->onError(SET_MIX_INDEX_KTIME_V, responseListData);
+        return false;
+    }
+    return true;
+}
+
 bool PressPrivate::getMixStepParameter(uint8_t index, MixStepParameter& param)
 {
     std::vector<uint8_t> responseListData;
