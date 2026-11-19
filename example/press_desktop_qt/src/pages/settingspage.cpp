@@ -1,6 +1,7 @@
 #include "pages/settingspage.h"
 #include "core/machine_state.h"
 #include "core/press_service.h"
+#include "dialogs/overlaydialogs.h"
 #include "theme/icons.h"
 #include "theme/theme.h"
 #include "widgets/card.h"
@@ -154,12 +155,13 @@ QWidget *SettingsPage::buildLinkCard()
     m_endpoint->setObjectName(QStringLiteral("plainEdit"));
     m_endpoint->setPlaceholderText(QStringLiteral("IP:端口（TCP）或 COM3（串口）"));
     m_endpoint->setFixedHeight(32);
+    m_endpoint->setReadOnly(true);
     m_endpoint->setText(QSettings(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"))
                             .value(QStringLiteral("link/endpoint"),
                                    QStringLiteral("192.168.1.20:9000"))
                             .toString());
 
-    m_linkButton = new QPushButton(QStringLiteral("连接"), row);
+    m_linkButton = new QPushButton(QStringLiteral("连接设备"), row);
     m_linkButton->setObjectName(QStringLiteral("btnBrand"));
     m_linkButton->setFixedSize(96, 32);
     m_linkButton->setCursor(Qt::PointingHandCursor);
@@ -170,7 +172,6 @@ QWidget *SettingsPage::buildLinkCard()
     card->contentLayout()->addWidget(row);
 
     connect(m_linkButton, &QPushButton::clicked, this, &SettingsPage::connectOrDisconnect);
-    connect(m_endpoint, &QLineEdit::returnPressed, this, &SettingsPage::connectOrDisconnect);
     connect(m_service, &PressService::connectionChanged, this,
             [this](bool connected, const QString &) { updateLinkUi(connected); });
     connect(m_service, &PressService::sdkError, this, [this](const QString &message) {
@@ -188,11 +189,22 @@ QWidget *SettingsPage::buildLinkCard()
 void SettingsPage::updateLinkUi(bool connected)
 {
     if (m_linkButton) {
-        m_linkButton->setText(connected ? QStringLiteral("断开") : QStringLiteral("连接"));
+        m_linkButton->setText(connected ? QStringLiteral("断开连接")
+                                        : QStringLiteral("连接设备"));
         m_linkButton->setEnabled(!m_service->isConnecting());
     }
-    if (m_endpoint)
-        m_endpoint->setEnabled(!connected && !m_service->isConnecting());
+    if (m_endpoint) {
+        // 端点统一在连接对话框中修改，这里只读展示
+        m_endpoint->setEnabled(false);
+        const QString saved = QSettings(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"))
+                                  .value(QStringLiteral("link/endpoint"))
+                                  .toString();
+        const QString shown = connected && !m_service->endpoint().isEmpty()
+            ? m_service->endpoint()
+            : saved;
+        if (!shown.isEmpty())
+            m_endpoint->setText(shown);
+    }
     if (m_linkState) {
         m_linkState->setText(connected ? QStringLiteral("已连接") : QStringLiteral("未连接"));
         m_linkState->setStyleSheet(connected ? QStringLiteral("color:#00A32A;")
@@ -208,11 +220,6 @@ void SettingsPage::connectOrDisconnect()
     if (!m_service || !m_state || m_service->isConnecting())
         return;
 
-    if (m_service->isConnected()) {
-        m_service->disconnectDevice();
-        return;
-    }
-
     if (m_state->running()) {
         m_linkState->setText(QStringLiteral("运行中"));
         m_linkState->setStyleSheet(QStringLiteral("color:#E8730C;"));
@@ -220,20 +227,11 @@ void SettingsPage::connectOrDisconnect()
         return;
     }
 
-    const QString endpoint = m_endpoint->text().trimmed();
-    if (endpoint.isEmpty())
-        return;
-
-    QSettings(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"))
-        .setValue(QStringLiteral("link/endpoint"), endpoint);
-
-    m_linkState->setText(QStringLiteral("连接中…"));
-    m_linkState->setStyleSheet(QStringLiteral("color:#0079B4;"));
     m_linkState->setToolTip(QString());
-    m_linkButton->setEnabled(false);
-
-    // 带端口号的地址走 TCP，否则按串口处理；连接在后台线程执行
-    m_service->connectDevice(endpoint, endpoint.contains(QLatin1Char(':')));
+    // 断开当前连接后回到设备连接对话框（可选串口、网络或本地模拟）
+    if (m_service->isConnected())
+        m_service->disconnectDevice();
+    Dialogs::connectDevice(window(), m_service);
 }
 
 QWidget *SettingsPage::buildHeroCard()
