@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 if(NOT CMAKE_PREFIX_PATH)
-    set(CMAKE_PREFIX_PATH "C:/Qt/5.15.2/mingw81_64")
+    set(CMAKE_PREFIX_PATH "C:/Qt/5.15.2/mingw81_32")
 endif()
 
 find_package(Qt5 5.12 REQUIRED COMPONENTS Core Gui Widgets)
