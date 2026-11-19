@@ -110,6 +110,9 @@ MainWindow::MainWindow(QWidget *parent)
         m_logPanel->hide();
         positionToast();
     });
+    connect(m_logPanel, &LogPanel::unseenChanged, this, [this](int count) {
+        m_actionBar->setLogBadge(m_logPanel->isVisible() ? 0 : count);
+    });
 
     // SDK 通讯状态 / 错误提示
     connect(m_state, &MachineState::sdkError, this, &MainWindow::showToast);
@@ -361,9 +364,14 @@ void MainWindow::toggleLogPanel()
 {
     if (!m_logPanel)
         return;
-    m_logPanel->setVisible(!m_logPanel->isVisible());
+    const bool show = !m_logPanel->isVisible();
+    m_logPanel->setVisible(show);
+    if (show)
+        m_logPanel->clearUnseen();
+    else
+        m_actionBar->setLogBadge(0);
     positionToast();
-    if (m_logPanel->isVisible())
+    if (show)
         m_logPanel->raise();
 }
 

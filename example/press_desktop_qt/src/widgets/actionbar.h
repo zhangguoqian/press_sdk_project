@@ -19,6 +19,8 @@ public:
 
     void setMode(Mode mode);
     void refresh();
+    // 日志面板隐藏时的未读条数，0 表示不显示角标
+    void setLogBadge(int count);
 
 signals:
     void pressRequested();

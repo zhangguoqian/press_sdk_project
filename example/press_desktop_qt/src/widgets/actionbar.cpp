@@ -99,6 +99,14 @@ QPushButton *ActionBar::createButton(const QString &text, const QString &objectN
     return button;
 }
 
+void ActionBar::setLogBadge(int count)
+{
+    if (!m_logButton)
+        return;
+    m_logButton->setText(count > 0 ? QStringLiteral("日志 · %1")
+                                  : QStringLiteral("日志"));
+}
+
 void ActionBar::setMode(Mode mode)
 {
     m_mode = mode;

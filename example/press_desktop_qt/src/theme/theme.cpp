@@ -330,6 +330,57 @@ QLabel#logTitle {
 QLabel#logCount {
     color: #8095A8;
 }
+QComboBox#logLevel {
+    background: #FFFFFF;
+    border: 1px solid #D3DFE9;
+    border-radius: 6px;
+    color: #5F7488;
+    font-size: 12px;
+    padding-left: 8px;
+}
+QComboBox#logLevel:hover {
+    border-color: #00A1E9;
+}
+QComboBox#logLevel::drop-down {
+    border: none;
+    width: 18px;
+}
+QComboBox#logLevel QAbstractItemView {
+    background: #FFFFFF;
+    border: 1px solid #D3DFE9;
+    color: #33475B;
+    selection-background-color: #E8F6FD;
+    selection-color: #0079B3;
+    outline: none;
+}
+QLineEdit#logSearch {
+    background: #FFFFFF;
+    border: 1px solid #D3DFE9;
+    border-radius: 6px;
+    color: #33475B;
+    font-size: 12px;
+    padding: 0 8px;
+}
+QLineEdit#logSearch:focus {
+    border-color: #00A1E9;
+}
+QCheckBox#logAutoScroll {
+    color: #5F7488;
+    font-size: 12px;
+    spacing: 4px;
+}
+QPushButton#logTool {
+    background: #FFFFFF;
+    border: 1px solid #D3DFE9;
+    border-radius: 6px;
+    color: #5F7488;
+    font-size: 12px;
+    padding: 0 10px;
+}
+QPushButton#logTool:hover {
+    background: #EEF4F9;
+    color: #33475B;
+}
 QPushButton#logCollapse {
     background: transparent;
     border: 1px solid #D3DFE9;
