@@ -98,7 +98,11 @@ public:
 
     // ---- 查询 ----
     bool running() const { return press || heat || coopRunning; }
-    bool sdkMode() const { return m_service && m_service->isConnected(); }
+    // 已连接或通讯中断（自动重连中）都按设备模式处理，避免退回本地模拟
+    bool sdkMode() const
+    {
+        return m_service && (m_service->isConnected() || m_service->isStale());
+    }
     int pressureIndex() const;     // 当前压力阶段下标（0 起）
     int temperatureIndex() const;
     int coopIndex() const;

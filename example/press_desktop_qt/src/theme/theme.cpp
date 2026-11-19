@@ -400,6 +400,14 @@ QPlainTextEdit#logText {
     padding: 4px 12px 6px 18px;
     selection-background-color: #CDEBFA;
 }
+QLabel#staleOverlay {
+    background: rgba(255, 255, 255, 0.94);
+    color: #C8102E;
+    font-size: 16px;
+    font-weight: 600;
+    border: 1px solid #F3C2C9;
+    border-radius: 10px;
+}
 QPushButton#btnGreen {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #0AB233, stop:1 #008C24);

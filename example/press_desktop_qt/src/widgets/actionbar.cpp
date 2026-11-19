@@ -107,6 +107,14 @@ void ActionBar::setLogBadge(int count)
                                   : QStringLiteral("日志"));
 }
 
+void ActionBar::setControlsEnabled(bool enabled)
+{
+    if (m_runGroup)
+        m_runGroup->setEnabled(enabled);
+    if (m_coopGroup)
+        m_coopGroup->setEnabled(enabled);
+}
+
 void ActionBar::setMode(Mode mode)
 {
     m_mode = mode;

@@ -1,16 +1,21 @@
 #pragma once
 
+#include "core/loglevel.h"
+
 #include <QMetaType>
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVector>
 
 #include <atomic>
+#include <functional>
 #include <future>
 #include <memory>
 #include <string>
 
 class Press;
+class QTimer;
 class SdkAdapter;
 
 /**
@@ -147,9 +152,14 @@ public:
 
     // 异步连接：立即返回，结果通过 connectionChanged / sdkError 通知
     void connectDevice(const QString &endpoint, bool tcp);
+    // 断开连接；若正在连接则取消本次连接，若处于自动重连则停止重连
     void disconnectDevice();
     bool isConnected() const { return m_connected; }
     bool isConnecting() const { return m_connecting.load(); }
+    // 已连接但超过 3 s 未收到实时数据（通讯中断，可能正在自动重连）
+    bool isStale() const { return m_stale; }
+    // 是否有控制指令正在等待设备状态确认
+    bool isCommandPending() const { return !m_pendingCommands.isEmpty(); }
     QString endpoint() const { return m_endpoint; }
 
     // ---- 运行控制 ----
@@ -182,15 +192,66 @@ signals:
     void mixProgramUpdated(const PressMixProgramData &data);
     void sdkError(const QString &message);
     // 运行日志（连接、参数读取、指令下发等明细）
-    void logMessage(const QString &message);
+    void logMessage(const QString &message, LogLevel level = LogLevel::Info);
+    // 通讯中断状态变化：true 超过 3 s 未收到实时数据，false 恢复
+    void staleChanged(bool stale);
+    // 已安排自动重连（第 attempt 次，delaySeconds 秒后执行）
+    void reconnectScheduled(int attempt, int delaySeconds);
+    // 有控制指令正在等待设备状态确认（期间界面禁用控制按钮）
+    void commandPendingChanged(bool pending);
 
 private:
     friend class SdkAdapter;
+    // 需要设备 RT 状态确认的控制指令
+    enum class CommandKind {
+        PressOn,
+        PressOff,
+        HeatOn,
+        HeatOff,
+        CoopOn,
+        CoopOff,
+        Model
+    };
+
+    struct PendingCommand
+    {
+        CommandKind kind;
+        QString name;
+        int model = 0;
+        qint64 deadlineMs = 0;
+    };
+
+    // 参数写入去抖：同一 key 只保留最后一次值，400 ms 后批量下发
+    struct PendingWrite
+    {
+        QString key;
+        QString name;
+        std::function<bool()> apply;
+    };
+
     void handleRealTime(int errorCode, const std::string &json);
     void handleReadOnlyData(uint64_t registerNo, const std::string &json);
     void handlePressData(const std::string &json);
     void handleTempData(const std::string &json);
     void handleMixData(const std::string &json);
+
+    void connectEndpoint(const QString &endpoint, bool tcp, bool automatic);
+    void startWatchdog();
+    void stopWatchdog();
+    void checkWatchdog();
+    void scheduleReconnect();
+    void setStale(bool stale);
+
+    void trackCommand(CommandKind kind, const QString &name, int model = 0);
+    void checkPendingCommands(const PressRtData &data);
+    void checkCommandTimeouts();
+    void clearPendingCommands();
+    bool commandSatisfied(const PendingCommand &command, const PressRtData &data) const;
+    QString describeActual(const PendingCommand &command) const;
+
+    void queueWrite(const QString &key, const QString &name, std::function<bool()> apply);
+    bool flushWrites();
+    void clearPendingWrites();
 
     QString lastError() const;
     bool check(bool ok, QString *error, const QString &action);
@@ -200,7 +261,19 @@ private:
     std::unique_ptr<SdkAdapter> m_adapter;
     std::future<void> m_connectTask;
     std::atomic_bool m_connecting{false};
+    std::atomic_bool m_cancelConnect{false};
+    std::atomic<qint64> m_lastRtMs{0};
     bool m_connected = false;
     bool m_loggedFirstRt = false;
+    bool m_stale = false;
+    bool m_autoReconnect = true;
+    int m_reconnectAttempt = 0;
     QString m_endpoint;
+    QTimer *m_watchdog = nullptr;
+    QTimer *m_reconnectTimer = nullptr;
+    QTimer *m_commandTimer = nullptr;
+    QTimer *m_writeTimer = nullptr;
+    QVector<PendingCommand> m_pendingCommands;
+    QVector<PendingWrite> m_pendingWrites;
+    PressRtData m_lastRt;
 };

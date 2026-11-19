@@ -14,7 +14,9 @@
 #include "widgets/toast.h"
 
 #include <QCoreApplication>
+#include <QEvent>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QResizeEvent>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -113,13 +115,52 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_logPanel, &LogPanel::unseenChanged, this, [this](int count) {
         m_actionBar->setLogBadge(m_logPanel->isVisible() ? 0 : count);
     });
+    connect(m_logPanel, &LogPanel::statusMessage, this, &MainWindow::showToast);
 
     // SDK 通讯状态 / 错误提示
     connect(m_state, &MachineState::sdkError, this, &MainWindow::showToast);
-    connect(m_service, &PressService::logMessage, this, [this](const QString &text) {
-        if (m_logPanel)
-            m_logPanel->append(text);
+    connect(m_service, &PressService::logMessage, this,
+            [this](const QString &text, LogLevel level) {
+                if (m_logPanel)
+                    m_logPanel->append(text, level);
+            });
+
+    // 通讯看门狗：超时遮罩 + 禁用控制；恢复后自动解除
+    connect(m_service, &PressService::staleChanged, this, [this](bool stale) {
+        if (!m_staleOverlay)
+            return;
+        m_actionBar->setControlsEnabled(!stale && !m_service->isCommandPending());
+        if (stale) {
+            m_sidebar->setLinkWarning();
+            m_staleOverlay->setText(QStringLiteral(
+                "通讯中断\n超过 3 秒未收到设备实时数据\n正在尝试自动重连…"));
+            m_staleOverlay->setGeometry(m_stack->rect());
+            m_staleOverlay->raise();
+            m_staleOverlay->show();
+        } else {
+            m_staleOverlay->hide();
+            if (m_service->isConnected()) {
+                m_sidebar->setLinkStatus(true, m_service->endpoint());
+                showToast(QStringLiteral("通讯已恢复"));
+            }
+        }
     });
+    connect(m_service, &PressService::reconnectScheduled, this,
+            [this](int attempt, int delaySeconds) {
+                if (m_staleOverlay && m_staleOverlay->isVisible()) {
+                    m_staleOverlay->setText(
+                        QStringLiteral("通讯中断\n超过 3 秒未收到设备实时数据\n"
+                                       "第 %1 次重连将在 %2 秒后开始")
+                            .arg(attempt)
+                            .arg(delaySeconds));
+                }
+            });
+
+    // 指令下发期间禁用控制按钮，直到设备状态确认或超时
+    connect(m_service, &PressService::commandPendingChanged, this, [this](bool pending) {
+        m_actionBar->setControlsEnabled(!pending && !m_service->isStale());
+    });
+
     connect(m_state, &MachineState::linkChanged, this,
             [this](bool connected, const QString &endpoint) {
                 m_sidebar->setLinkStatus(connected, connected ? endpoint : QString());
@@ -127,6 +168,11 @@ MainWindow::MainWindow(QWidget *parent)
                     // 连接成功后清空历史曲线，从当前时刻重新采集
                     m_singlePage->resetChart();
                     m_coopPage->resetChart();
+                } else {
+                    // 主动断开/取消失败：解除遮罩并恢复本地操作
+                    if (m_staleOverlay)
+                        m_staleOverlay->hide();
+                    m_actionBar->setControlsEnabled(true);
                 }
                 showToast(connected ? QStringLiteral("设备已连接：%1").arg(endpoint)
                                     : QStringLiteral("设备未连接，当前为本地模拟"));
@@ -167,6 +213,13 @@ MainWindow::MainWindow(QWidget *parent)
             m_service->connectDevice(sdkEndpoint,
                                      sdkEndpoint.contains(QLatin1Char(':')));
         });
+    } else {
+        // 启动后先弹出设备连接对话框：串口、网络或本地模拟运行
+        QTimer::singleShot(250, this, [this] {
+            Dialogs::connectDevice(this, m_service);
+            if (!m_service->isConnected() && !m_service->isConnecting())
+                showToast(QStringLiteral("已进入本地模拟运行"));
+        });
     }
 }
 
@@ -195,6 +248,17 @@ QWidget *MainWindow::createContent()
         m_stack->addWidget(page);
 
     layout->addWidget(m_stack, 1);
+
+    // 通讯中断遮罩：盖住内容区，避免在数据已冻结时继续操作
+    m_staleOverlay = new QLabel(m_stack);
+    m_staleOverlay->setObjectName(QStringLiteral("staleOverlay"));
+    m_staleOverlay->setAlignment(Qt::AlignCenter);
+    m_staleOverlay->setWordWrap(true);
+    m_staleOverlay->setText(QStringLiteral(
+        "通讯中断\n超过 3 秒未收到设备实时数据\n正在尝试自动重连…"));
+    m_staleOverlay->hide();
+    m_stack->installEventFilter(this);
+
     return content;
 }
 
@@ -233,16 +297,6 @@ void MainWindow::showPage(const QString &key)
 
 void MainWindow::navigate(const QString &key)
 {
-    // “连接”不是页面，点击后弹出连接对话框
-    if (key == QStringLiteral("connect")) {
-        if (m_state->running()) {
-            showToast(QStringLiteral("设备运行中，请先停止后再连接"));
-            return;
-        }
-        Dialogs::connectDevice(this, m_service);
-        return;
-    }
-
     if (!m_pageWidgets.contains(key) || key == m_current)
         return;
     if (key == QStringLiteral("single") && !m_state->singleAllowed) {
@@ -389,12 +443,23 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
     positionToast();
+    if (m_staleOverlay && m_stack)
+        m_staleOverlay->setGeometry(m_stack->rect());
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_stack && event->type() == QEvent::Resize && m_staleOverlay)
+        m_staleOverlay->setGeometry(m_stack->rect());
+    return QMainWindow::eventFilter(watched, event);
 }
 
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
     positionToast();
+    if (m_staleOverlay && m_stack)
+        m_staleOverlay->setGeometry(m_stack->rect());
 
     // 首次显示时把页面滚动条归零，避免焦点自动定位导致顶部卡片标题被滚出视野
     if (!m_didInitialScroll) {

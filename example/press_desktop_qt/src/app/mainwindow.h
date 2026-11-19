@@ -14,6 +14,7 @@ class QStackedWidget;
 class SettingsPage;
 class Sidebar;
 class SinglePage;
+class QLabel;
 class Toast;
 class TitleBar;
 class QWidget;
@@ -31,6 +32,7 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
     void showEvent(QShowEvent *event) override;
     bool nativeEvent(const QByteArray &eventType, void *message, long *result) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     QWidget *createContent();
@@ -55,6 +57,7 @@ private:
     ActionBar *m_actionBar = nullptr;
     LogPanel *m_logPanel = nullptr;
     Toast *m_toast = nullptr;
+    QLabel *m_staleOverlay = nullptr;
     QWidget *m_root = nullptr;
 
     SinglePage *m_singlePage = nullptr;

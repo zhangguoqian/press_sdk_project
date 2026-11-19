@@ -5,6 +5,7 @@
 
 #include <QButtonGroup>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
@@ -509,12 +510,36 @@ void connectDevice(QWidget *parent, PressService *service)
     networkLayout->addWidget(ipEdit, 1);
     networkLayout->addWidget(portEdit);
 
-    // 两个单选按钮分处不同容器，需要按钮组保证互斥
+    // 本地模拟行
+    auto *localRow = new QFrame(body);
+    localRow->setObjectName(QStringLiteral("linkOption"));
+    localRow->setAttribute(Qt::WA_StyledBackground, true);
+    auto *localLayout = new QHBoxLayout(localRow);
+    localLayout->setContentsMargins(12, 8, 12, 8);
+    localLayout->setSpacing(12);
+
+    auto *localRadio = new QRadioButton(QStringLiteral("本地模拟"), localRow);
+    localRadio->setObjectName(QStringLiteral("linkRadio"));
+    localRadio->setFont(Theme::ui(13));
+    localRadio->setCursor(Qt::PointingHandCursor);
+    localRadio->setFixedWidth(62);
+
+    auto *localHint = new QLabel(QStringLiteral("不连接设备，使用本地模拟数据运行"), localRow);
+    localHint->setFont(Theme::ui(12));
+    localHint->setStyleSheet(QStringLiteral("color:#5F7488;"));
+
+    localLayout->addWidget(localRadio);
+    localLayout->addWidget(localHint, 1);
+
+    // 三个单选按钮分处不同容器，需要按钮组保证互斥
     auto *group = new QButtonGroup(body);
     group->addButton(serialRadio);
     group->addButton(networkRadio);
+    group->addButton(localRadio);
     if (mode == QStringLiteral("serial"))
         serialRadio->setChecked(true);
+    else if (mode == QStringLiteral("local"))
+        localRadio->setChecked(true);
     else
         networkRadio->setChecked(true);
 
@@ -532,6 +557,7 @@ void connectDevice(QWidget *parent, PressService *service)
 
     bodyLayout->addWidget(serialRow);
     bodyLayout->addWidget(networkRow);
+    bodyLayout->addWidget(localRow);
     bodyLayout->addWidget(status);
     layout->addWidget(body);
 
@@ -539,32 +565,50 @@ void connectDevice(QWidget *parent, PressService *service)
     auto *footerLayout = new QHBoxLayout(footer);
     footerLayout->setContentsMargins(20, 0, 20, 20);
     footerLayout->setSpacing(10);
-    auto *cancel = makeFooterButton(QStringLiteral("取消"), QStringLiteral("btnGhost"), footer);
+    auto *exitButton = makeFooterButton(QStringLiteral("退出"), QStringLiteral("btnGhost"),
+                                        footer);
     auto *disconnectButton = makeFooterButton(QStringLiteral("断开"), QStringLiteral("btnGhost"),
                                               footer);
     auto *connectButton = makeFooterButton(QStringLiteral("连接"), QStringLiteral("btnBrand"),
                                            footer);
     connectButton->setDefault(true);
-    disconnectButton->setEnabled(service->isConnected() && !service->isConnecting());
-    footerLayout->addWidget(cancel, 1);
+    disconnectButton->setEnabled(service->isConnected() || service->isConnecting());
+    if (service->isConnecting())
+        disconnectButton->setText(QStringLiteral("取消"));
+    footerLayout->addWidget(exitButton, 1);
     footerLayout->addWidget(disconnectButton, 1);
     footerLayout->addWidget(connectButton, 1);
     layout->addWidget(footer);
 
-    auto applyMode = [serialRadio, serialCombo, ipEdit, portEdit] {
+    auto applyMode = [serialRadio, networkRadio, localRadio, serialCombo, ipEdit, portEdit,
+                      connectButton] {
+        const bool local = localRadio->isChecked();
         const bool serial = serialRadio->isChecked();
-        serialCombo->setEnabled(serial);
-        ipEdit->setEnabled(!serial);
-        portEdit->setEnabled(!serial);
+        serialCombo->setEnabled(!local && serial);
+        ipEdit->setEnabled(!local && !serial);
+        portEdit->setEnabled(!local && !serial);
+        if (!connectButton->isEnabled())
+            return;
+        connectButton->setText(local ? QStringLiteral("开始运行")
+                                     : QStringLiteral("连接"));
     };
     QObject::connect(serialRadio, &QRadioButton::toggled, body, [applyMode](bool) { applyMode(); });
     QObject::connect(networkRadio, &QRadioButton::toggled, body, [applyMode](bool) { applyMode(); });
+    QObject::connect(localRadio, &QRadioButton::toggled, body, [applyMode](bool) { applyMode(); });
+    QObject::connect(localRadio, &QRadioButton::toggled, body,
+                     [setStatus](bool checked) {
+                         if (checked)
+                             setStatus(QStringLiteral("本地模拟运行，不访问真实设备"),
+                                       Theme::Muted);
+                     });
     applyMode();
 
     if (service->isConnected())
         setStatus(QStringLiteral("当前已连接：%1").arg(current), Theme::Green);
     else if (service->isConnecting())
         setStatus(QStringLiteral("正在连接…"), Theme::Brand700);
+    else if (localRadio->isChecked())
+        setStatus(QStringLiteral("本地模拟运行，不访问真实设备"), Theme::Muted);
     else
         setStatus(QStringLiteral("选择串口或网络端点后点击连接"), Theme::Muted);
 
@@ -573,25 +617,42 @@ void connectDevice(QWidget *parent, PressService *service)
         connectButton->setEnabled(false);
     }
 
-    QObject::connect(cancel, &QPushButton::clicked, &dialog, &QDialog::reject);
+    // 退出：关闭对话框并终止整个软件
+    QObject::connect(exitButton, &QPushButton::clicked, &dialog, [&dialog] {
+        dialog.reject();
+        QCoreApplication::quit();
+    });
 
     // 区分“用户主动断开”与“连接失败”，两者都会触发 connectionChanged(false)
     auto disconnectRequested = std::make_shared<bool>(false);
     QObject::connect(disconnectButton, &QPushButton::clicked, &dialog,
                      [service, disconnectRequested, disconnectButton, connectButton, setStatus] {
-        if (!service->isConnected() || service->isConnecting())
+        if (!service->isConnected() && !service->isConnecting())
             return;
         *disconnectRequested = true;
+        const bool canceling = service->isConnecting();
         service->disconnectDevice();
         disconnectButton->setEnabled(false);
         connectButton->setText(QStringLiteral("连接"));
+        if (canceling)
+            setStatus(QStringLiteral("正在取消连接…"), Theme::Brand700);
     });
 
     QObject::connect(connectButton, &QPushButton::clicked, &dialog,
-                     [service, &dialog, networkRadio, serialRadio, serialCombo, ipEdit, portEdit,
-                      connectButton, disconnectButton, setStatus] {
+                     [service, &dialog, networkRadio, serialRadio, localRadio, serialCombo, ipEdit,
+                      portEdit, connectButton, disconnectButton, setStatus] {
         if (service->isConnecting())
             return;
+
+        // 本地模拟：不连接设备，直接进入主界面
+        if (localRadio->isChecked()) {
+            QSettings store(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"));
+            store.setValue(QStringLiteral("link/mode"), QStringLiteral("local"));
+            if (service->isConnected())
+                service->disconnectDevice();
+            dialog.accept();
+            return;
+        }
 
         const bool tcp = networkRadio->isChecked();
         QString endpoint;
@@ -628,7 +689,8 @@ void connectDevice(QWidget *parent, PressService *service)
         setStatus(QStringLiteral("正在连接…"), Theme::Brand700);
         connectButton->setText(QStringLiteral("连接中…"));
         connectButton->setEnabled(false);
-        disconnectButton->setEnabled(false);
+        disconnectButton->setText(QStringLiteral("取消"));
+        disconnectButton->setEnabled(true);
         service->connectDevice(endpoint, tcp);
     });
 
@@ -642,6 +704,7 @@ void connectDevice(QWidget *parent, PressService *service)
         if (*disconnectRequested) {
             *disconnectRequested = false;
             disconnectButton->setEnabled(false);
+            disconnectButton->setText(QStringLiteral("断开"));
             connectButton->setText(QStringLiteral("连接"));
             connectButton->setEnabled(true);
             setStatus(QStringLiteral("已断开连接"), Theme::Muted);
@@ -650,6 +713,7 @@ void connectDevice(QWidget *parent, PressService *service)
         if (service->isConnecting())
             return;
         disconnectButton->setEnabled(false);
+        disconnectButton->setText(QStringLiteral("断开"));
         connectButton->setText(QStringLiteral("重试"));
         connectButton->setEnabled(true);
         setStatus(QStringLiteral("连接失败，请检查端口后重试"), Theme::Red);

@@ -18,6 +18,8 @@ public:
     void setLocked(const QString &currentKey, bool running);
     void setModeVisible(const QString &key, bool visible);
     void setLinkStatus(bool connected, const QString &detail = QString());
+    // 已连接但实时数据超时：显示“通讯中断”，状态点按离线处理
+    void setLinkWarning(const QString &detail = QString());
 
 signals:
     void navRequested(const QString &key);

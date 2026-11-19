@@ -21,6 +21,8 @@ public:
     void refresh();
     // 日志面板隐藏时的未读条数，0 表示不显示角标
     void setLogBadge(int count);
+    // 通讯中断期间禁用启动/排气等控制按钮
+    void setControlsEnabled(bool enabled);
 
 signals:
     void pressRequested();

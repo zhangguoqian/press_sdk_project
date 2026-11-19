@@ -181,7 +181,6 @@ Sidebar::Sidebar(QWidget *parent)
 
     addGroup(QStringLiteral("系统"));
     addItem(QStringLiteral("settings"), AppIcon::Gear, QStringLiteral("系统设置"));
-    addItem(QStringLiteral("connect"), AppIcon::Link, QStringLiteral("连接"));
 
     layout->addStretch(1);
     layout->addWidget(createFooter());
@@ -279,6 +278,17 @@ void Sidebar::setLinkStatus(bool connected, const QString &detail)
     }
     if (m_linkDot)
         m_linkDot->setOnline(connected);
+}
+
+void Sidebar::setLinkWarning(const QString &detail)
+{
+    if (m_linkTitle)
+        m_linkTitle->setText(QStringLiteral("通讯中断"));
+    if (m_linkDetail)
+        m_linkDetail->setText(detail.isEmpty() ? QStringLiteral("正在尝试自动重连")
+                                               : detail);
+    if (m_linkDot)
+        m_linkDot->setOnline(false);
 }
 
 void Sidebar::setModeVisible(const QString &key, bool visible)
