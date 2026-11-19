@@ -9,8 +9,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-MoldPanel::MoldPanel(MachineState *state, QWidget *parent)
-    : QWidget(parent), m_state(state)
+MoldPanel::MoldPanel(MachineState *state, QWidget *parent, bool coop)
+    : QWidget(parent), m_state(state), m_coop(coop)
 {
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -88,19 +88,35 @@ MoldPanel::MoldPanel(MachineState *state, QWidget *parent)
     connect(m_seg, &Segmented::changed, this, [this](int index) {
         if (m_syncing)
             return;
-        m_state->setMoldShape(index == 0 ? MoldShape::Special
-                                        : (index == 1 ? MoldShape::Circle : MoldShape::Rect));
+        const MoldShape shape = index == 0 ? MoldShape::Special
+                              : (index == 1 ? MoldShape::Circle : MoldShape::Rect);
+        if (m_coop)
+            m_state->setCoopMoldShape(shape);
+        else
+            m_state->setMoldShape(shape);
     });
     connect(m_diameter, &UnitInput::valueChanged, this, [this](double v) {
-        if (!m_syncing)
+        if (m_syncing)
+            return;
+        if (m_coop)
+            m_state->setCoopMoldDiameter(v);
+        else
             m_state->setMoldDiameter(v);
     });
     connect(m_length, &UnitInput::valueChanged, this, [this](double v) {
-        if (!m_syncing)
+        if (m_syncing)
+            return;
+        if (m_coop)
+            m_state->setCoopMoldLength(v);
+        else
             m_state->setMoldLength(v);
     });
     connect(m_width, &UnitInput::valueChanged, this, [this](double v) {
-        if (!m_syncing)
+        if (m_syncing)
+            return;
+        if (m_coop)
+            m_state->setCoopMoldWidth(v);
+        else
             m_state->setMoldWidth(v);
     });
     connect(m_state, &MachineState::settingsChanged, this, &MoldPanel::syncFromState);
@@ -129,7 +145,7 @@ void MoldPanel::syncFromState()
 {
     m_syncing = true;
 
-    const MoldShape shape = m_state->moldShape;
+    const MoldShape shape = m_coop ? m_state->coopMoldShape : m_state->moldShape;
     m_seg->setCurrentIndex(shape == MoldShape::Special ? 0
                            : (shape == MoldShape::Circle ? 1 : 2));
 
@@ -138,14 +154,14 @@ void MoldPanel::syncFromState()
     m_rectPane->setVisible(shape == MoldShape::Rect);
     m_area->setVisible(shape != MoldShape::Special);
 
-    m_diameter->setValue(m_state->moldDia);
-    m_length->setValue(m_state->moldLen);
-    m_width->setValue(m_state->moldWid);
+    m_diameter->setValue(m_coop ? m_state->coopMoldDia : m_state->moldDia);
+    m_length->setValue(m_coop ? m_state->coopMoldLen : m_state->moldLen);
+    m_width->setValue(m_coop ? m_state->coopMoldWid : m_state->moldWid);
 
     m_areaValue->setText(QStringLiteral(
         "<span style=\"font-size:15px;font-weight:700;color:#0079B4;\">%1</span>"
         "<span style=\"font-size:10px;color:#5F7488;\">&nbsp;cm²</span>")
-        .arg(m_state->moldAreaText()));
+        .arg(m_coop ? m_state->coopMoldAreaText() : m_state->moldAreaText()));
 
     m_syncing = false;
 }

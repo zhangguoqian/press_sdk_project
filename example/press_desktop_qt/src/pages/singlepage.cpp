@@ -57,6 +57,14 @@ SinglePage::SinglePage(MachineState *state, QWidget *parent)
     layout->addWidget(m_rightColumn, 0);
 
     connect(m_state, &MachineState::settingsChanged, this, &SinglePage::refreshSettings);
+    connect(m_state, &MachineState::pressProgramChanged, this, [this] {
+        rebuildPressureTable();
+        refreshLive();
+    });
+    connect(m_state, &MachineState::tempProgramChanged, this, [this] {
+        rebuildTemperatureTable();
+        refreshLive();
+    });
     connect(m_state, &MachineState::changed, this, &SinglePage::refreshLive);
 
     rebuildPressureTable();
@@ -294,11 +302,14 @@ QWidget *SinglePage::buildTemperatureControlCard()
     groupLayout->addWidget(m_temperatureKv);
     card->contentLayout()->addWidget(group);
 
-    card->contentLayout()->addWidget(makeDivider(card));
+    auto *divider = makeDivider(card);
+    m_tempDivider = divider;
+    card->contentLayout()->addWidget(divider);
 
-    // 升温速率
+    // 升温速率（设备不支持速率模式时隐藏）
     QVBoxLayout *rateLayout = nullptr;
     QWidget *rateGroup = makeGroup(card, &rateLayout);
+    m_rateGroup = rateGroup;
     auto *rateSub = new QLabel(QStringLiteral("升温速率"), rateGroup);
     rateSub->setObjectName(QStringLiteral("subLabel"));
     rateSub->setFont(Theme::ui(11, QFont::DemiBold));
@@ -321,16 +332,18 @@ QWidget *SinglePage::buildTemperatureControlCard()
 
     card->contentLayout()->addStretch(1);
 
-    // 水冷回路（贴底）
+    // 水冷回路（贴底，设备不支持水冷时隐藏）
     QVBoxLayout *waterLayout = nullptr;
     QWidget *waterGroup = makeGroup(card, &waterLayout, 14, 12, 14, 14);
+    m_waterGroup = waterGroup;
     auto *waterSub = new QLabel(QStringLiteral("水冷回路"), waterGroup);
     waterSub->setObjectName(QStringLiteral("subLabel"));
     waterSub->setFont(Theme::ui(11, QFont::DemiBold));
     waterSub->setContentsMargins(0, 2, 0, 8);
     waterLayout->addWidget(waterSub);
 
-    auto makeWaterRow = [&](const QString &label, double value, double *target) {
+    auto makeWaterRow = [&](const QString &label, double value, double *target,
+                            UnitInput **inputOut) {
         auto *row = new QWidget(waterGroup);
         auto *rowLayout = new QHBoxLayout(row);
         rowLayout->setContentsMargins(0, 0, 0, 0);
@@ -350,13 +363,14 @@ QWidget *SinglePage::buildTemperatureControlCard()
 
         rowLayout->addWidget(name);
         rowLayout->addWidget(input, 1);
+        *inputOut = input;
         return row;
     };
     waterLayout->addWidget(makeWaterRow(QStringLiteral("降温水温"), m_state->coolT,
-                                        &m_state->coolT));
+                                        &m_state->coolT, &m_coolInput));
     waterLayout->addSpacing(10);
     waterLayout->addWidget(makeWaterRow(QStringLiteral("升温水温"), m_state->warmT,
-                                        &m_state->warmT));
+                                        &m_state->warmT, &m_warmInput));
     waterLayout->addSpacing(10);
 
     auto *waterTip = new QLabel(
@@ -412,12 +426,28 @@ void SinglePage::rebuildTemperatureTable()
 
 void SinglePage::refreshSettings()
 {
-    const bool fast = m_state->rateMode == RateMode::Fast;
+    const bool speed = m_state->hasSpeed;
+    const bool fast = speed && m_state->rateMode == RateMode::Fast;
+
+    // 按设备能力显隐：不支持速率则隐藏升温速率区并固定普通模式，不支持水冷则隐藏水冷回路
+    if (m_rateGroup)
+        m_rateGroup->setVisible(speed);
+    if (m_waterGroup)
+        m_waterGroup->setVisible(m_state->hasWater);
+    if (m_tempDivider)
+        m_tempDivider->setVisible(speed || m_state->hasWater);
+
     m_rateSegmented->setCurrentIndex(fast ? 1 : 0);
     m_temperatureTable->setColumnVisible(2, fast);
     m_rateTip->setText(fast
         ? QStringLiteral("速率模式：按各段速率（°C/min）线性升温，自动校核升温时长。")
         : QStringLiteral("普通模式：按温度段设定直接升温，不做速率限制。"));
+
+    // 水温来自 TempData：MinWater 降温水温、MaxWater 升温水温
+    if (m_coolInput)
+        m_coolInput->setValue(m_state->coolT);
+    if (m_warmInput)
+        m_warmInput->setValue(m_state->warmT);
 }
 
 void SinglePage::refreshLive()

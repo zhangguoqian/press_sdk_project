@@ -110,6 +110,25 @@ void MachineState::attachService(PressService *service)
         return;
     m_service = service;
 
+    // 只读参数 → 设备能力（控制升温速率 / 水冷回路是否可见）
+    connect(service, &PressService::readOnlyDataUpdated, this,
+            [this](const PressReadOnlyData &data) {
+                hasSpeed = data.hasSpeed;
+                hasWater = data.hasWater;
+                if (!hasSpeed)
+                    rateMode = RateMode::Normal;
+                emit settingsChanged();
+            });
+
+    // 压力工艺参数 → 压力阶段表
+    connect(service, &PressService::pressProgramUpdated,
+            this, &MachineState::applyPressProgram);
+    // 温度 / 合作工艺参数 → 温度阶段表、合作流程表
+    connect(service, &PressService::tempProgramUpdated,
+            this, &MachineState::applyTempProgram);
+    connect(service, &PressService::mixProgramUpdated,
+            this, &MachineState::applyMixProgram);
+
     // 定时回调 → 界面线程排队更新
     connect(service, &PressService::realTimeUpdated, this, &MachineState::applyRealTime);
     connect(service, &PressService::sdkError, this, &MachineState::sdkError);
@@ -148,6 +167,11 @@ void MachineState::applyRealTime(const PressRtData &data)
     m_sdkMoldPressure = data.moldPressure;
     upT = data.tempUp;
     downT = data.tempDown;
+
+    if (modelState != data.modelState) {
+        modelState = data.modelState;
+        emit modelStateChanged(modelState);
+    }
 
     if (m_coopRequested) {
         if (press || heat) {
@@ -210,6 +234,23 @@ void MachineState::commitMold()
     }
 }
 
+void MachineState::commitCoopMold()
+{
+    if (!sdkMode())
+        return;
+    const int type = coopMoldShape == MoldShape::Special ? 0
+                   : (coopMoldShape == MoldShape::Circle ? 1 : 2);
+    if (!m_service->pushCoopMoldType(type))
+        emit sdkError(QStringLiteral("合作模式模具类型下发失败"));
+    if (coopMoldShape == MoldShape::Circle) {
+        if (!m_service->pushCoopMoldCircle(coopMoldDia))
+            emit sdkError(QStringLiteral("合作模式圆形模具参数下发失败"));
+    } else if (coopMoldShape == MoldShape::Rect) {
+        if (!m_service->pushCoopMoldRect(coopMoldLen, coopMoldWid))
+            emit sdkError(QStringLiteral("合作模式矩形模具参数下发失败"));
+    }
+}
+
 
 QString MachineState::moldAreaText() const
 {
@@ -217,6 +258,143 @@ QString MachineState::moldAreaText() const
     if (area <= 0.0)
         return QStringLiteral("—");
     return fmtNumber(area / 100.0, 1);
+}
+
+double MachineState::coopMoldArea() const
+{
+    switch (coopMoldShape) {
+    case MoldShape::Circle:
+        return kPi * qPow(qMax(1.0, coopMoldDia) / 2.0, 2);
+    case MoldShape::Rect:
+        return qMax(1.0, coopMoldLen) * qMax(1.0, coopMoldWid);
+    case MoldShape::Special:
+    default:
+        return 0.0;
+    }
+}
+
+double MachineState::coopMoldPressure(double ton) const
+{
+    if (m_sdkMoldPressure >= 0.0)
+        return m_sdkMoldPressure;
+    const double area = coopMoldArea();
+    if (area <= 0.0)
+        return -1.0;
+    return ton * 9806.65 / area;
+}
+
+QString MachineState::coopMoldAreaText() const
+{
+    const double area = coopMoldArea();
+    if (area <= 0.0)
+        return QStringLiteral("—");
+    return fmtNumber(area / 100.0, 1);
+}
+
+void MachineState::applyPressProgram(const PressProgramData &data)
+{
+    const int count = qBound(1, data.stepCount, pStages.size());
+    for (int i = 0; i < pStages.size(); ++i) {
+        if (i < data.setP.size())
+            pStages[i].p = data.setP.at(i);
+        if (i < data.afterP.size())
+            pStages[i].boost = data.afterP.at(i);
+        if (i < data.keepMs.size())
+            pStages[i].hold = qBound(0, qRound(data.keepMs.at(i) / 1000.0), 35999);
+    }
+
+    pCount = count;
+    if (press)
+        pStage = qMin(pStage, pCount);
+
+    // 模具：Type 0 异形 / 1 圆形 / 2 矩形（3 环形暂未支持，保持当前类型）
+    if (data.type >= 0 && data.type <= 2) {
+        moldShape = data.type == 0 ? MoldShape::Special
+                  : data.type == 1 ? MoldShape::Circle
+                                   : MoldShape::Rect;
+        if (data.a > 0.0)
+            moldLen = data.a;
+        if (data.b > 0.0)
+            moldWid = data.b;
+        if (data.d > 0.0)
+            moldDia = data.d;
+    }
+
+    emit pressProgramChanged();
+    emit settingsChanged();
+    emit changed();
+}
+
+void MachineState::applyTempProgram(const PressTempProgramData &data)
+{
+    const int count = qBound(1, data.stepCount, tStages.size());
+    for (int i = 0; i < tStages.size(); ++i) {
+        if (i < data.startTemp.size())
+            tStages[i].t = data.startTemp.at(i);
+        if (i < data.speed.size())
+            tStages[i].rate = data.speed.at(i);
+        if (i < data.keepMs.size())
+            tStages[i].hold = qBound(0, qRound(data.keepMs.at(i) / 1000.0), 35999);
+    }
+
+    tCount = count;
+    if (heat)
+        tStage = qMin(tStage, tCount);
+
+    // 水温：MinWater 为降温水温，MaxWater 为升温水温
+    coolT = data.minWater;
+    warmT = data.maxWater;
+    // Type 表示普通 / 速率模式（0 普通，非 0 速率）；设备不支持速率时强制普通
+    rateMode = (data.type != 0 && hasSpeed) ? RateMode::Fast : RateMode::Normal;
+
+    emit tempProgramChanged();
+    emit settingsChanged();
+    emit changed();
+}
+
+void MachineState::applyMixProgram(const PressMixProgramData &data)
+{
+    const int count = qBound(1, data.stepCount, coopRows.size());
+    for (int i = 0; i < coopRows.size(); ++i) {
+        CoopStage &row = coopRows[i];
+        if (i < data.isPress.size())
+            row.press = data.isPress.at(i) != 0;
+        if (i < data.setP.size())
+            row.p = data.setP.at(i);
+        if (i < data.afterP.size())
+            row.boost = data.afterP.at(i);
+        if (i < data.isUpHeat.size())
+            row.heatUp = data.isUpHeat.at(i) != 0;
+        if (i < data.upTemp.size())
+            row.tUp = data.upTemp.at(i);
+        if (i < data.isDownHeat.size())
+            row.heatDown = data.isDownHeat.at(i) != 0;
+        if (i < data.downTemp.size())
+            row.tDown = data.downTemp.at(i);
+        if (i < data.keepMs.size())
+            row.hold = qBound(0, qRound(data.keepMs.at(i) / 1000.0), 35999);
+    }
+
+    coopCount = count;
+    if (coopRunning)
+        coopStage = qMin(coopStage, coopCount);
+
+    // 合作模式模具：MixData 的 Type/A/B/D 独立于 PressData
+    if (data.type >= 0 && data.type <= 2) {
+        coopMoldShape = data.type == 0 ? MoldShape::Special
+                      : data.type == 1 ? MoldShape::Circle
+                                       : MoldShape::Rect;
+        if (data.a > 0.0)
+            coopMoldLen = data.a;
+        if (data.b > 0.0)
+            coopMoldWid = data.b;
+        if (data.d > 0.0)
+            coopMoldDia = data.d;
+    }
+
+    emit mixProgramChanged();
+    emit settingsChanged();
+    emit changed();
 }
 
 void MachineState::setPCount(int value)
@@ -377,6 +555,38 @@ void MachineState::setMoldWidth(double mm)
 {
     moldWid = qMax(1.0, qRound(mm * 10.0) / 10.0);
     commitMold();
+    emit settingsChanged();
+    emit changed();
+}
+
+void MachineState::setCoopMoldShape(MoldShape shape)
+{
+    coopMoldShape = shape;
+    commitCoopMold();
+    emit settingsChanged();
+    emit changed();
+}
+
+void MachineState::setCoopMoldDiameter(double mm)
+{
+    coopMoldDia = qMax(1.0, qRound(mm * 10.0) / 10.0);
+    commitCoopMold();
+    emit settingsChanged();
+    emit changed();
+}
+
+void MachineState::setCoopMoldLength(double mm)
+{
+    coopMoldLen = qMax(1.0, qRound(mm * 10.0) / 10.0);
+    commitCoopMold();
+    emit settingsChanged();
+    emit changed();
+}
+
+void MachineState::setCoopMoldWidth(double mm)
+{
+    coopMoldWid = qMax(1.0, qRound(mm * 10.0) / 10.0);
+    commitCoopMold();
     emit settingsChanged();
     emit changed();
 }

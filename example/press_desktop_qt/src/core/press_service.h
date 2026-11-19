@@ -19,6 +19,8 @@ class SdkAdapter;
  */
 struct PressRtData
 {
+    // 设备工作模式（RT ModelState），用于区分单独模式 / 合作模式
+    int modelState = 0;
     bool pressOn = false;       // 加压中
     bool heatOn = false;        // 加热中
     bool air = false;           // 排气中
@@ -32,6 +34,95 @@ struct PressRtData
     int tempRemainMs = 0;       // 温度倒计时 ms
 };
 Q_DECLARE_METATYPE(PressRtData)
+
+/**
+ * 设备只读参数（连接后从 ReadOnlyData JSON 解析）。
+ * 用于“关于本机”等界面展示设备固有信息。
+ */
+struct PressReadOnlyData
+{
+    QString nameZh;
+    QString nameEn;
+    QString type;
+    QString serialNumber;
+
+    int maxPStep = 0;         // 最大压力段数
+    int maxTStep = 0;         // 最大温度段数
+    double maxPLimit = 0.0;   // 压力上限 Ton
+    double minPLimit = 0.0;   // 压力下限 Ton
+    double autoBoost = 0.0;   // 自动补压差值 Ton（Max_Min）
+    double diameter = 0.0;    // 油缸直径 mm
+    double maxTLimit = 0.0;   // 温度上限 °C
+    double minTLimit = 0.0;   // 温度下限 °C
+
+    int pDecimal = 1;         // 压力值小数位数
+    int pressDecimal = 2;     // 压强值小数位数
+    int tDecimal = 1;         // 温度值小数位数
+
+    bool hasWater = false;    // 支持水冷
+    bool hasSpeed = false;    // 支持速度模式
+    bool network = false;     // 网络模块
+    int startDelay = 0;       // 启动延迟 s
+};
+Q_DECLARE_METATYPE(PressReadOnlyData)
+
+/**
+ * 压力工艺参数（连接后从 PressData JSON 解析）。
+ * setP / afterP / keepMs 为 30 段数组，stepCount 为设备当前使用的段数。
+ */
+struct PressProgramData
+{
+    int stepCount = 0;      // PStep：当前压力段数
+    int type = 0;           // Type：压制类型
+    double a = 0.0;         // 模具参数 A
+    double b = 0.0;         // 模具参数 B
+    double d = 0.0;         // 模具参数 D
+    double checkValue = 0.0;// 校准值
+    int airTime = 0;        // 排气时间 s
+
+    QVector<double> setP;   // SetPValue：每段设定压力 Ton
+    QVector<double> afterP; // AfterValue：每段补压设定 Ton
+    QVector<int> keepMs;    // KPTime：每段保压时间 ms
+};
+Q_DECLARE_METATYPE(PressProgramData)
+
+/**
+ * 温度工艺参数（TempData JSON）。
+ */
+struct PressTempProgramData
+{
+    int stepCount = 0;          // TStep：当前温度段数
+    int type = 0;               // Type
+    double minWater = 0.0;      // MinWater
+    double maxWater = 0.0;      // MaxWater
+
+    QVector<double> startTemp;  // StartTemp：每段目标温度 °C
+    QVector<double> speed;      // Speed：每段升温速率 °C/min
+    QVector<int> keepMs;        // KTTime：每段保温时间 ms
+};
+Q_DECLARE_METATYPE(PressTempProgramData)
+
+/**
+ * 合作工艺参数（MixData JSON）。
+ */
+struct PressMixProgramData
+{
+    int stepCount = 0;          // Step：当前合作段数
+    int type = 0;               // Type
+    double a = 0.0;             // 模具参数 A
+    double b = 0.0;             // 模具参数 B
+    double d = 0.0;             // 模具参数 D
+
+    QVector<int> isPress;       // IsPress：是否加压
+    QVector<double> setP;       // SetPValue：设定压力 Ton
+    QVector<double> afterP;     // AfterValue：补压设定 Ton
+    QVector<int> isUpHeat;      // IsUpHeat：是否加热上板
+    QVector<double> upTemp;     // UpTemp：上板温度 °C
+    QVector<int> isDownHeat;    // IsDownHeat：是否加热下板
+    QVector<double> downTemp;   // DownTemp：下板温度 °C
+    QVector<int> keepMs;        // KTime：计时 ms
+};
+Q_DECLARE_METATYPE(PressMixProgramData)
 
 /**
  * SDK 通讯桥接层。
@@ -75,15 +166,18 @@ public:
                        int holdSeconds);
     bool pushMoldCircle(double diameter);
     bool pushMoldRect(double length, double width);
+    bool pushCoopMoldCircle(double diameter);
+    bool pushCoopMoldRect(double length, double width);
+    bool pushCoopMoldType(int type);
 
 signals:
     void connectionChanged(bool connected, const QString &endpoint);
     void realTimeUpdated(const PressRtData &data);
-    // 连接后主动读取的静态参数（原始 JSON）
-    void readOnlyDataReceived(const QString &json);
-    void pressDataReceived(const QString &json);
-    void tempDataReceived(const QString &json);
-    void mixDataReceived(const QString &json);
+    // 连接后主动读取的静态参数
+    void readOnlyDataUpdated(const PressReadOnlyData &data);
+    void pressProgramUpdated(const PressProgramData &data);
+    void tempProgramUpdated(const PressTempProgramData &data);
+    void mixProgramUpdated(const PressMixProgramData &data);
     void sdkError(const QString &message);
 
 private:

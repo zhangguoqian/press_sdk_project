@@ -3,6 +3,7 @@
 #include "press/press.hpp"
 
 #include <QByteArray>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -21,12 +22,145 @@ int jsonInt(const QJsonObject &object, const char *key)
     return object.value(QLatin1String(key)).toInt();
 }
 
+PressReadOnlyData parseReadOnly(const std::string &json)
+{
+    PressReadOnlyData data;
+    const QJsonObject object = QJsonDocument::fromJson(
+        QByteArray::fromStdString(json)).object();
+
+    data.nameZh = object.value(QLatin1String("NameZH")).toString();
+    data.nameEn = object.value(QLatin1String("NameEN")).toString();
+    data.type = object.value(QLatin1String("Type")).toString();
+    data.serialNumber = object.value(QLatin1String("SerialNumber")).toString();
+
+    data.maxPStep = jsonInt(object, "MaxPStep");
+    data.maxTStep = jsonInt(object, "MaxTStep");
+    data.maxPLimit = jsonNumber(object, "MaxPLimit");
+    data.minPLimit = jsonNumber(object, "MinPLimit");
+    data.autoBoost = jsonNumber(object, "Max_Min");
+    data.diameter = jsonNumber(object, "Diameter");
+    data.maxTLimit = jsonNumber(object, "MaxTLimit");
+    data.minTLimit = jsonNumber(object, "MinTLimit");
+
+    data.pDecimal = jsonInt(object, "PDecimal");
+    data.pressDecimal = jsonInt(object, "PressDecimal");
+    data.tDecimal = jsonInt(object, "TDecimal");
+
+    data.hasWater = jsonInt(object, "IsHasWater") != 0;
+    data.hasSpeed = jsonInt(object, "IsHasSpeed") != 0;
+    data.network = jsonInt(object, "Network") != 0;
+    data.startDelay = jsonInt(object, "StartDelay");
+    return data;
+}
+
+PressProgramData parsePressProgram(const std::string &json)
+{
+    PressProgramData data;
+    const QJsonObject object = QJsonDocument::fromJson(
+        QByteArray::fromStdString(json)).object();
+
+    data.stepCount = qBound(1, jsonInt(object, "PStep"), 30);
+    data.type = jsonInt(object, "Type");
+    data.a = jsonNumber(object, "A");
+    data.b = jsonNumber(object, "B");
+    data.d = jsonNumber(object, "D");
+    data.checkValue = jsonNumber(object, "CheckValue");
+    data.airTime = jsonInt(object, "AirTime");
+
+    const auto readNumbers = [&object](const char *key) {
+        QVector<double> values;
+        const QJsonArray array = object.value(QLatin1String(key)).toArray();
+        values.reserve(array.size());
+        for (const QJsonValue &value : array)
+            values.append(value.toDouble());
+        return values;
+    };
+    data.setP = readNumbers("SetPValue");
+    data.afterP = readNumbers("AfterValue");
+
+    const QJsonArray keep = object.value(QLatin1String("KPTime")).toArray();
+    data.keepMs.reserve(keep.size());
+    for (const QJsonValue &value : keep)
+        data.keepMs.append(value.toInt());
+    return data;
+}
+
+PressTempProgramData parseTempProgram(const std::string &json)
+{
+    PressTempProgramData data;
+    const QJsonObject object = QJsonDocument::fromJson(
+        QByteArray::fromStdString(json)).object();
+
+    data.stepCount = qBound(1, jsonInt(object, "TStep"), 30);
+    data.type = jsonInt(object, "Type");
+    data.minWater = jsonNumber(object, "MinWater");
+    data.maxWater = jsonNumber(object, "MaxWater");
+
+    const auto readNumbers = [&object](const char *key) {
+        QVector<double> values;
+        const QJsonArray array = object.value(QLatin1String(key)).toArray();
+        values.reserve(array.size());
+        for (const QJsonValue &value : array)
+            values.append(value.toDouble());
+        return values;
+    };
+    data.startTemp = readNumbers("StartTemp");
+    data.speed = readNumbers("Speed");
+
+    const QJsonArray keep = object.value(QLatin1String("KTTime")).toArray();
+    data.keepMs.reserve(keep.size());
+    for (const QJsonValue &value : keep)
+        data.keepMs.append(value.toInt());
+    return data;
+}
+
+PressMixProgramData parseMixProgram(const std::string &json)
+{
+    PressMixProgramData data;
+    const QJsonObject object = QJsonDocument::fromJson(
+        QByteArray::fromStdString(json)).object();
+
+    data.stepCount = qBound(1, jsonInt(object, "Step"), 30);
+    data.type = jsonInt(object, "Type");
+    data.a = jsonNumber(object, "A");
+    data.b = jsonNumber(object, "B");
+    data.d = jsonNumber(object, "D");
+
+    const auto readNumbers = [&object](const char *key) {
+        QVector<double> values;
+        const QJsonArray array = object.value(QLatin1String(key)).toArray();
+        values.reserve(array.size());
+        for (const QJsonValue &value : array)
+            values.append(value.toDouble());
+        return values;
+    };
+    const auto readInts = [&object](const char *key) {
+        QVector<int> values;
+        const QJsonArray array = object.value(QLatin1String(key)).toArray();
+        values.reserve(array.size());
+        for (const QJsonValue &value : array)
+            values.append(value.toInt());
+        return values;
+    };
+
+    data.isPress = readInts("IsPress");
+    data.setP = readNumbers("SetPValue");
+    data.afterP = readNumbers("AfterValue");
+    data.isUpHeat = readInts("IsUpHeat");
+    data.upTemp = readNumbers("UpTemp");
+    data.isDownHeat = readInts("IsDownHeat");
+    data.downTemp = readNumbers("DownTemp");
+    data.keepMs = readInts("KTime");
+    return data;
+}
+
 PressRtData parseRealTime(const std::string &json)
 {
     PressRtData data;
     const QJsonObject object = QJsonDocument::fromJson(
         QByteArray::fromStdString(json)).object();
 
+    data.modelState = jsonInt(object, "ModelState");
     data.pressOn = jsonInt(object, "IsPStart") != 0;
     data.heatOn = jsonInt(object, "IsTStart") != 0 || jsonInt(object, "IsT1Start") != 0;
     data.air = jsonInt(object, "IsAir") != 0;
@@ -89,6 +223,10 @@ PressService::PressService(QObject *parent)
     , m_adapter(new SdkAdapter(this))
 {
     qRegisterMetaType<PressRtData>("PressRtData");
+    qRegisterMetaType<PressReadOnlyData>("PressReadOnlyData");
+    qRegisterMetaType<PressProgramData>("PressProgramData");
+    qRegisterMetaType<PressTempProgramData>("PressTempProgramData");
+    qRegisterMetaType<PressMixProgramData>("PressMixProgramData");
     m_press->setRequestTimeout(1500);
 }
 
@@ -114,25 +252,25 @@ void PressService::handleReadOnlyData(uint64_t registerNo, const std::string &js
 {
     Q_UNUSED(registerNo)
     if (!json.empty())
-        emit readOnlyDataReceived(QString::fromStdString(json));
+        emit readOnlyDataUpdated(parseReadOnly(json));
 }
 
 void PressService::handlePressData(const std::string &json)
 {
     if (!json.empty())
-        emit pressDataReceived(QString::fromStdString(json));
+        emit pressProgramUpdated(parsePressProgram(json));
 }
 
 void PressService::handleTempData(const std::string &json)
 {
     if (!json.empty())
-        emit tempDataReceived(QString::fromStdString(json));
+        emit tempProgramUpdated(parseTempProgram(json));
 }
 
 void PressService::handleMixData(const std::string &json)
 {
     if (!json.empty())
-        emit mixDataReceived(QString::fromStdString(json));
+        emit mixProgramUpdated(parseMixProgram(json));
 }
 
 QStringList PressService::availablePorts()
@@ -293,6 +431,21 @@ bool PressService::pushMoldCircle(double diameter)
 bool PressService::pushMoldRect(double length, double width)
 {
     return m_press->setRectangle(static_cast<float>(length), static_cast<float>(width));
+}
+
+bool PressService::pushCoopMoldCircle(double diameter)
+{
+    return m_press->setMixCircle(static_cast<float>(diameter));
+}
+
+bool PressService::pushCoopMoldRect(double length, double width)
+{
+    return m_press->setMixRectangle(static_cast<float>(length), static_cast<float>(width));
+}
+
+bool PressService::pushCoopMoldType(int type)
+{
+    return m_press->setMixMoldType(static_cast<uint8_t>(type));
 }
 
 bool PressService::check(bool ok, QString *error, const QString &action)

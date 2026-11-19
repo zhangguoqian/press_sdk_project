@@ -16,6 +16,8 @@
 #include <QVBoxLayout>
 #include <QVariant>
 
+#include <cmath>
+
 namespace {
 
 // 关于页品牌图标（大号渐变圆角）
@@ -39,7 +41,8 @@ protected:
     }
 };
 
-QWidget *makeRow(const QString &key, const QString &value, bool last, QWidget *parent)
+QWidget *makeRow(const QString &key, const QString &value, bool last, QWidget *parent,
+                 QLabel **valueOut = nullptr)
 {
     auto *row = new QFrame(parent);
     row->setObjectName(QStringLiteral("aboutRow"));
@@ -63,7 +66,31 @@ QWidget *makeRow(const QString &key, const QString &value, bool last, QWidget *p
     layout->addWidget(keyLabel);
     layout->addStretch(1);
     layout->addWidget(valueLabel);
+    if (valueOut)
+        *valueOut = valueLabel;
     return row;
+}
+
+QString number1(double value)
+{
+    return QString::number(value, 'f', 1);
+}
+
+QString numberTrim(double value, int decimals = 2)
+{
+    QString text = QString::number(value, 'f', decimals);
+    while (text.contains(QLatin1Char('.'))
+           && (text.endsWith(QLatin1Char('0')) || text.endsWith(QLatin1Char('.')))) {
+        text.chop(1);
+    }
+    return text;
+}
+
+// 小数位数 -> 显示精度文本，如 2 -> "0.01"
+QString precisionText(int decimals)
+{
+    const int digits = qBound(0, decimals, 4);
+    return QString::number(1.0 / std::pow(10.0, digits), 'f', digits);
 }
 
 } // namespace
@@ -89,6 +116,10 @@ SettingsPage::SettingsPage(MachineState *state, PressService *service, QWidget *
     contentLayout->addWidget(buildHeroCard(), 1);
     contentLayout->addWidget(buildAboutCard(), 1);
     layout->addWidget(content, 1);
+
+    // 连接设备后，用 ReadOnlyData 填充“关于本机”
+    connect(m_service, &PressService::readOnlyDataUpdated,
+            this, &SettingsPage::applyReadOnlyData);
 }
 
 QWidget *SettingsPage::buildTabCard()
@@ -276,28 +307,35 @@ QWidget *SettingsPage::buildAboutCard()
     card->setBodyMargins(16, 16, 16, 16);
     card->contentLayout()->setSpacing(14);
 
+    // 数值由 ReadOnlyData 回调填充，未连接时显示占位符
     const QVector<QPair<QString, QString>> firstRows = {
-        {QStringLiteral("仪器名称"), QStringLiteral("自动热压机")},
-        {QStringLiteral("仪器型号"), QStringLiteral("TYPE")},
-        {QStringLiteral("油缸直径"), QStringLiteral("110.0 mm")},
-        {QStringLiteral("最大压力"), QStringLiteral("30.0 Ton")},
-        {QStringLiteral("最小压力"), QStringLiteral("0.5 Ton")},
-        {QStringLiteral("最高温度"), QStringLiteral("310.0 °C")}};
+        {QStringLiteral("设备名称"), QStringLiteral("—")},
+        {QStringLiteral("设备型号"), QStringLiteral("—")},
+        {QStringLiteral("本机序列号"), QStringLiteral("—")},
+        {QStringLiteral("油缸直径"), QStringLiteral("—")},
+        {QStringLiteral("最大压力"), QStringLiteral("—")},
+        {QStringLiteral("最小压力"), QStringLiteral("—")}};
 
     const QVector<QPair<QString, QString>> secondRows = {
-        {QStringLiteral("压力显示精度"), QStringLiteral("0.1 Ton")},
-        {QStringLiteral("压强显示精度"), QStringLiteral("0.01 MPa")},
-        {QStringLiteral("温度显示精度"), QStringLiteral("0.1 °C")},
-        {QStringLiteral("自动补压差值"), QStringLiteral("0.3 Ton")},
-        {QStringLiteral("本机序列号"), QStringLiteral("ASD123")}};
+        {QStringLiteral("最高温度"), QStringLiteral("—")},
+        {QStringLiteral("最低温度"), QStringLiteral("—")},
+        {QStringLiteral("自动补压差值"), QStringLiteral("—")},
+        {QStringLiteral("显示精度"), QStringLiteral("—")},
+        {QStringLiteral("压力段数"), QStringLiteral("—")},
+        {QStringLiteral("温度段数"), QStringLiteral("—")}};
 
-    card->contentLayout()->addWidget(buildAboutList(firstRows));
-    card->contentLayout()->addWidget(buildAboutList(secondRows));
+    card->contentLayout()->addWidget(buildAboutList(
+        firstRows, {&m_devName, &m_devType, &m_devSerial,
+                    &m_devDiameter, &m_devMaxP, &m_devMinP}));
+    card->contentLayout()->addWidget(buildAboutList(
+        secondRows, {&m_devMaxT, &m_devMinT, &m_devBoost,
+                     &m_devPrecision, &m_devPStep, &m_devTStep}));
     card->contentLayout()->addStretch(1);
     return card;
 }
 
-QWidget *SettingsPage::buildAboutList(const QVector<QPair<QString, QString>> &rows)
+QWidget *SettingsPage::buildAboutList(const QVector<QPair<QString, QString>> &rows,
+                                      const QVector<QLabel **> &outs)
 {
     auto *list = new QFrame(this);
     list->setObjectName(QStringLiteral("aboutList"));
@@ -307,8 +345,40 @@ QWidget *SettingsPage::buildAboutList(const QVector<QPair<QString, QString>> &ro
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    for (int i = 0; i < rows.size(); ++i)
+    for (int i = 0; i < rows.size(); ++i) {
+        QLabel *valueLabel = nullptr;
         layout->addWidget(makeRow(rows.at(i).first, rows.at(i).second,
-                                  i == rows.size() - 1, list));
+                                  i == rows.size() - 1, list, &valueLabel));
+        if (i < outs.size() && outs.at(i))
+            *outs.at(i) = valueLabel;
+    }
     return list;
+}
+
+void SettingsPage::applyReadOnlyData(const PressReadOnlyData &data)
+{
+    auto setText = [](QLabel *label, const QString &text) {
+        if (!label)
+            return;
+        label->setText(text.isEmpty() ? QStringLiteral("—") : text);
+    };
+
+    setText(m_devName, data.nameZh.isEmpty() ? data.nameEn : data.nameZh);
+    if (m_devName)
+        m_devName->setToolTip(data.nameEn);
+    setText(m_devType, data.type);
+    setText(m_devSerial, data.serialNumber);
+    setText(m_devDiameter, QStringLiteral("%1 mm").arg(number1(data.diameter)));
+    setText(m_devMaxP, QStringLiteral("%1 Ton").arg(number1(data.maxPLimit)));
+    setText(m_devMinP, QStringLiteral("%1 Ton").arg(number1(data.minPLimit)));
+    setText(m_devMaxT, QStringLiteral("%1 °C").arg(number1(data.maxTLimit)));
+    setText(m_devMinT, QStringLiteral("%1 °C").arg(number1(data.minTLimit)));
+    setText(m_devBoost, QStringLiteral("%1 Ton").arg(numberTrim(data.autoBoost)));
+    setText(m_devPrecision,
+            QStringLiteral("%1 Ton · %2 MPa · %3 °C")
+                .arg(precisionText(data.pDecimal))
+                .arg(precisionText(data.pressDecimal))
+                .arg(precisionText(data.tDecimal)));
+    setText(m_devPStep, QStringLiteral("%1 段").arg(data.maxPStep));
+    setText(m_devTStep, QStringLiteral("%1 段").arg(data.maxTStep));
 }

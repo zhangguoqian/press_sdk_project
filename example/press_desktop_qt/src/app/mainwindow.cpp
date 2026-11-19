@@ -107,6 +107,20 @@ MainWindow::MainWindow(QWidget *parent)
                                     : QStringLiteral("设备未连接，当前为本地模拟"));
             });
 
+    // 设备上报的工作模式驱动页面切换：1 合作模式，2 单独模式
+    connect(m_state, &MachineState::modelStateChanged, this, [this](int model) {
+        const QString key = model == 1 ? QStringLiteral("coop")
+                          : model == 2 ? QStringLiteral("single")
+                                       : QString();
+        if (key.isEmpty() || key == m_current || m_state->running())
+            return;
+        showPage(key);
+        if (auto *scroll = qobject_cast<QScrollArea *>(m_pageWidgets.value(key)))
+            scroll->verticalScrollBar()->setValue(0);
+        showToast(model == 1 ? QStringLiteral("设备切换为合作模式")
+                             : QStringLiteral("设备切换为单独模式"));
+    });
+
     connect(m_state, &MachineState::ticked, m_singlePage, &SinglePage::onTick);
     connect(m_state, &MachineState::ticked, m_coopPage, &CoopPage::onTick);
     connect(m_state, &MachineState::changed, this, &MainWindow::updateActionBar);

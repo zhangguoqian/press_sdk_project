@@ -11,6 +11,7 @@ class StageTable;
 class StageTools;
 class QLabel;
 class QResizeEvent;
+class UnitInput;
 
 // 单独模式：压力参数 / 压力阶段 + 温度阶段 + 曲线 / 温控设置
 class SinglePage : public QWidget
@@ -55,4 +56,9 @@ private:
     MoldPanel *m_mold = nullptr;
     Segmented *m_rateSegmented = nullptr;
     QLabel *m_rateTip = nullptr;
+    QWidget *m_rateGroup = nullptr;
+    QWidget *m_waterGroup = nullptr;
+    QWidget *m_tempDivider = nullptr;
+    UnitInput *m_coolInput = nullptr;
+    UnitInput *m_warmInput = nullptr;
 };

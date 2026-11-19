@@ -40,6 +40,10 @@ CoopPage::CoopPage(MachineState *state, QWidget *parent)
     layout->addWidget(buildRightColumn(), 1);
 
     connect(m_state, &MachineState::changed, this, &CoopPage::refreshLive);
+    connect(m_state, &MachineState::mixProgramChanged, this, [this] {
+        rebuildTable();
+        refreshLive();
+    });
 
     rebuildTable();
     refreshLive();
@@ -103,7 +107,7 @@ QWidget *CoopPage::buildLeftColumn()
     auto *moldLayout = new QVBoxLayout(moldGroup);
     moldLayout->setContentsMargins(14, 12, 14, 14);
     moldLayout->setSpacing(0);
-    m_mold = new MoldPanel(m_state, moldGroup);
+    m_mold = new MoldPanel(m_state, moldGroup, true);
     moldLayout->addWidget(m_mold);
     card->contentLayout()->addWidget(moldGroup);
 
@@ -235,7 +239,7 @@ void CoopPage::refreshLive()
     const CoopStage &stage = m_state->coopRows.at(m_state->coopIndex());
     m_kv->setValue(QStringLiteral("setP"), fmtNumber(stage.p));
     m_kv->setValue(QStringLiteral("live"), fmtNumber(m_state->liveP));
-    const double moldPressure = m_state->moldPressure(stage.p);
+    const double moldPressure = m_state->coopMoldPressure(stage.p);
     m_kv->setValue(QStringLiteral("mold"), moldPressure < 0 ? QStringLiteral("—")
                                                              : fmtNumber(moldPressure, 2));
     m_kv->setValue(QStringLiteral("setT"), fmtNumber(stage.tUp));

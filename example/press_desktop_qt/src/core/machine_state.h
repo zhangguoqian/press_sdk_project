@@ -58,14 +58,25 @@ public:
     double moldDia = 100.0;   // mm
     double moldLen = 100.0;   // mm
     double moldWid = 100.0;   // mm
+
+    // 合作模式模具（来自 MixData，与单独模式相互独立）
+    MoldShape coopMoldShape = MoldShape::Circle;
+    double coopMoldDia = 100.0;   // mm
+    double coopMoldLen = 100.0;   // mm
+    double coopMoldWid = 100.0;   // mm
     RateMode rateMode = RateMode::Normal;
     double coolT = 15.0;
     double warmT = 45.0;
+
+    // ---- 设备能力（ReadOnlyData，未连接时保留完整界面）----
+    bool hasSpeed = true;   // 是否支持升温速率
+    bool hasWater = true;   // 是否支持水冷回路
 
     // ---- 运行状态 ----
     bool press = false;
     bool heat = false;
     bool coopRunning = false;
+    int modelState = 0;   // 设备工作模式（1 单独 / 2 合作），来自 RT ModelState
 
     int pStage = 0;   // 1 起，0 = 空闲
     int tStage = 0;
@@ -93,12 +104,20 @@ public:
     double moldPressure(double ton) const; // MPa；异形返回 -1
     QString moldAreaText() const;        // cm² 文本
 
+    double coopMoldArea() const;
+    double coopMoldPressure(double ton) const;
+    QString coopMoldAreaText() const;
+
     // ---- SDK ----
     void attachService(PressService *service);
     void commitPressureStage(int index);
     void commitTemperatureStage(int index);
     void commitCoopStage(int index);
     void commitMold();
+    void commitCoopMold();
+    void applyPressProgram(const PressProgramData &data);
+    void applyTempProgram(const PressTempProgramData &data);
+    void applyMixProgram(const PressMixProgramData &data);
 
     // ---- 操作 ----
     void setPCount(int value);
@@ -116,6 +135,10 @@ public:
     void setMoldDiameter(double mm);
     void setMoldLength(double mm);
     void setMoldWidth(double mm);
+    void setCoopMoldShape(MoldShape shape);
+    void setCoopMoldDiameter(double mm);
+    void setCoopMoldLength(double mm);
+    void setCoopMoldWidth(double mm);
     void setRateMode(RateMode mode);
     void notifySettingsChanged();
 
@@ -123,7 +146,11 @@ signals:
     void changed();          // 任意状态变化（用于刷新界面）
     void ticked();           // 500ms 采样节拍
     void settingsChanged();  // 模具 / 速率等设定变化
+    void pressProgramChanged();  // 设备压力工艺参数已同步
+    void tempProgramChanged();   // 设备温度工艺参数已同步
+    void mixProgramChanged();    // 设备合作工艺参数已同步
     void linkChanged(bool connected, const QString &endpoint);
+    void modelStateChanged(int modelState);  // 设备工作模式变化
     void sdkError(const QString &message);
 
 private slots:
