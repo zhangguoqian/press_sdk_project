@@ -1,0 +1,43 @@
+#pragma once
+
+#include <QColor>
+#include <QFont>
+#include <QString>
+
+// 设计令牌：与原型 styles.css 中的 CSS 变量一一对应
+namespace Theme {
+
+inline const QColor Brand{0x00, 0xA1, 0xE9};
+inline const QColor Brand600{0x00, 0x90, 0xD2};
+inline const QColor Brand700{0x00, 0x79, 0xB4};
+inline const QColor Brand050{0xE9, 0xF7, 0xFE};
+inline const QColor Brand100{0xD2, 0xEE, 0xFB};
+inline const QColor Brand200{0xA8, 0xDD, 0xF5};
+
+inline const QColor Navy{0x08, 0x20, 0x2F};
+inline const QColor Ink{0x12, 0x29, 0x3D};
+inline const QColor Ink2{0x3B, 0x57, 0x70};
+inline const QColor Muted{0x5F, 0x74, 0x88};
+inline const QColor Muted2{0x7C, 0x90, 0xA2};
+
+inline const QColor Bg{0xED, 0xF1, 0xF5};
+inline const QColor CardBg{0xFF, 0xFF, 0xFF};
+inline const QColor Line{0xE3, 0xEA, 0xF0};
+inline const QColor Line2{0xEF, 0xF4, 0xF8};
+
+inline const QColor Green{0x00, 0xA3, 0x2A};
+inline const QColor Green600{0x00, 0x8C, 0x24};
+inline const QColor Green050{0xE7, 0xF7, 0xEC};
+inline const QColor Amber{0xE8, 0x73, 0x0C};
+inline const QColor Amber600{0xC7, 0x5F, 0x05};
+inline const QColor Red{0xC8, 0x10, 0x2E};
+inline const QColor Red600{0xA5, 0x0D, 0x25};
+inline const QColor Red050{0xFD, 0xEC, 0xEE};
+inline const QColor NowRow{0xEA, 0xF6, 0xFD};
+
+QString styleSheet();
+
+QFont ui(int pixelSize = 13, int weight = QFont::Normal);
+QFont num(int pixelSize = 14, int weight = QFont::DemiBold);
+
+} // namespace Theme
