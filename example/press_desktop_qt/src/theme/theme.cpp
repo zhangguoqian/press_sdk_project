@@ -301,6 +301,54 @@ QLabel#actionNote {
     color: #5F7488;
     font-size: 12px;
 }
+QPushButton#btnLogToggle {
+    background: #FFFFFF;
+    border: 1px solid rgba(0, 161, 233, 90);
+    border-radius: 10px;
+    color: #0079B3;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 18px;
+}
+QPushButton#btnLogToggle:hover {
+    background: #E8F6FD;
+    border-color: #00A1E9;
+}
+
+/* ============ 运行日志面板 ============ */
+QWidget#logPanel {
+    background: #FFFFFF;
+    border-top: 1px solid #E3EAF0;
+}
+QWidget#logHeader {
+    background: #F6F9FC;
+    border-bottom: 1px solid #E3EAF0;
+}
+QLabel#logTitle {
+    color: #33475B;
+}
+QLabel#logCount {
+    color: #8095A8;
+}
+QPushButton#logCollapse {
+    background: transparent;
+    border: 1px solid #D3DFE9;
+    border-radius: 6px;
+    color: #5F7488;
+    font-size: 12px;
+    padding: 0 10px;
+}
+QPushButton#logCollapse:hover {
+    background: #EEF4F9;
+    color: #33475B;
+}
+QPlainTextEdit#logText {
+    background: #FFFFFF;
+    border: none;
+    color: #3E5568;
+    padding: 4px 12px 6px 18px;
+    selection-background-color: #CDEBFA;
+}
 QPushButton#btnGreen {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                 stop:0 #0AB233, stop:1 #008C24);

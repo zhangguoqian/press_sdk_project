@@ -6,6 +6,7 @@
 
 class ActionBar;
 class CoopPage;
+class LogPanel;
 class MachineState;
 class PressService;
 class QScrollArea;
@@ -39,6 +40,7 @@ private:
     void syncModeAvailability();
     void showToast(const QString &text);
     void positionToast();
+    void toggleLogPanel();
 
     void handlePressRequest();
     void handleHeatRequest();
@@ -51,6 +53,7 @@ private:
     Sidebar *m_sidebar = nullptr;
     QStackedWidget *m_stack = nullptr;
     ActionBar *m_actionBar = nullptr;
+    LogPanel *m_logPanel = nullptr;
     Toast *m_toast = nullptr;
     QWidget *m_root = nullptr;
 

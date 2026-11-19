@@ -8,6 +8,7 @@
 #include "pages/singlepage.h"
 #include "theme/theme.h"
 #include "widgets/actionbar.h"
+#include "widgets/logpanel.h"
 #include "widgets/sidebar.h"
 #include "widgets/titlebar.h"
 #include "widgets/toast.h"
@@ -76,6 +77,11 @@ MainWindow::MainWindow(QWidget *parent)
     bodyLayout->addWidget(createContent(), 1);
     layout->addWidget(body, 1);
 
+    // 日志面板位于底栏上方，默认隐藏
+    m_logPanel = new LogPanel(m_root);
+    m_logPanel->hide();
+    layout->addWidget(m_logPanel);
+
     m_actionBar = new ActionBar(m_state, m_root);
     layout->addWidget(m_actionBar);
 
@@ -97,6 +103,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_actionBar, &ActionBar::heatRequested, this, &MainWindow::handleHeatRequest);
     connect(m_actionBar, &ActionBar::ventRequested, this, &MainWindow::handleVentRequest);
     connect(m_actionBar, &ActionBar::coopRequested, this, &MainWindow::handleCoopRequest);
+    connect(m_actionBar, &ActionBar::logToggled, this, &MainWindow::toggleLogPanel);
+    connect(m_logPanel, &LogPanel::collapseRequested, this, [this] {
+        m_logPanel->hide();
+        positionToast();
+    });
 
     // SDK 通讯状态 / 错误提示
     connect(m_state, &MachineState::sdkError, this, &MainWindow::showToast);
@@ -326,9 +337,21 @@ void MainWindow::handleCoopRequest()
 
 void MainWindow::showToast(const QString &text)
 {
+    if (m_logPanel)
+        m_logPanel->append(text);
     m_toast->showMessage(text);
     positionToast();
     m_toast->raise();
+}
+
+void MainWindow::toggleLogPanel()
+{
+    if (!m_logPanel)
+        return;
+    m_logPanel->setVisible(!m_logPanel->isVisible());
+    positionToast();
+    if (m_logPanel->isVisible())
+        m_logPanel->raise();
 }
 
 void MainWindow::positionToast()

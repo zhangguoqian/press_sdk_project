@@ -25,6 +25,7 @@ signals:
     void heatRequested();
     void ventRequested();
     void coopRequested();
+    void logToggled();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -41,6 +42,7 @@ private:
     QPushButton *m_heatButton = nullptr;
     QPushButton *m_ventButton = nullptr;
     QPushButton *m_coopButton = nullptr;
+    QPushButton *m_logButton = nullptr;
     QSizeGrip *m_sizeGrip = nullptr;
     Mode m_mode = Mode::Run;
 };

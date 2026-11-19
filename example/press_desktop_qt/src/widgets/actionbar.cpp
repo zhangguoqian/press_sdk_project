@@ -58,10 +58,15 @@ ActionBar::ActionBar(MachineState *state, QWidget *parent)
     layout->addWidget(m_runGroup, 0, Qt::AlignVCenter);
     layout->addWidget(m_coopGroup, 0, Qt::AlignVCenter);
 
+    m_logButton = createButton(QStringLiteral("日志"), QStringLiteral("btnLogToggle"),
+                               AppIcon::Info, Theme::Brand);
+    layout->addWidget(m_logButton, 0, Qt::AlignVCenter);
+
     connect(m_pressButton, &QPushButton::clicked, this, &ActionBar::pressRequested);
     connect(m_heatButton, &QPushButton::clicked, this, &ActionBar::heatRequested);
     connect(m_ventButton, &QPushButton::clicked, this, &ActionBar::ventRequested);
     connect(m_coopButton, &QPushButton::clicked, this, &ActionBar::coopRequested);
+    connect(m_logButton, &QPushButton::clicked, this, &ActionBar::logToggled);
 
     // 无边框窗口的右下角缩放手柄
     m_sizeGrip = new QSizeGrip(this);
