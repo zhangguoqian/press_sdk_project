@@ -165,6 +165,7 @@ QWidget *SinglePage::buildPressureCard()
                     stage.p = value;
                 else if (column == 2)
                     stage.boost = value;
+                m_state->commitPressureStage(row);
                 refreshLive();
             });
     connect(m_pressureTable, &StageTable::timeClicked, this, [this](int row, int column) {
@@ -173,6 +174,7 @@ QWidget *SinglePage::buildPressureCard()
         int seconds = m_state->pStages[row].hold;
         if (Dialogs::editTiming(this, seconds, &seconds)) {
             m_state->pStages[row].hold = seconds;
+            m_state->commitPressureStage(row);
             m_pressureTable->setTime(row, column, seconds);
             refreshLive();
         }
@@ -211,6 +213,7 @@ QWidget *SinglePage::buildTemperatureCard()
                     stage.t = value;
                 else if (column == 2)
                     stage.rate = value;
+                m_state->commitTemperatureStage(row);
                 refreshLive();
             });
     connect(m_temperatureTable, &StageTable::timeClicked, this,
@@ -220,6 +223,7 @@ QWidget *SinglePage::buildTemperatureCard()
                 int seconds = m_state->tStages[row].hold;
                 if (Dialogs::editTiming(this, seconds, &seconds)) {
                     m_state->tStages[row].hold = seconds;
+                    m_state->commitTemperatureStage(row);
                     m_temperatureTable->setTime(row, column, seconds);
                     refreshLive();
                 }

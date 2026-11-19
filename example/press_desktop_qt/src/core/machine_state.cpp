@@ -94,12 +94,122 @@ double MachineState::moldArea() const
 
 double MachineState::moldPressure(double ton) const
 {
+    // 已连接设备时直接采用设备上报的模具压强
+    if (m_sdkMoldPressure >= 0.0)
+        return m_sdkMoldPressure;
     const double area = moldArea();
     if (area <= 0.0)
         return -1.0;
     // P = F / A = (Ton × 1000 kgf × 9.80665 N/kgf) / 面积(mm²) → MPa
     return ton * 9806.65 / area;
 }
+
+void MachineState::attachService(PressService *service)
+{
+    if (!service || m_service == service)
+        return;
+    m_service = service;
+
+    // 定时回调 → 界面线程排队更新
+    connect(service, &PressService::realTimeUpdated, this, &MachineState::applyRealTime);
+    connect(service, &PressService::sdkError, this, &MachineState::sdkError);
+    connect(service, &PressService::connectionChanged, this,
+            [this](bool connected, const QString &endpoint) {
+                if (!connected) {
+                    // 断开后回到本地模拟，清空设备侧运行态
+                    m_sdkMoldPressure = -1.0;
+                    press = false;
+                    heat = false;
+                    coopRunning = false;
+                    m_coopRequested = false;
+                    m_coopSeenRunning = false;
+                    m_coopIdleFrames = 0;
+                    pStage = tStage = coopStage = 0;
+                    pRemain = tRemain = coopRemain = 0;
+                    liveP = 0.0;
+                }
+                emit linkChanged(connected, endpoint);
+                emit changed();
+            });
+}
+
+void MachineState::applyRealTime(const PressRtData &data)
+{
+    if (!sdkMode())
+        return;
+
+    press = data.pressOn;
+    heat = data.heatOn;
+    pStage = press ? qBound(1, data.pressStep + 1, qMax(1, pCount)) : 0;
+    tStage = heat ? qBound(1, data.tempStep + 1, qMax(1, tCount)) : 0;
+    pRemain = press ? qMax(0, data.pressRemainMs / 1000) : 0;
+    tRemain = heat ? qMax(0, data.tempRemainMs / 1000) : 0;
+    liveP = qMax(0.0, data.pressure);
+    m_sdkMoldPressure = data.moldPressure;
+    upT = data.tempUp;
+    downT = data.tempDown;
+
+    if (m_coopRequested) {
+        if (press || heat) {
+            coopRunning = true;
+            coopStage = press ? pStage : tStage;
+            m_coopSeenRunning = true;
+            m_coopIdleFrames = 0;
+        } else if (m_coopSeenRunning && ++m_coopIdleFrames >= 3) {
+            // 设备启动存在 1~2 帧延迟，且需先观测到运行再判定结束
+            coopRunning = false;
+            coopStage = 0;
+            m_coopRequested = false;
+            m_coopSeenRunning = false;
+            m_coopIdleFrames = 0;
+        }
+    }
+
+    emit changed();
+}
+
+void MachineState::commitPressureStage(int index)
+{
+    if (!sdkMode() || index < 0 || index >= pStages.size())
+        return;
+    const PressureStage &stage = pStages.at(index);
+    if (!m_service->pushPressureStage(index, stage.p, stage.boost, stage.hold))
+        emit sdkError(QStringLiteral("压力阶段参数下发失败"));
+}
+
+void MachineState::commitTemperatureStage(int index)
+{
+    if (!sdkMode() || index < 0 || index >= tStages.size())
+        return;
+    const TemperatureStage &stage = tStages.at(index);
+    if (!m_service->pushTemperatureStage(index, stage.t, stage.rate, stage.hold))
+        emit sdkError(QStringLiteral("温度阶段参数下发失败"));
+}
+
+void MachineState::commitCoopStage(int index)
+{
+    if (!sdkMode() || index < 0 || index >= coopRows.size())
+        return;
+    const CoopStage &stage = coopRows.at(index);
+    if (!m_service->pushCoopStage(index, stage.press, stage.p, stage.boost,
+                                  stage.heatUp, stage.tUp, stage.heatDown,
+                                  stage.tDown, stage.hold))
+        emit sdkError(QStringLiteral("合作流程参数下发失败"));
+}
+
+void MachineState::commitMold()
+{
+    if (!sdkMode())
+        return;
+    if (moldShape == MoldShape::Circle) {
+        if (!m_service->pushMoldCircle(moldDia))
+            emit sdkError(QStringLiteral("圆形模具参数下发失败"));
+    } else if (moldShape == MoldShape::Rect) {
+        if (!m_service->pushMoldRect(moldLen, moldWid))
+            emit sdkError(QStringLiteral("矩形模具参数下发失败"));
+    }
+}
+
 
 QString MachineState::moldAreaText() const
 {
@@ -116,6 +226,8 @@ void MachineState::setPCount(int value)
         pStage = qMin(pStage, pCount);
         pRemain = pStages[pStage - 1].hold;
     }
+    if (sdkMode())
+        m_service->pushStepCounts(pCount, tCount);
     emit changed();
 }
 
@@ -126,6 +238,8 @@ void MachineState::setTCount(int value)
         tStage = qMin(tStage, tCount);
         tRemain = tStages[tStage - 1].hold;
     }
+    if (sdkMode())
+        m_service->pushStepCounts(pCount, tCount);
     emit changed();
 }
 
@@ -136,6 +250,8 @@ void MachineState::setCoopCount(int value)
         coopStage = qMin(coopStage, coopCount);
         coopRemain = coopRows[coopStage - 1].hold;
     }
+    if (sdkMode())
+        m_service->pushCoopCount(coopCount);
     emit changed();
 }
 
@@ -143,6 +259,13 @@ void MachineState::startPress()
 {
     if (press)
         return;
+    if (sdkMode()) {
+        QString error;
+        if (!m_service->setPressing(true, &error)) {
+            emit sdkError(error);
+            return;
+        }
+    }
     press = true;
     pStage = 1;
     pRemain = pStages[0].hold;
@@ -152,6 +275,13 @@ void MachineState::startPress()
 
 void MachineState::stopPress()
 {
+    if (sdkMode()) {
+        QString error;
+        if (!m_service->setPressing(false, &error)) {
+            emit sdkError(error);
+            return;
+        }
+    }
     press = false;
     pStage = 0;
     pRemain = 0;
@@ -162,6 +292,13 @@ void MachineState::startHeat()
 {
     if (heat)
         return;
+    if (sdkMode()) {
+        QString error;
+        if (!m_service->setStartHeat(true, &error)) {
+            emit sdkError(error);
+            return;
+        }
+    }
     heat = true;
     tStage = 1;
     tRemain = tStages[0].hold;
@@ -174,6 +311,13 @@ void MachineState::startHeat()
 
 void MachineState::stopHeat()
 {
+    if (sdkMode()) {
+        QString error;
+        if (!m_service->setStartHeat(false, &error)) {
+            emit sdkError(error);
+            return;
+        }
+    }
     heat = false;
     tStage = 0;
     emit changed();
@@ -181,11 +325,23 @@ void MachineState::stopHeat()
 
 void MachineState::toggleCoop()
 {
-    coopRunning = !coopRunning;
-    coopStage = coopRunning ? 1 : 0;
-    coopRemain = coopRunning ? coopRows[0].hold : 0;
+    const bool next = !coopRunning;
+    if (sdkMode()) {
+        QString error;
+        if (!m_service->setStart(next, &error)) {
+            emit sdkError(error);
+            return;
+        }
+    }
+    coopRunning = next;
+    m_coopRequested = next;
+    m_coopSeenRunning = false;
+    m_coopIdleFrames = 0;
+    coopStage = next ? 1 : 0;
+    coopRemain = next ? coopRows[0].hold : 0;
     emit changed();
 }
+
 
 void MachineState::vent()
 {
@@ -196,6 +352,7 @@ void MachineState::vent()
 void MachineState::setMoldShape(MoldShape shape)
 {
     moldShape = shape;
+    commitMold();
     emit settingsChanged();
     emit changed();
 }
@@ -203,6 +360,7 @@ void MachineState::setMoldShape(MoldShape shape)
 void MachineState::setMoldDiameter(double mm)
 {
     moldDia = qMax(1.0, qRound(mm * 10.0) / 10.0);
+    commitMold();
     emit settingsChanged();
     emit changed();
 }
@@ -210,6 +368,7 @@ void MachineState::setMoldDiameter(double mm)
 void MachineState::setMoldLength(double mm)
 {
     moldLen = qMax(1.0, qRound(mm * 10.0) / 10.0);
+    commitMold();
     emit settingsChanged();
     emit changed();
 }
@@ -217,6 +376,7 @@ void MachineState::setMoldLength(double mm)
 void MachineState::setMoldWidth(double mm)
 {
     moldWid = qMax(1.0, qRound(mm * 10.0) / 10.0);
+    commitMold();
     emit settingsChanged();
     emit changed();
 }
@@ -236,6 +396,15 @@ void MachineState::notifySettingsChanged()
 
 void MachineState::tick()
 {
+    // 已连接设备：运行数据由 SDK 1s 回调驱动，
+    // 这里只保留 500ms 采样节拍供曲线刷新。
+    if (sdkMode()) {
+        if (running())
+            runtime += 0.5;
+        emit ticked();
+        return;
+    }
+
     bool anyRunning = press || heat || coopRunning;
 
     if (press) {

@@ -1,7 +1,10 @@
 #include "dialogs/overlaydialogs.h"
 #include "core/format.h"
+#include "core/press_service.h"
 #include "theme/theme.h"
 
+#include <QButtonGroup>
+#include <QComboBox>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
@@ -11,9 +14,14 @@
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPushButton>
+#include <QRadioButton>
+#include <QSettings>
 #include <QShowEvent>
 #include <QVBoxLayout>
+
+#include <memory>
 
 namespace {
 
@@ -47,6 +55,33 @@ QString toneName(DialogTone tone)
     default:               return QStringLiteral("info");
     }
 }
+
+// QSS 接管 QComboBox 后系统下拉箭头不再绘制，这里补一个细描边箭头
+class PortComboBox : public QComboBox
+{
+public:
+    using QComboBox::QComboBox;
+
+protected:
+    void paintEvent(QPaintEvent *event) override
+    {
+        QComboBox::paintEvent(event);
+
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+        QPen pen(isEnabled() ? QColor(0x5F, 0x74, 0x88) : QColor(0x93, 0xA7, 0xB7), 1.6);
+        pen.setCapStyle(Qt::RoundCap);
+        pen.setJoinStyle(Qt::RoundJoin);
+        painter.setPen(pen);
+        const qreal cx = width() - 14;
+        const qreal cy = height() / 2.0;
+        QPainterPath chevron;
+        chevron.moveTo(cx - 4, cy - 2.5);
+        chevron.lineTo(cx, cy + 1.5);
+        chevron.lineTo(cx + 4, cy - 2.5);
+        painter.drawPath(chevron);
+    }
+};
 
 } // namespace
 
@@ -368,6 +403,270 @@ bool editTiming(QWidget *parent, int seconds, int *result)
     if (result)
         *result = qMin(35999, m * 60 + s);
     return true;
+}
+
+void connectDevice(QWidget *parent, PressService *service)
+{
+    if (!service)
+        return;
+
+    OverlayDialog dialog(parent);
+    auto *layout = new QVBoxLayout(dialog.card());
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+
+    layout->addWidget(dialog.buildHeader(AppIcon::Link, QStringLiteral("设备连接"),
+                                         DialogTone::Info));
+
+    auto *body = new QWidget(dialog.card());
+    auto *bodyLayout = new QVBoxLayout(body);
+    bodyLayout->setContentsMargins(20, 14, 20, 6);
+    bodyLayout->setSpacing(10);
+
+    QSettings settings(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"));
+    QString mode = settings.value(QStringLiteral("link/mode"), QStringLiteral("tcp")).toString();
+    QString serialName = settings.value(QStringLiteral("link/serial"), QStringLiteral("COM4"))
+                             .toString();
+    QString host = settings.value(QStringLiteral("link/host"), QStringLiteral("192.168.0.100"))
+                       .toString();
+    int port = settings.value(QStringLiteral("link/port"), 8010).toInt();
+
+    // 已连接时优先回显当前端点
+    const QString current = service->endpoint();
+    if (service->isConnected() && !current.isEmpty()) {
+        const int colon = current.lastIndexOf(QLatin1Char(':'));
+        if (colon > 0 && !current.startsWith(QStringLiteral("/dev/"))) {
+            mode = QStringLiteral("tcp");
+            host = current.left(colon);
+            const int value = current.mid(colon + 1).toInt();
+            if (value > 0)
+                port = value;
+        } else {
+            mode = QStringLiteral("serial");
+            serialName = current;
+        }
+    }
+
+    // 串口行
+    auto *serialRow = new QFrame(body);
+    serialRow->setObjectName(QStringLiteral("linkOption"));
+    serialRow->setAttribute(Qt::WA_StyledBackground, true);
+    auto *serialLayout = new QHBoxLayout(serialRow);
+    serialLayout->setContentsMargins(12, 8, 12, 8);
+    serialLayout->setSpacing(12);
+
+    auto *serialRadio = new QRadioButton(QStringLiteral("串口"), serialRow);
+    serialRadio->setObjectName(QStringLiteral("linkRadio"));
+    serialRadio->setFont(Theme::ui(13));
+    serialRadio->setCursor(Qt::PointingHandCursor);
+    serialRadio->setFixedWidth(62);
+
+    auto *serialCombo = new PortComboBox(serialRow);
+    serialCombo->setObjectName(QStringLiteral("linkCombo"));
+    serialCombo->setFixedHeight(36);
+    serialCombo->setCursor(Qt::PointingHandCursor);
+    QStringList ports = PressService::availablePorts();
+    ports.removeAll(QString());
+    if (!serialName.isEmpty() && !ports.contains(serialName))
+        ports.prepend(serialName);
+    serialCombo->addItems(ports);
+    if (!serialName.isEmpty())
+        serialCombo->setCurrentText(serialName);
+
+    serialLayout->addWidget(serialRadio);
+    serialLayout->addWidget(serialCombo, 1);
+
+    // 网络行
+    auto *networkRow = new QFrame(body);
+    networkRow->setObjectName(QStringLiteral("linkOption"));
+    networkRow->setAttribute(Qt::WA_StyledBackground, true);
+    auto *networkLayout = new QHBoxLayout(networkRow);
+    networkLayout->setContentsMargins(12, 8, 12, 8);
+    networkLayout->setSpacing(12);
+
+    auto *networkRadio = new QRadioButton(QStringLiteral("网络"), networkRow);
+    networkRadio->setObjectName(QStringLiteral("linkRadio"));
+    networkRadio->setFont(Theme::ui(13));
+    networkRadio->setCursor(Qt::PointingHandCursor);
+    networkRadio->setFixedWidth(62);
+
+    auto *ipEdit = new QLineEdit(networkRow);
+    ipEdit->setObjectName(QStringLiteral("linkField"));
+    ipEdit->setFixedHeight(36);
+    ipEdit->setText(host);
+    ipEdit->setPlaceholderText(QStringLiteral("设备 IP 地址"));
+
+    auto *portEdit = new QLineEdit(networkRow);
+    portEdit->setObjectName(QStringLiteral("linkField"));
+    portEdit->setFixedHeight(36);
+    portEdit->setFixedWidth(78);
+    portEdit->setAlignment(Qt::AlignCenter);
+    portEdit->setValidator(new QIntValidator(1, 65535, portEdit));
+    portEdit->setText(QString::number(port));
+    portEdit->setPlaceholderText(QStringLiteral("端口"));
+
+    networkLayout->addWidget(networkRadio);
+    networkLayout->addWidget(ipEdit, 1);
+    networkLayout->addWidget(portEdit);
+
+    // 两个单选按钮分处不同容器，需要按钮组保证互斥
+    auto *group = new QButtonGroup(body);
+    group->addButton(serialRadio);
+    group->addButton(networkRadio);
+    if (mode == QStringLiteral("serial"))
+        serialRadio->setChecked(true);
+    else
+        networkRadio->setChecked(true);
+
+    auto *status = new QLabel(body);
+    status->setObjectName(QStringLiteral("linkStatus"));
+    status->setFont(Theme::ui(12));
+    status->setMinimumHeight(18);
+    status->setContentsMargins(2, 0, 2, 0);
+
+    auto setStatus = [status](const QString &text, const QColor &color, const QString &tip = QString()) {
+        status->setText(text);
+        status->setStyleSheet(QStringLiteral("color:%1;").arg(color.name()));
+        status->setToolTip(tip.isEmpty() ? text : tip);
+    };
+
+    bodyLayout->addWidget(serialRow);
+    bodyLayout->addWidget(networkRow);
+    bodyLayout->addWidget(status);
+    layout->addWidget(body);
+
+    auto *footer = new QWidget(dialog.card());
+    auto *footerLayout = new QHBoxLayout(footer);
+    footerLayout->setContentsMargins(20, 0, 20, 20);
+    footerLayout->setSpacing(10);
+    auto *cancel = makeFooterButton(QStringLiteral("取消"), QStringLiteral("btnGhost"), footer);
+    auto *disconnectButton = makeFooterButton(QStringLiteral("断开"), QStringLiteral("btnGhost"),
+                                              footer);
+    auto *connectButton = makeFooterButton(QStringLiteral("连接"), QStringLiteral("btnBrand"),
+                                           footer);
+    connectButton->setDefault(true);
+    disconnectButton->setEnabled(service->isConnected() && !service->isConnecting());
+    footerLayout->addWidget(cancel, 1);
+    footerLayout->addWidget(disconnectButton, 1);
+    footerLayout->addWidget(connectButton, 1);
+    layout->addWidget(footer);
+
+    auto applyMode = [serialRadio, serialCombo, ipEdit, portEdit] {
+        const bool serial = serialRadio->isChecked();
+        serialCombo->setEnabled(serial);
+        ipEdit->setEnabled(!serial);
+        portEdit->setEnabled(!serial);
+    };
+    QObject::connect(serialRadio, &QRadioButton::toggled, body, [applyMode](bool) { applyMode(); });
+    QObject::connect(networkRadio, &QRadioButton::toggled, body, [applyMode](bool) { applyMode(); });
+    applyMode();
+
+    if (service->isConnected())
+        setStatus(QStringLiteral("当前已连接：%1").arg(current), Theme::Green);
+    else if (service->isConnecting())
+        setStatus(QStringLiteral("正在连接…"), Theme::Brand700);
+    else
+        setStatus(QStringLiteral("选择串口或网络端点后点击连接"), Theme::Muted);
+
+    if (service->isConnecting()) {
+        connectButton->setText(QStringLiteral("连接中…"));
+        connectButton->setEnabled(false);
+    }
+
+    QObject::connect(cancel, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    // 区分“用户主动断开”与“连接失败”，两者都会触发 connectionChanged(false)
+    auto disconnectRequested = std::make_shared<bool>(false);
+    QObject::connect(disconnectButton, &QPushButton::clicked, &dialog,
+                     [service, disconnectRequested, disconnectButton, connectButton, setStatus] {
+        if (!service->isConnected() || service->isConnecting())
+            return;
+        *disconnectRequested = true;
+        service->disconnectDevice();
+        disconnectButton->setEnabled(false);
+        connectButton->setText(QStringLiteral("连接"));
+    });
+
+    QObject::connect(connectButton, &QPushButton::clicked, &dialog,
+                     [service, &dialog, networkRadio, serialRadio, serialCombo, ipEdit, portEdit,
+                      connectButton, disconnectButton, setStatus] {
+        if (service->isConnecting())
+            return;
+
+        const bool tcp = networkRadio->isChecked();
+        QString endpoint;
+        if (tcp) {
+            const QString ip = ipEdit->text().trimmed();
+            const int portValue = portEdit->text().toInt();
+            if (ip.isEmpty()) {
+                setStatus(QStringLiteral("请输入设备 IP 地址"), Theme::Red);
+                ipEdit->setFocus();
+                return;
+            }
+            if (portValue <= 0) {
+                setStatus(QStringLiteral("请输入有效的端口号"), Theme::Red);
+                portEdit->setFocus();
+                return;
+            }
+            endpoint = QStringLiteral("%1:%2").arg(ip).arg(portValue);
+        } else {
+            endpoint = serialCombo->currentText().trimmed();
+            if (endpoint.isEmpty()) {
+                setStatus(QStringLiteral("未检测到可用串口"), Theme::Red);
+                return;
+            }
+        }
+
+        QSettings store(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"));
+        store.setValue(QStringLiteral("link/mode"),
+                       tcp ? QStringLiteral("tcp") : QStringLiteral("serial"));
+        store.setValue(QStringLiteral("link/serial"), serialCombo->currentText());
+        store.setValue(QStringLiteral("link/host"), ipEdit->text().trimmed());
+        store.setValue(QStringLiteral("link/port"), portEdit->text().toInt());
+        store.setValue(QStringLiteral("link/endpoint"), endpoint);
+
+        setStatus(QStringLiteral("正在连接…"), Theme::Brand700);
+        connectButton->setText(QStringLiteral("连接中…"));
+        connectButton->setEnabled(false);
+        disconnectButton->setEnabled(false);
+        service->connectDevice(endpoint, tcp);
+    });
+
+    QObject::connect(service, &PressService::connectionChanged, &dialog,
+                     [service, &dialog, connectButton, disconnectButton, setStatus,
+                      disconnectRequested](bool connected, const QString &) {
+        if (connected) {
+            dialog.accept();
+            return;
+        }
+        if (*disconnectRequested) {
+            *disconnectRequested = false;
+            disconnectButton->setEnabled(false);
+            connectButton->setText(QStringLiteral("连接"));
+            connectButton->setEnabled(true);
+            setStatus(QStringLiteral("已断开连接"), Theme::Muted);
+            return;
+        }
+        if (service->isConnecting())
+            return;
+        disconnectButton->setEnabled(false);
+        connectButton->setText(QStringLiteral("重试"));
+        connectButton->setEnabled(true);
+        setStatus(QStringLiteral("连接失败，请检查端口后重试"), Theme::Red);
+    });
+    QObject::connect(service, &PressService::sdkError, &dialog,
+                     [service, setStatus](const QString &message) {
+        if (service->isConnected())
+            return;
+        setStatus(QStringLiteral("连接失败，请检查端口后重试"), Theme::Red, message);
+    });
+
+    if (serialRadio->isChecked())
+        serialCombo->setFocus();
+    else
+        ipEdit->setFocus();
+
+    dialog.exec();
 }
 
 } // namespace Dialogs

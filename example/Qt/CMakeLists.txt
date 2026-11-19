@@ -91,48 +91,48 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/example
 )
 
-if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 setupapi)
+# if (WIN32)
+#     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 setupapi)
 
-    if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-        set(QT_INSTALL_PATH "${CMAKE_PREFIX_PATH}")
-        if (NOT EXISTS "${QT_INSTALL_PATH}/bin")
-            set(QT_INSTALL_PATH "${QT_INSTALL_PATH}/..")
-            if (NOT EXISTS "${QT_INSTALL_PATH}/bin")
-                set(QT_INSTALL_PATH "${QT_INSTALL_PATH}/..")
-            endif ()
-        endif ()
+#     if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+#         set(QT_INSTALL_PATH "${CMAKE_PREFIX_PATH}")
+#         if (NOT EXISTS "${QT_INSTALL_PATH}/bin")
+#             set(QT_INSTALL_PATH "${QT_INSTALL_PATH}/..")
+#             if (NOT EXISTS "${QT_INSTALL_PATH}/bin")
+#                 set(QT_INSTALL_PATH "${QT_INSTALL_PATH}/..")
+#             endif ()
+#         endif ()
 
-        set(DEBUG_SUFFIX_GENEX "$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>")
+#         set(DEBUG_SUFFIX_GENEX "$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>")
 
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/platforms/")
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX_GENEX}.dll"
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/platforms/")
+    #     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    #         COMMAND ${CMAKE_COMMAND} -E make_directory
+    #         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/platforms/")
+    #     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    #         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    #         "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX_GENEX}.dll"
+    #         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/platforms/")
 
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/sqldrivers/")
-        foreach (SQLDRIVER qsqlite qsqlodbc qsqlpsql)
-            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${QT_INSTALL_PATH}/plugins/sqldrivers/${SQLDRIVER}${DEBUG_SUFFIX_GENEX}.dll"
-                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/sqldrivers/")
-        endforeach ()
+    #     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    #         COMMAND ${CMAKE_COMMAND} -E make_directory
+    #         "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/sqldrivers/")
+    #     foreach (SQLDRIVER qsqlite qsqlodbc qsqlpsql)
+    #         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    #             COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    #             "${QT_INSTALL_PATH}/plugins/sqldrivers/${SQLDRIVER}${DEBUG_SUFFIX_GENEX}.dll"
+    #             "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/sqldrivers/")
+    #     endforeach ()
 
-        foreach (QT_LIB Core Gui Widgets Charts)
-            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${QT_INSTALL_PATH}/bin/Qt${QT_VERSION}${QT_LIB}${DEBUG_SUFFIX_GENEX}.dll"
-                "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
-        endforeach ()
-    endif ()
+    #     foreach (QT_LIB Core Gui Widgets Charts)
+    #         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    #             COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    #             "${QT_INSTALL_PATH}/bin/Qt${QT_VERSION}${QT_LIB}${DEBUG_SUFFIX_GENEX}.dll"
+    #             "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
+    #     endforeach ()
+    # endif ()
 
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:press>"
-        "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
-endif ()
+    # add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    #     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    #     "$<TARGET_FILE:press>"
+    #     "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
+# endif ()

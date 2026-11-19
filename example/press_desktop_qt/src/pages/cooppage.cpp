@@ -148,6 +148,7 @@ QWidget *CoopPage::buildTableCard()
                     stage.tUp = value;
                 else if (column == 7)
                     stage.tDown = value;
+                m_state->commitCoopStage(row);
                 refreshLive();
             });
     connect(m_table, &StageTable::flagToggled, this, [this](int row, int column) {
@@ -161,6 +162,8 @@ QWidget *CoopPage::buildTableCard()
             stage.heatUp = value;
         else if (column == 6)
             stage.heatDown = value;
+        m_state->commitCoopStage(row);
+        refreshLive();
     });
     connect(m_table, &StageTable::timeClicked, this, [this](int row, int column) {
         if (row < 0 || row >= m_state->coopRows.size())
@@ -168,6 +171,7 @@ QWidget *CoopPage::buildTableCard()
         int seconds = m_state->coopRows[row].hold;
         if (Dialogs::editTiming(this, seconds, &seconds)) {
             m_state->coopRows[row].hold = seconds;
+            m_state->commitCoopStage(row);
             m_table->setTime(row, column, seconds);
             refreshLive();
         }

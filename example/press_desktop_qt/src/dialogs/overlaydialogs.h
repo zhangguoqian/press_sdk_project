@@ -4,6 +4,7 @@
 #include "theme/icons.h"
 
 class QFrame;
+class PressService;
 
 enum class DialogTone { Info, Warn, Bad };
 
@@ -35,5 +36,8 @@ bool confirm(QWidget *parent, const QString &title, const QString &text,
              AppIcon icon = AppIcon::Info);
 
 bool editTiming(QWidget *parent, int seconds, int *result);
+
+// 设备连接对话框：串口 / 网络二选一，连接在后台线程执行
+void connectDevice(QWidget *parent, PressService *service);
 
 } // namespace Dialogs

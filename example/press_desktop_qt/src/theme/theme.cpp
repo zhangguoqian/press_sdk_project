@@ -441,6 +441,66 @@ QPushButton#tpPreset:hover {
     color: #0079B4;
 }
 
+/* ============ 设备连接 ============ */
+QFrame#linkOption {
+    background: #F7FAFC;
+    border: 1px solid #E3EAF0;
+    border-radius: 10px;
+}
+QRadioButton#linkRadio {
+    color: #12293D;
+    font-size: 13px;
+    spacing: 8px;
+}
+QRadioButton#linkRadio::indicator {
+    width: 16px;
+    height: 16px;
+    border-radius: 9px;
+    border: 1px solid #C3D2DE;
+    background: #FFFFFF;
+}
+QRadioButton#linkRadio::indicator:hover {
+    border: 1px solid #00A1E9;
+}
+QRadioButton#linkRadio::indicator:checked {
+    border: 5px solid #00A1E9;
+}
+QComboBox#linkCombo, QLineEdit#linkField {
+    background: #FFFFFF;
+    border: 1px solid #E3EAF0;
+    border-radius: 8px;
+    padding: 0 10px;
+    color: #12293D;
+    font-size: 13px;
+}
+QComboBox#linkCombo {
+    padding-right: 24px;
+}
+QComboBox#linkCombo:hover, QLineEdit#linkField:hover {
+    border: 1px solid #A8DDF5;
+}
+QComboBox#linkCombo:focus, QLineEdit#linkField:focus {
+    border: 1px solid #00A1E9;
+}
+QComboBox#linkCombo:disabled, QLineEdit#linkField:disabled {
+    background: #F2F6F9;
+    color: #93A7B7;
+}
+QComboBox#linkCombo::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    width: 20px;
+    border: none;
+    background: transparent;
+}
+QComboBox#linkCombo QAbstractItemView {
+    background: #FFFFFF;
+    border: 1px solid #E3EAF0;
+    outline: 0;
+    selection-background-color: #E9F7FE;
+    selection-color: #0079B4;
+}
+
 /* ============ 关于本机 ============ */
 QFrame#aboutList {
     background: #FFFFFF;

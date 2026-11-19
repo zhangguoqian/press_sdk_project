@@ -33,10 +33,20 @@ protected:
     }
 };
 
+} // namespace
+
 class StatusDot : public QWidget
 {
 public:
     explicit StatusDot(QWidget *parent = nullptr) : QWidget(parent) { setFixedSize(9, 9); }
+
+    void setOnline(bool online)
+    {
+        if (m_online == online)
+            return;
+        m_online = online;
+        update();
+    }
 
 protected:
     void paintEvent(QPaintEvent *) override
@@ -44,14 +54,18 @@ protected:
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing, true);
         p.setPen(Qt::NoPen);
-        p.setBrush(QColor(0, 163, 42, 40));
+        const QColor color = m_online ? Theme::Green : QColor(0x7C, 0x90, 0xA2);
+        QColor ring = color;
+        ring.setAlpha(m_online ? 40 : 30);
+        p.setBrush(ring);
         p.drawEllipse(QPointF(rect().center()), 4.4, 4.4);
-        p.setBrush(Theme::Green);
+        p.setBrush(color);
         p.drawEllipse(QPointF(rect().center()), 3.0, 3.0);
     }
-};
 
-} // namespace
+private:
+    bool m_online = true;
+};
 
 class RailButton : public QAbstractButton
 {
@@ -167,6 +181,7 @@ Sidebar::Sidebar(QWidget *parent)
 
     addGroup(QStringLiteral("系统"));
     addItem(QStringLiteral("settings"), AppIcon::Gear, QStringLiteral("系统设置"));
+    addItem(QStringLiteral("connect"), AppIcon::Link, QStringLiteral("连接"));
 
     layout->addStretch(1);
     layout->addWidget(createFooter());
@@ -226,17 +241,20 @@ QWidget *Sidebar::createFooter()
     layout->setSpacing(8);
 
     auto *dot = new StatusDot(row);
+    m_linkDot = dot;
     auto *texts = new QWidget(row);
     auto *textLayout = new QVBoxLayout(texts);
     textLayout->setContentsMargins(0, 0, 0, 0);
     textLayout->setSpacing(1);
 
-    auto *title = new QLabel(QStringLiteral("通讯正常"), texts);
+    auto *title = new QLabel(QStringLiteral("未连接"), texts);
     title->setObjectName(QStringLiteral("railStatText"));
     title->setFont(Theme::ui(11));
-    auto *detail = new QLabel(QStringLiteral("192.168.1.20 · 12 ms"), texts);
+    m_linkTitle = title;
+    auto *detail = new QLabel(QStringLiteral("本地模拟运行"), texts);
     detail->setObjectName(QStringLiteral("railStatSub"));
     detail->setFont(Theme::num(10));
+    m_linkDetail = detail;
 
     textLayout->addWidget(title);
     textLayout->addWidget(detail);
@@ -246,6 +264,21 @@ QWidget *Sidebar::createFooter()
     outer->addWidget(row);
 
     return footer;
+}
+
+void Sidebar::setLinkStatus(bool connected, const QString &detail)
+{
+    if (m_linkTitle)
+        m_linkTitle->setText(connected ? QStringLiteral("通讯正常")
+                                       : QStringLiteral("未连接"));
+    if (m_linkDetail) {
+        m_linkDetail->setText(detail.isEmpty()
+                                  ? (connected ? QStringLiteral("SDK 已连接")
+                                               : QStringLiteral("本地模拟运行"))
+                                  : detail);
+    }
+    if (m_linkDot)
+        m_linkDot->setOnline(connected);
 }
 
 void Sidebar::setActive(const QString &key)

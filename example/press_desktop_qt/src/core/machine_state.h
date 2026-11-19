@@ -1,7 +1,10 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
 #include <QVector>
+
+#include "core/press_service.h"
 
 class QTimer;
 
@@ -81,6 +84,7 @@ public:
 
     // ---- 查询 ----
     bool running() const { return press || heat || coopRunning; }
+    bool sdkMode() const { return m_service && m_service->isConnected(); }
     int pressureIndex() const;     // 当前压力阶段下标（0 起）
     int temperatureIndex() const;
     int coopIndex() const;
@@ -88,6 +92,13 @@ public:
     double moldArea() const;             // mm²；异形返回 0
     double moldPressure(double ton) const; // MPa；异形返回 -1
     QString moldAreaText() const;        // cm² 文本
+
+    // ---- SDK ----
+    void attachService(PressService *service);
+    void commitPressureStage(int index);
+    void commitTemperatureStage(int index);
+    void commitCoopStage(int index);
+    void commitMold();
 
     // ---- 操作 ----
     void setPCount(int value);
@@ -112,10 +123,18 @@ signals:
     void changed();          // 任意状态变化（用于刷新界面）
     void ticked();           // 500ms 采样节拍
     void settingsChanged();  // 模具 / 速率等设定变化
+    void linkChanged(bool connected, const QString &endpoint);
+    void sdkError(const QString &message);
 
 private slots:
     void tick();
+    void applyRealTime(const PressRtData &data);
 
 private:
     QTimer *m_timer = nullptr;
+    PressService *m_service = nullptr;
+    bool m_coopRequested = false;
+    bool m_coopSeenRunning = false;
+    int m_coopIdleFrames = 0;
+    double m_sdkMoldPressure = -1.0;
 };

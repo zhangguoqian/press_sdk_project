@@ -1,6 +1,7 @@
 #include "app/mainwindow.h"
 #include "core/format.h"
 #include "core/machine_state.h"
+#include "core/press_service.h"
 #include "dialogs/overlaydialogs.h"
 #include "pages/cooppage.h"
 #include "pages/settingspage.h"
@@ -11,10 +12,12 @@
 #include "widgets/titlebar.h"
 #include "widgets/toast.h"
 
+#include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QResizeEvent>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSettings>
 #include <QShowEvent>
 #include <QStackedWidget>
 #include <QTimer>
@@ -36,7 +39,20 @@ MainWindow::MainWindow(QWidget *parent)
     resize(1440, 900);
     setMinimumSize(1180, 700);
 
+    // --sdk <地址>：启动时自动连接设备（例如 192.168.1.20:9000 或 COM3）
+    QString sdkEndpoint;
+    const QStringList args = QCoreApplication::arguments();
+    const int sdkIndex = args.indexOf(QStringLiteral("--sdk"));
+    if (sdkIndex >= 0 && sdkIndex + 1 < args.size())
+        sdkEndpoint = args.at(sdkIndex + 1).trimmed();
+    if (!sdkEndpoint.isEmpty()) {
+        QSettings(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"))
+            .setValue(QStringLiteral("link/endpoint"), sdkEndpoint);
+    }
+
     m_state = new MachineState(this);
+    m_service = new PressService(this);
+    m_state->attachService(m_service);
 
     m_root = new QWidget(this);
     m_root->setObjectName(QStringLiteral("root"));
@@ -82,6 +98,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_actionBar, &ActionBar::ventRequested, this, &MainWindow::handleVentRequest);
     connect(m_actionBar, &ActionBar::coopRequested, this, &MainWindow::handleCoopRequest);
 
+    // SDK 通讯状态 / 错误提示
+    connect(m_state, &MachineState::sdkError, this, &MainWindow::showToast);
+    connect(m_state, &MachineState::linkChanged, this,
+            [this](bool connected, const QString &endpoint) {
+                m_sidebar->setLinkStatus(connected, connected ? endpoint : QString());
+                showToast(connected ? QStringLiteral("设备已连接：%1").arg(endpoint)
+                                    : QStringLiteral("设备未连接，当前为本地模拟"));
+            });
+
     connect(m_state, &MachineState::ticked, m_singlePage, &SinglePage::onTick);
     connect(m_state, &MachineState::ticked, m_coopPage, &CoopPage::onTick);
     connect(m_state, &MachineState::changed, this, &MainWindow::updateActionBar);
@@ -93,6 +118,13 @@ MainWindow::MainWindow(QWidget *parent)
     m_actionBar->setMode(ActionBar::Mode::Run);
     m_stack->setCurrentWidget(m_pageWidgets.value(m_current));
     updateActionBar();
+
+    if (!sdkEndpoint.isEmpty()) {
+        QTimer::singleShot(150, this, [this, sdkEndpoint] {
+            m_service->connectDevice(sdkEndpoint,
+                                     sdkEndpoint.contains(QLatin1Char(':')));
+        });
+    }
 }
 
 QWidget *MainWindow::createContent()
@@ -110,7 +142,7 @@ QWidget *MainWindow::createContent()
 
     m_singlePage = new SinglePage(m_state, m_stack);
     m_coopPage = new CoopPage(m_state, m_stack);
-    m_settingsPage = new SettingsPage(m_stack);
+    m_settingsPage = new SettingsPage(m_state, m_service, m_stack);
 
     m_pageWidgets.insert(QStringLiteral("single"), wrapPage(m_singlePage));
     m_pageWidgets.insert(QStringLiteral("coop"), wrapPage(m_coopPage));
@@ -151,6 +183,16 @@ void MainWindow::showPage(const QString &key)
 
 void MainWindow::navigate(const QString &key)
 {
+    // “连接”不是页面，点击后弹出连接对话框
+    if (key == QStringLiteral("connect")) {
+        if (m_state->running()) {
+            showToast(QStringLiteral("设备运行中，请先停止后再连接"));
+            return;
+        }
+        Dialogs::connectDevice(this, m_service);
+        return;
+    }
+
     if (!m_pageWidgets.contains(key) || key == m_current)
         return;
     if (m_state->running()) {

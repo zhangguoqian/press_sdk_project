@@ -16,7 +16,7 @@ add_subdirectory(press)
 
 option(BUILD_QT_EXAMPLE "Build the Qt GUI example application" ON)
 if (BUILD_QT_EXAMPLE)
-    # add_subdirectory(example/Qt)
+    add_subdirectory(example/Qt)
     add_subdirectory(example/press_desktop_qt)
 endif ()
 

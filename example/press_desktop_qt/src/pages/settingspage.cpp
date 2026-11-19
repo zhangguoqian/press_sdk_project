@@ -1,4 +1,6 @@
 #include "pages/settingspage.h"
+#include "core/machine_state.h"
+#include "core/press_service.h"
 #include "theme/icons.h"
 #include "theme/theme.h"
 #include "widgets/card.h"
@@ -7,7 +9,10 @@
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPainter>
+#include <QPushButton>
+#include <QSettings>
 #include <QVBoxLayout>
 #include <QVariant>
 
@@ -63,8 +68,10 @@ QWidget *makeRow(const QString &key, const QString &value, bool last, QWidget *p
 
 } // namespace
 
-SettingsPage::SettingsPage(QWidget *parent)
+SettingsPage::SettingsPage(MachineState *state, PressService *service, QWidget *parent)
     : QWidget(parent)
+    , m_state(state)
+    , m_service(service)
 {
     setObjectName(QStringLiteral("page"));
 
@@ -73,6 +80,7 @@ SettingsPage::SettingsPage(QWidget *parent)
     layout->setSpacing(14);
 
     layout->addWidget(buildTabCard());
+    layout->addWidget(buildLinkCard());
 
     auto *content = new QWidget(this);
     auto *contentLayout = new QHBoxLayout(content);
@@ -94,6 +102,107 @@ QWidget *SettingsPage::buildTabCard()
     tabs->setFixedWidth(118);
     card->contentLayout()->addWidget(tabs, 0, Qt::AlignLeft | Qt::AlignVCenter);
     return card;
+}
+
+QWidget *SettingsPage::buildLinkCard()
+{
+    auto *card = new Card(QStringLiteral("设备通讯"), AppIcon::Link, this);
+    card->setFixedHeight(94);
+    card->setBodyMargins(14, 8, 14, 8);
+
+    auto *row = new QWidget(card);
+    auto *layout = new QHBoxLayout(row);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(10);
+
+    m_linkState = new QLabel(QStringLiteral("未连接"), row);
+    m_linkState->setFont(Theme::ui(12, QFont::DemiBold));
+    m_linkState->setMinimumWidth(52);
+
+    m_endpoint = new QLineEdit(row);
+    m_endpoint->setObjectName(QStringLiteral("plainEdit"));
+    m_endpoint->setPlaceholderText(QStringLiteral("IP:端口（TCP）或 COM3（串口）"));
+    m_endpoint->setFixedHeight(32);
+    m_endpoint->setText(QSettings(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"))
+                            .value(QStringLiteral("link/endpoint"),
+                                   QStringLiteral("192.168.1.20:9000"))
+                            .toString());
+
+    m_linkButton = new QPushButton(QStringLiteral("连接"), row);
+    m_linkButton->setObjectName(QStringLiteral("btnBrand"));
+    m_linkButton->setFixedSize(96, 32);
+    m_linkButton->setCursor(Qt::PointingHandCursor);
+
+    layout->addWidget(m_linkState);
+    layout->addWidget(m_endpoint, 1);
+    layout->addWidget(m_linkButton);
+    card->contentLayout()->addWidget(row);
+
+    connect(m_linkButton, &QPushButton::clicked, this, &SettingsPage::connectOrDisconnect);
+    connect(m_endpoint, &QLineEdit::returnPressed, this, &SettingsPage::connectOrDisconnect);
+    connect(m_service, &PressService::connectionChanged, this,
+            [this](bool connected, const QString &) { updateLinkUi(connected); });
+    connect(m_service, &PressService::sdkError, this, [this](const QString &message) {
+        if (m_service->isConnected() || m_service->isConnecting())
+            return;
+        m_linkState->setText(QStringLiteral("连接失败"));
+        m_linkState->setStyleSheet(QStringLiteral("color:#C8102E;"));
+        m_linkState->setToolTip(message);
+    });
+
+    updateLinkUi(m_service->isConnected());
+    return card;
+}
+
+void SettingsPage::updateLinkUi(bool connected)
+{
+    if (m_linkButton) {
+        m_linkButton->setText(connected ? QStringLiteral("断开") : QStringLiteral("连接"));
+        m_linkButton->setEnabled(!m_service->isConnecting());
+    }
+    if (m_endpoint)
+        m_endpoint->setEnabled(!connected && !m_service->isConnecting());
+    if (m_linkState) {
+        m_linkState->setText(connected ? QStringLiteral("已连接") : QStringLiteral("未连接"));
+        m_linkState->setStyleSheet(connected ? QStringLiteral("color:#00A32A;")
+                                             : QStringLiteral("color:#5F7488;"));
+    }
+    if (m_heroLinkValue)
+        m_heroLinkValue->setText(connected ? QStringLiteral("已连接")
+                                           : QStringLiteral("未连接"));
+}
+
+void SettingsPage::connectOrDisconnect()
+{
+    if (!m_service || !m_state || m_service->isConnecting())
+        return;
+
+    if (m_service->isConnected()) {
+        m_service->disconnectDevice();
+        return;
+    }
+
+    if (m_state->running()) {
+        m_linkState->setText(QStringLiteral("运行中"));
+        m_linkState->setStyleSheet(QStringLiteral("color:#E8730C;"));
+        m_linkState->setToolTip(QStringLiteral("设备运行中，请先停止后再切换连接"));
+        return;
+    }
+
+    const QString endpoint = m_endpoint->text().trimmed();
+    if (endpoint.isEmpty())
+        return;
+
+    QSettings(QStringLiteral("AutoHotPress"), QStringLiteral("HMI"))
+        .setValue(QStringLiteral("link/endpoint"), endpoint);
+
+    m_linkState->setText(QStringLiteral("连接中…"));
+    m_linkState->setStyleSheet(QStringLiteral("color:#0079B4;"));
+    m_linkState->setToolTip(QString());
+    m_linkButton->setEnabled(false);
+
+    // 带端口号的地址走 TCP，否则按串口处理；连接在后台线程执行
+    m_service->connectDevice(endpoint, endpoint.contains(QLatin1Char(':')));
 }
 
 QWidget *SettingsPage::buildHeroCard()
@@ -143,10 +252,13 @@ QWidget *SettingsPage::buildHeroCard()
     auto *metaKey = new QLabel(QStringLiteral("通讯状态"), meta);
     metaKey->setObjectName(QStringLiteral("heroMetaKey"));
     metaKey->setAlignment(Qt::AlignCenter);
-    auto *metaValue = new QLabel(QStringLiteral("已连接"), meta);
+    auto *metaValue = new QLabel(m_service->isConnected() ? QStringLiteral("已连接")
+                                                         : QStringLiteral("未连接"),
+                                 meta);
     metaValue->setObjectName(QStringLiteral("heroMetaVal"));
     metaValue->setFont(Theme::num(13, QFont::Bold));
     metaValue->setAlignment(Qt::AlignCenter);
+    m_heroLinkValue = metaValue;
     metaLayout->addWidget(metaKey);
     metaLayout->addWidget(metaValue);
     layout->addWidget(meta);

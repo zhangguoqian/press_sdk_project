@@ -1,0 +1,306 @@
+#include "core/press_service.h"
+
+#include "press/press.hpp"
+
+#include <QByteArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+
+using PortType = PressPortType;
+
+namespace {
+
+double jsonNumber(const QJsonObject &object, const char *key)
+{
+    return object.value(QLatin1String(key)).toDouble();
+}
+
+int jsonInt(const QJsonObject &object, const char *key)
+{
+    return object.value(QLatin1String(key)).toInt();
+}
+
+PressRtData parseRealTime(const std::string &json)
+{
+    PressRtData data;
+    const QJsonObject object = QJsonDocument::fromJson(
+        QByteArray::fromStdString(json)).object();
+
+    data.pressOn = jsonInt(object, "IsPStart") != 0;
+    data.heatOn = jsonInt(object, "IsTStart") != 0 || jsonInt(object, "IsT1Start") != 0;
+    data.air = jsonInt(object, "IsAir") != 0;
+    data.pressStep = jsonInt(object, "CPStep");
+    data.tempStep = jsonInt(object, "CTStep");
+    data.pressure = jsonNumber(object, "PValue");
+    data.moldPressure = jsonNumber(object, "MoldPressure");
+    data.tempUp = jsonNumber(object, "TUpValue");
+    data.tempDown = jsonNumber(object, "TDownValue");
+    data.pressRemainMs = jsonInt(object, "PTime");
+    data.tempRemainMs = jsonInt(object, "TTime");
+    return data;
+}
+
+} // namespace
+
+/**
+ * SDK 回调适配器：只负责把 SDK 线程的回调转给 PressService，
+ * 使 press.hpp 不出现在应用头文件中。
+ */
+class SdkAdapter : public PressDataInterface
+{
+public:
+    explicit SdkAdapter(PressService *owner) : m_owner(owner) {}
+
+    void onReadOnlyData(int, uint64_t registerNo, const std::string &json) override
+    {
+        m_owner->handleReadOnlyData(registerNo, json);
+    }
+    void onRealTimeData(int errorCode, const std::string &json) override
+    {
+        m_owner->handleRealTime(errorCode, json);
+    }
+    void onPressData(int, const std::string &json) override
+    {
+        m_owner->handlePressData(json);
+    }
+    void onTempData(int, const std::string &json) override
+    {
+        m_owner->handleTempData(json);
+    }
+    void onMixData(int, const std::string &json) override
+    {
+        m_owner->handleMixData(json);
+    }
+    void onError(uint16_t cmdCode, std::vector<uint8_t>) override
+    {
+        emit m_owner->sdkError(QStringLiteral("设备返回错误：命令 0x%1")
+                                   .arg(cmdCode, 4, 16, QLatin1Char('0'))
+                                   .toUpper());
+    }
+
+private:
+    PressService *m_owner;
+};
+
+PressService::PressService(QObject *parent)
+    : QObject(parent)
+    , m_press(new Press())
+    , m_adapter(new SdkAdapter(this))
+{
+    qRegisterMetaType<PressRtData>("PressRtData");
+    m_press->setRequestTimeout(1500);
+}
+
+PressService::~PressService()
+{
+    // 等待在途连接结束，避免后台线程访问已析构的 Press
+    if (m_connectTask.valid())
+        m_connectTask.wait();
+    m_connecting = false;
+    disconnectDevice();
+}
+
+void PressService::handleRealTime(int errorCode, const std::string &json)
+{
+    if (errorCode != 0 || json.empty()) {
+        emit sdkError(QStringLiteral("实时数据读取失败（%1）").arg(errorCode));
+        return;
+    }
+    emit realTimeUpdated(parseRealTime(json));
+}
+
+void PressService::handleReadOnlyData(uint64_t registerNo, const std::string &json)
+{
+    Q_UNUSED(registerNo)
+    if (!json.empty())
+        emit readOnlyDataReceived(QString::fromStdString(json));
+}
+
+void PressService::handlePressData(const std::string &json)
+{
+    if (!json.empty())
+        emit pressDataReceived(QString::fromStdString(json));
+}
+
+void PressService::handleTempData(const std::string &json)
+{
+    if (!json.empty())
+        emit tempDataReceived(QString::fromStdString(json));
+}
+
+void PressService::handleMixData(const std::string &json)
+{
+    if (!json.empty())
+        emit mixDataReceived(QString::fromStdString(json));
+}
+
+QStringList PressService::availablePorts()
+{
+    QStringList ports;
+    for (const std::string &name : Press::getPortList())
+        ports.append(QString::fromStdString(name));
+    return ports;
+}
+
+QString PressService::lastError() const
+{
+    const char *text = m_press->getLastErrorInfo();
+    return text ? QString::fromUtf8(text) : QStringLiteral("未知错误");
+}
+
+void PressService::connectDevice(const QString &endpoint, bool tcp)
+{
+    const QString target = endpoint.trimmed();
+    if (target.isEmpty() || m_connecting.exchange(true))
+        return;
+
+    // 重新连接前先释放旧连接
+    if (m_connected) {
+        m_press->unregisterDataInterface();
+        m_press->disconnect();
+        m_connected = false;
+    }
+    m_endpoint = target;
+
+    // 连接可能阻塞数秒（TCP 握手 / 串口打开），放到后台线程执行
+    m_connectTask = std::async(std::launch::async, [this, target, tcp] {
+        const QByteArray name = target.toUtf8();
+        const bool ok = m_press->connect(name.constData(),
+                                         tcp ? PortType::TcpSocketPortType
+                                             : PortType::SerialPortType);
+        QString error;
+        std::string firstRt;
+        if (ok) {
+            // 连接成功后启动周期采集：1s 一次，回调在 SDK 线程执行
+            m_press->registerDataInterface(m_adapter.get(), 1);
+
+            // 按 ROD → PD → TD → MD 顺序读取静态参数（get 接口同步触发对应回调），
+            // 最后再读取一次实时数据
+            std::string json;
+            m_press->getReadOnlyDataJson(json);
+            m_press->getPressDataJson(json);
+            m_press->getTempDataJson(json);
+            m_press->getMixDataJson(json);
+
+            std::string rt;
+            if (m_press->getRealTimeDataJson(rt))
+                firstRt = rt;
+        } else {
+            const char *text = m_press->getLastErrorInfo();
+            error = QStringLiteral("连接失败：%1")
+                        .arg(text ? QString::fromUtf8(text) : QStringLiteral("未知错误"));
+        }
+
+        QMetaObject::invokeMethod(this, [this, ok, error, firstRt] {
+            m_connecting = false;
+            m_connected = ok;
+            emit connectionChanged(ok, m_endpoint);
+            if (!ok) {
+                emit sdkError(error);
+                return;
+            }
+            // 周期采集启用时 getRealTimeDataJson 不触发回调，这里补发首次实时数据
+            if (!firstRt.empty())
+                handleRealTime(0, firstRt);
+        }, Qt::QueuedConnection);
+    });
+}
+
+void PressService::disconnectDevice()
+{
+    if (m_connecting.load())
+        return;
+    if (!m_connected && !m_press->isConnected())
+        return;
+    m_press->unregisterDataInterface();
+    m_press->disconnect();
+    m_connected = false;
+    emit connectionChanged(false, m_endpoint);
+}
+
+bool PressService::setPressing(bool on, QString *error)
+{
+    return check(m_press->setPressing(on), error, on ? QStringLiteral("启动加压")
+                                                     : QStringLiteral("停止加压"));
+}
+
+bool PressService::setStartHeat(bool on, QString *error)
+{
+    return check(m_press->setStartHeat(on), error, on ? QStringLiteral("启动加热")
+                                                      : QStringLiteral("停止加热"));
+}
+
+bool PressService::setStart(bool on, QString *error)
+{
+    return check(m_press->setStart(on), error, on ? QStringLiteral("启动合作流程")
+                                                  : QStringLiteral("停止合作流程"));
+}
+
+bool PressService::pushStepCounts(int pressSteps, int tempSteps)
+{
+    return m_press->setPressStepCount(static_cast<uint8_t>(qBound(1, pressSteps, 30)))
+        && m_press->setTempStepCount(static_cast<uint8_t>(qBound(1, tempSteps, 30)));
+}
+
+bool PressService::pushPressureStage(int index, double pressure, double boost, int holdSeconds)
+{
+    if (index < 0)
+        return false;
+    const quint8 i = static_cast<quint8>(index);
+    return m_press->setPressValueIndex(i, static_cast<float>(pressure))
+        && m_press->setAfterValueIndex(i, static_cast<float>(boost))
+        && m_press->setKeepPressTime(i, holdSeconds * 1000);
+}
+
+bool PressService::pushTemperatureStage(int index, double temperature, double rate, int holdSeconds)
+{
+    if (index < 0)
+        return false;
+    const quint8 i = static_cast<quint8>(index);
+    return m_press->setTempIndex(i, static_cast<float>(temperature))
+        && m_press->setTempSpeedIndex(i, static_cast<float>(rate))
+        && m_press->setKeepTempTime(i, holdSeconds * 1000);
+}
+
+bool PressService::pushCoopCount(int steps)
+{
+    return m_press->setMixStepCount(static_cast<uint8_t>(qBound(1, steps, 30)));
+}
+
+bool PressService::pushCoopStage(int index, bool press, double pressure, double boost,
+                                 bool heatUp, double tempUp, bool heatDown, double tempDown,
+                                 int holdSeconds)
+{
+    if (index < 0)
+        return false;
+    const quint8 i = static_cast<quint8>(index);
+    return m_press->setMixIsPressIndex(i, press)
+        && m_press->setMixPressIndex(i, static_cast<float>(pressure))
+        && m_press->setMixAfterPressIndex(i, static_cast<float>(boost))
+        && m_press->setMixIsHeatUpIndex(i, heatUp)
+        && m_press->setMixHeatUpIndex(i, static_cast<float>(tempUp))
+        && m_press->setMixIsHeatDownIndex(i, heatDown)
+        && m_press->setMixHeatDownIndex(i, static_cast<float>(tempDown))
+        && m_press->setMixKeepTime(i, holdSeconds * 1000);
+}
+
+bool PressService::pushMoldCircle(double diameter)
+{
+    return m_press->setCircle(static_cast<float>(diameter));
+}
+
+bool PressService::pushMoldRect(double length, double width)
+{
+    return m_press->setRectangle(static_cast<float>(length), static_cast<float>(width));
+}
+
+bool PressService::check(bool ok, QString *error, const QString &action)
+{
+    if (ok)
+        return true;
+    const QString message = QStringLiteral("%1失败：%2").arg(action, lastError());
+    if (error)
+        *error = message;
+    return false;
+}

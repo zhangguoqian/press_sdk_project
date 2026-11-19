@@ -7,6 +7,7 @@
 class ActionBar;
 class CoopPage;
 class MachineState;
+class PressService;
 class QScrollArea;
 class QStackedWidget;
 class SettingsPage;
@@ -44,6 +45,7 @@ private:
     void handleCoopRequest();
 
     MachineState *m_state = nullptr;
+    PressService *m_service = nullptr;
     TitleBar *m_titleBar = nullptr;
     Sidebar *m_sidebar = nullptr;
     QStackedWidget *m_stack = nullptr;
