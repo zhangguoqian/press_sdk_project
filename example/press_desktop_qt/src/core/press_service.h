@@ -181,6 +181,8 @@ signals:
     void tempProgramUpdated(const PressTempProgramData &data);
     void mixProgramUpdated(const PressMixProgramData &data);
     void sdkError(const QString &message);
+    // 运行日志（连接、参数读取、指令下发等明细）
+    void logMessage(const QString &message);
 
 private:
     friend class SdkAdapter;
@@ -192,11 +194,13 @@ private:
 
     QString lastError() const;
     bool check(bool ok, QString *error, const QString &action);
+    bool report(bool ok, const QString &action);
 
     std::unique_ptr<Press> m_press;
     std::unique_ptr<SdkAdapter> m_adapter;
     std::future<void> m_connectTask;
     std::atomic_bool m_connecting{false};
     bool m_connected = false;
+    bool m_loggedFirstRt = false;
     QString m_endpoint;
 };

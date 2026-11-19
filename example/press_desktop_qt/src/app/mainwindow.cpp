@@ -88,6 +88,8 @@ MainWindow::MainWindow(QWidget *parent)
     m_toast = new Toast(m_root);
     m_toast->raise();
 
+    m_logPanel->append(QStringLiteral("上位机已启动，等待连接设备"));
+
     // ---- 页面信号 ----
     connect(m_sidebar, &Sidebar::navRequested, this, &MainWindow::navigate);
     connect(m_titleBar, &TitleBar::minimizeRequested, this, &QWidget::showMinimized);
@@ -111,6 +113,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // SDK 通讯状态 / 错误提示
     connect(m_state, &MachineState::sdkError, this, &MainWindow::showToast);
+    connect(m_service, &PressService::logMessage, this, [this](const QString &text) {
+        if (m_logPanel)
+            m_logPanel->append(text);
+    });
     connect(m_state, &MachineState::linkChanged, this,
             [this](bool connected, const QString &endpoint) {
                 m_sidebar->setLinkStatus(connected, connected ? endpoint : QString());
@@ -213,6 +219,13 @@ void MainWindow::showPage(const QString &key)
                          : key == QStringLiteral("settings") ? ActionBar::Mode::Settings
                                                               : ActionBar::Mode::Run);
     m_sidebar->setLocked(key, m_state->running());
+
+    if (m_logPanel) {
+        const QString label = key == QStringLiteral("coop") ? QStringLiteral("合作模式")
+                            : key == QStringLiteral("settings") ? QStringLiteral("系统设置")
+                                                                : QStringLiteral("单独模式");
+        m_logPanel->append(QStringLiteral("切换到%1页面").arg(label));
+    }
 }
 
 void MainWindow::navigate(const QString &key)
