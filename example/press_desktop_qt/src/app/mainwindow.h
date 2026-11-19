@@ -36,6 +36,7 @@ private:
     QScrollArea *wrapPage(QWidget *page);
     void navigate(const QString &key);
     void updateActionBar();
+    void syncModeAvailability();
     void showToast(const QString &text);
     void positionToast();
 

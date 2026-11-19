@@ -71,6 +71,9 @@ public:
     // ---- 设备能力（ReadOnlyData，未连接时保留完整界面）----
     bool hasSpeed = true;   // 是否支持升温速率
     bool hasWater = true;   // 是否支持水冷回路
+    int versionType = 2;    // 0 仅单独模式，1 仅合作模式，2 双模式
+    bool singleAllowed = true;
+    bool coopAllowed = true;
 
     // ---- 运行状态 ----
     bool press = false;

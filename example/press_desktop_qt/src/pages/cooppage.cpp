@@ -245,12 +245,19 @@ void CoopPage::refreshLive()
     m_kv->setValue(QStringLiteral("setT"), fmtNumber(stage.tUp));
     m_kv->setValue(QStringLiteral("upT"), fmtNumber(m_state->upT));
     m_kv->setValue(QStringLiteral("downT"), fmtNumber(m_state->downT));
-    m_kv->setValue(QStringLiteral("hold"), fmtTime(stage.hold));
+    m_kv->setValue(QStringLiteral("hold"),
+                   fmtTime(m_state->press ? m_state->pRemain : stage.hold));
 
     const int current = m_state->coopRunning ? m_state->coopStage : 0;
     m_tools->setCurrent(current);
     m_table->setCurrentStage(current);
     updateLegend();
+}
+
+void CoopPage::resetChart()
+{
+    if (m_chart)
+        m_chart->clear();
 }
 
 void CoopPage::onTick()

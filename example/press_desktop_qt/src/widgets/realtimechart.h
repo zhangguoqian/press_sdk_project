@@ -11,6 +11,7 @@ public:
     explicit RealtimeChart(QWidget *parent = nullptr);
 
     void addSample(double pressure, double upTemp, double downTemp);
+    void clear();
     QSize sizeHint() const override;
 
 protected:

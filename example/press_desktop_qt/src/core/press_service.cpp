@@ -50,6 +50,7 @@ PressReadOnlyData parseReadOnly(const std::string &json)
     data.hasSpeed = jsonInt(object, "IsHasSpeed") != 0;
     data.network = jsonInt(object, "Network") != 0;
     data.startDelay = jsonInt(object, "StartDelay");
+    data.versionType = jsonInt(object, "VersionType");
     return data;
 }
 
@@ -79,9 +80,9 @@ PressProgramData parsePressProgram(const std::string &json)
     data.afterP = readNumbers("AfterValue");
 
     const QJsonArray keep = object.value(QLatin1String("KPTime")).toArray();
-    data.keepMs.reserve(keep.size());
+    data.keepSec.reserve(keep.size());
     for (const QJsonValue &value : keep)
-        data.keepMs.append(value.toInt());
+        data.keepSec.append(value.toInt());
     return data;
 }
 
@@ -108,9 +109,9 @@ PressTempProgramData parseTempProgram(const std::string &json)
     data.speed = readNumbers("Speed");
 
     const QJsonArray keep = object.value(QLatin1String("KTTime")).toArray();
-    data.keepMs.reserve(keep.size());
+    data.keepSec.reserve(keep.size());
     for (const QJsonValue &value : keep)
-        data.keepMs.append(value.toInt());
+        data.keepSec.append(value.toInt());
     return data;
 }
 
@@ -150,7 +151,7 @@ PressMixProgramData parseMixProgram(const std::string &json)
     data.upTemp = readNumbers("UpTemp");
     data.isDownHeat = readInts("IsDownHeat");
     data.downTemp = readNumbers("DownTemp");
-    data.keepMs = readInts("KTime");
+    data.keepSec = readInts("KTime");
     return data;
 }
 
@@ -170,8 +171,8 @@ PressRtData parseRealTime(const std::string &json)
     data.moldPressure = jsonNumber(object, "MoldPressure");
     data.tempUp = jsonNumber(object, "TUpValue");
     data.tempDown = jsonNumber(object, "TDownValue");
-    data.pressRemainMs = jsonInt(object, "PTime");
-    data.tempRemainMs = jsonInt(object, "TTime");
+    data.pressRemainSec = jsonInt(object, "PTime");
+    data.tempRemainSec = jsonInt(object, "TTime");
     return data;
 }
 
@@ -375,6 +376,11 @@ bool PressService::setStart(bool on, QString *error)
                                                   : QStringLiteral("停止合作流程"));
 }
 
+bool PressService::selectModel(int model)
+{
+    return m_press->selectModelState(static_cast<uint8_t>(model));
+}
+
 bool PressService::pushStepCounts(int pressSteps, int tempSteps)
 {
     return m_press->setPressStepCount(static_cast<uint8_t>(qBound(1, pressSteps, 30)))
@@ -388,7 +394,7 @@ bool PressService::pushPressureStage(int index, double pressure, double boost, i
     const quint8 i = static_cast<quint8>(index);
     return m_press->setPressValueIndex(i, static_cast<float>(pressure))
         && m_press->setAfterValueIndex(i, static_cast<float>(boost))
-        && m_press->setKeepPressTime(i, holdSeconds * 1000);
+        && m_press->setKeepPressTime(i, holdSeconds);
 }
 
 bool PressService::pushTemperatureStage(int index, double temperature, double rate, int holdSeconds)
@@ -398,7 +404,7 @@ bool PressService::pushTemperatureStage(int index, double temperature, double ra
     const quint8 i = static_cast<quint8>(index);
     return m_press->setTempIndex(i, static_cast<float>(temperature))
         && m_press->setTempSpeedIndex(i, static_cast<float>(rate))
-        && m_press->setKeepTempTime(i, holdSeconds * 1000);
+        && m_press->setKeepTempTime(i, holdSeconds);
 }
 
 bool PressService::pushCoopCount(int steps)
@@ -420,7 +426,7 @@ bool PressService::pushCoopStage(int index, bool press, double pressure, double 
         && m_press->setMixHeatUpIndex(i, static_cast<float>(tempUp))
         && m_press->setMixIsHeatDownIndex(i, heatDown)
         && m_press->setMixHeatDownIndex(i, static_cast<float>(tempDown))
-        && m_press->setMixKeepTime(i, holdSeconds * 1000);
+        && m_press->setMixKeepTime(i, holdSeconds);
 }
 
 bool PressService::pushMoldCircle(double diameter)

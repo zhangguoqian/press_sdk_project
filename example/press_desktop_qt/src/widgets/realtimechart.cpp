@@ -42,6 +42,14 @@ void RealtimeChart::addSample(double pressure, double upTemp, double downTemp)
     update();
 }
 
+void RealtimeChart::clear()
+{
+    m_pressure.clear();
+    m_up.clear();
+    m_down.clear();
+    update();
+}
+
 QSize RealtimeChart::sizeHint() const
 {
     return QSize(420, 230);

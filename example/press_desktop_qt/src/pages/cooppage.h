@@ -20,6 +20,7 @@ public:
 
     void refreshLive();
     void onTick();
+    void resetChart();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

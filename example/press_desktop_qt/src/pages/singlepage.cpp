@@ -460,13 +460,15 @@ void SinglePage::refreshLive()
     m_pressureKv->setValue(QStringLiteral("mold"),
                            moldPressure < 0 ? QStringLiteral("—")
                                             : fmtNumber(moldPressure, 2));
-    m_pressureKv->setValue(QStringLiteral("hold"), fmtTime(pressure.hold));
+    m_pressureKv->setValue(QStringLiteral("hold"),
+                           fmtTime(m_state->press ? m_state->pRemain : pressure.hold));
 
     const TemperatureStage &temperature = m_state->tStages.at(m_state->temperatureIndex());
     m_temperatureKv->setValue(QStringLiteral("setT"), fmtNumber(temperature.t));
     m_temperatureKv->setValue(QStringLiteral("upT"), fmtNumber(m_state->upT));
     m_temperatureKv->setValue(QStringLiteral("downT"), fmtNumber(m_state->downT));
-    m_temperatureKv->setValue(QStringLiteral("holdT"), fmtTime(temperature.hold));
+    m_temperatureKv->setValue(QStringLiteral("holdT"),
+                              fmtTime(m_state->heat ? m_state->tRemain : temperature.hold));
 
     const int pressureCurrent = m_state->press ? m_state->pStage : 0;
     const int temperatureCurrent = m_state->heat ? m_state->tStage : 0;
@@ -476,6 +478,12 @@ void SinglePage::refreshLive()
     m_temperatureTable->setCurrentStage(temperatureCurrent);
 
     updateLegend();
+}
+
+void SinglePage::resetChart()
+{
+    if (m_chart)
+        m_chart->clear();
 }
 
 void SinglePage::onTick()

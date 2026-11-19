@@ -103,6 +103,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_state, &MachineState::linkChanged, this,
             [this](bool connected, const QString &endpoint) {
                 m_sidebar->setLinkStatus(connected, connected ? endpoint : QString());
+                if (connected) {
+                    // 连接成功后清空历史曲线，从当前时刻重新采集
+                    m_singlePage->resetChart();
+                    m_coopPage->resetChart();
+                }
                 showToast(connected ? QStringLiteral("设备已连接：%1").arg(endpoint)
                                     : QStringLiteral("设备未连接，当前为本地模拟"));
             });
@@ -112,7 +117,9 @@ MainWindow::MainWindow(QWidget *parent)
         const QString key = model == 1 ? QStringLiteral("coop")
                           : model == 2 ? QStringLiteral("single")
                                        : QString();
-        if (key.isEmpty() || key == m_current || m_state->running())
+        const bool allowed = (key == QStringLiteral("coop") && m_state->coopAllowed)
+                          || (key == QStringLiteral("single") && m_state->singleAllowed);
+        if (key.isEmpty() || !allowed || key == m_current || m_state->running())
             return;
         showPage(key);
         if (auto *scroll = qobject_cast<QScrollArea *>(m_pageWidgets.value(key)))
@@ -127,6 +134,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_state, &MachineState::changed, this, [this] {
         m_sidebar->setLocked(m_current, m_state->running());
     });
+    connect(m_state, &MachineState::settingsChanged, this,
+            &MainWindow::syncModeAvailability);
 
     m_sidebar->setActive(m_current);
     m_actionBar->setMode(ActionBar::Mode::Run);
@@ -209,13 +218,42 @@ void MainWindow::navigate(const QString &key)
 
     if (!m_pageWidgets.contains(key) || key == m_current)
         return;
+    if (key == QStringLiteral("single") && !m_state->singleAllowed) {
+        showToast(QStringLiteral("当前设备版本仅支持合作模式"));
+        return;
+    }
+    if (key == QStringLiteral("coop") && !m_state->coopAllowed) {
+        showToast(QStringLiteral("当前设备版本仅支持单独模式"));
+        return;
+    }
     if (m_state->running()) {
         showToast(QStringLiteral("设备运行中，请先停止后再切换"));
         return;
     }
+    // 模式切换需要下发到下位机（1 合作模式，2 单独模式）
+    if (key == QStringLiteral("single") || key == QStringLiteral("coop")) {
+        if (m_service->isConnected()
+            && !m_service->selectModel(key == QStringLiteral("coop") ? 1 : 2)) {
+            showToast(QStringLiteral("模式切换失败，请检查设备状态"));
+            return;
+        }
+    }
     showPage(key);
     if (auto *scroll = qobject_cast<QScrollArea *>(m_pageWidgets.value(key)))
         scroll->verticalScrollBar()->setValue(0);
+}
+
+void MainWindow::syncModeAvailability()
+{
+    m_sidebar->setModeVisible(QStringLiteral("single"), m_state->singleAllowed);
+    m_sidebar->setModeVisible(QStringLiteral("coop"), m_state->coopAllowed);
+
+    if (m_current == QStringLiteral("single") && !m_state->singleAllowed
+        && m_state->coopAllowed)
+        showPage(QStringLiteral("coop"));
+    else if (m_current == QStringLiteral("coop") && !m_state->coopAllowed
+             && m_state->singleAllowed)
+        showPage(QStringLiteral("single"));
 }
 
 void MainWindow::updateActionBar()

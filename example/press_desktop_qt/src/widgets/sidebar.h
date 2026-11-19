@@ -16,6 +16,7 @@ public:
 
     void setActive(const QString &key);
     void setLocked(const QString &currentKey, bool running);
+    void setModeVisible(const QString &key, bool visible);
     void setLinkStatus(bool connected, const QString &detail = QString());
 
 signals:

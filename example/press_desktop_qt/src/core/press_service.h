@@ -24,14 +24,14 @@ struct PressRtData
     bool pressOn = false;       // 加压中
     bool heatOn = false;        // 加热中
     bool air = false;           // 排气中
-    int pressStep = 0;          // 当前压力段（SDK 从 0 开始）
-    int tempStep = 0;           // 当前温度段（SDK 从 0 开始）
+    int pressStep = 0;          // 当前压力段（与下位机一致，从 1 开始）
+    int tempStep = 0;           // 当前温度段（与下位机一致，从 1 开始）
     double pressure = 0.0;      // 实时压力 Ton
     double moldPressure = 0.0;  // 模具压强 MPa
     double tempUp = 0.0;        // 上板温度 °C
     double tempDown = 0.0;      // 下板温度 °C
-    int pressRemainMs = 0;      // 压力倒计时 ms
-    int tempRemainMs = 0;       // 温度倒计时 ms
+    int pressRemainSec = 0;     // 压力倒计时 s（JSON 时间值为秒）
+    int tempRemainSec = 0;      // 温度倒计时 s
 };
 Q_DECLARE_METATYPE(PressRtData)
 
@@ -63,12 +63,13 @@ struct PressReadOnlyData
     bool hasSpeed = false;    // 支持速度模式
     bool network = false;     // 网络模块
     int startDelay = 0;       // 启动延迟 s
+    int versionType = 2;      // 版本模式：0 仅单独，1 仅合作，2 双模式
 };
 Q_DECLARE_METATYPE(PressReadOnlyData)
 
 /**
  * 压力工艺参数（连接后从 PressData JSON 解析）。
- * setP / afterP / keepMs 为 30 段数组，stepCount 为设备当前使用的段数。
+ * setP / afterP / keepSec 为 30 段数组，stepCount 为设备当前使用的段数。
  */
 struct PressProgramData
 {
@@ -82,7 +83,7 @@ struct PressProgramData
 
     QVector<double> setP;   // SetPValue：每段设定压力 Ton
     QVector<double> afterP; // AfterValue：每段补压设定 Ton
-    QVector<int> keepMs;    // KPTime：每段保压时间 ms
+    QVector<int> keepSec;   // KPTime：每段保压时间 s
 };
 Q_DECLARE_METATYPE(PressProgramData)
 
@@ -98,7 +99,7 @@ struct PressTempProgramData
 
     QVector<double> startTemp;  // StartTemp：每段目标温度 °C
     QVector<double> speed;      // Speed：每段升温速率 °C/min
-    QVector<int> keepMs;        // KTTime：每段保温时间 ms
+    QVector<int> keepSec;       // KTTime：每段保温时间 s
 };
 Q_DECLARE_METATYPE(PressTempProgramData)
 
@@ -120,7 +121,7 @@ struct PressMixProgramData
     QVector<double> upTemp;     // UpTemp：上板温度 °C
     QVector<int> isDownHeat;    // IsDownHeat：是否加热下板
     QVector<double> downTemp;   // DownTemp：下板温度 °C
-    QVector<int> keepMs;        // KTime：计时 ms
+    QVector<int> keepSec;       // KTime：计时 s
 };
 Q_DECLARE_METATYPE(PressMixProgramData)
 
@@ -155,6 +156,7 @@ public:
     bool setPressing(bool on, QString *error = nullptr);
     bool setStartHeat(bool on, QString *error = nullptr);
     bool setStart(bool on, QString *error = nullptr);
+    bool selectModel(int model);   // 1 合作模式，2 单独模式
 
     // ---- 参数下发 ----
     bool pushStepCounts(int pressSteps, int tempSteps);

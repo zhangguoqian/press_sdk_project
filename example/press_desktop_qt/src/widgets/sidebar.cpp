@@ -281,6 +281,12 @@ void Sidebar::setLinkStatus(bool connected, const QString &detail)
         m_linkDot->setOnline(connected);
 }
 
+void Sidebar::setModeVisible(const QString &key, bool visible)
+{
+    if (auto *item = m_items.value(key))
+        item->setVisible(visible);
+}
+
 void Sidebar::setActive(const QString &key)
 {
     for (auto it = m_items.begin(); it != m_items.end(); ++it)

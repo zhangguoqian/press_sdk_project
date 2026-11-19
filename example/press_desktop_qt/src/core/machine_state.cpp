@@ -117,6 +117,12 @@ void MachineState::attachService(PressService *service)
                 hasWater = data.hasWater;
                 if (!hasSpeed)
                     rateMode = RateMode::Normal;
+
+                // 版本类型决定可用模式：0 仅单独，1 仅合作，2 双模式
+                versionType = data.versionType;
+                singleAllowed = versionType != 1;
+                coopAllowed = versionType != 0;
+
                 emit settingsChanged();
             });
 
@@ -159,10 +165,11 @@ void MachineState::applyRealTime(const PressRtData &data)
 
     press = data.pressOn;
     heat = data.heatOn;
-    pStage = press ? qBound(1, data.pressStep + 1, qMax(1, pCount)) : 0;
-    tStage = heat ? qBound(1, data.tempStep + 1, qMax(1, tCount)) : 0;
-    pRemain = press ? qMax(0, data.pressRemainMs / 1000) : 0;
-    tRemain = heat ? qMax(0, data.tempRemainMs / 1000) : 0;
+    // CPStep / CTStep 与下位机阶段编号一致（从 1 开始），直接使用
+    pStage = press ? qBound(1, data.pressStep, qMax(1, pCount)) : 0;
+    tStage = heat ? qBound(1, data.tempStep, qMax(1, tCount)) : 0;
+    pRemain = press ? qMax(0, data.pressRemainSec) : 0;
+    tRemain = heat ? qMax(0, data.tempRemainSec) : 0;
     liveP = qMax(0.0, data.pressure);
     m_sdkMoldPressure = data.moldPressure;
     upT = data.tempUp;
@@ -299,8 +306,8 @@ void MachineState::applyPressProgram(const PressProgramData &data)
             pStages[i].p = data.setP.at(i);
         if (i < data.afterP.size())
             pStages[i].boost = data.afterP.at(i);
-        if (i < data.keepMs.size())
-            pStages[i].hold = qBound(0, qRound(data.keepMs.at(i) / 1000.0), 35999);
+        if (i < data.keepSec.size())
+            pStages[i].hold = qBound(0, data.keepSec.at(i), 35999);
     }
 
     pCount = count;
@@ -333,8 +340,8 @@ void MachineState::applyTempProgram(const PressTempProgramData &data)
             tStages[i].t = data.startTemp.at(i);
         if (i < data.speed.size())
             tStages[i].rate = data.speed.at(i);
-        if (i < data.keepMs.size())
-            tStages[i].hold = qBound(0, qRound(data.keepMs.at(i) / 1000.0), 35999);
+        if (i < data.keepSec.size())
+            tStages[i].hold = qBound(0, data.keepSec.at(i), 35999);
     }
 
     tCount = count;
@@ -371,8 +378,8 @@ void MachineState::applyMixProgram(const PressMixProgramData &data)
             row.heatDown = data.isDownHeat.at(i) != 0;
         if (i < data.downTemp.size())
             row.tDown = data.downTemp.at(i);
-        if (i < data.keepMs.size())
-            row.hold = qBound(0, qRound(data.keepMs.at(i) / 1000.0), 35999);
+        if (i < data.keepSec.size())
+            row.hold = qBound(0, data.keepSec.at(i), 35999);
     }
 
     coopCount = count;

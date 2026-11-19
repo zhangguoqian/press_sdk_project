@@ -23,6 +23,7 @@ public:
     void refreshLive();
     void refreshSettings();
     void onTick();
+    void resetChart();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
