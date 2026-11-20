@@ -184,6 +184,15 @@ public:
     //! @return 64-bit register ID / 获取机器唯一注册号 (连接时分配)。
     uint64_t getMachineRegisterNo() const;
 
+    //! Get the device firmware version cached during the connect handshake.
+    //! This returns the cached m_JsonData.m_VersionInfo (CMDID_VERSION 0x0000
+    //! negotiated when connect() succeeds) without issuing a new request.
+    //! @param versionInfo [out] Cached firmware version on success.
+    //! @return true if connected and version info is available, false otherwise.
+    //! 获取连接握手时缓存的设备固件版本 (m_JsonData.m_VersionInfo)，
+    //! 不发起新的请求；未连接时返回 false。
+    bool getDeviceVersionInfo(VersionInfo& versionInfo) const;
+
     //! Get the last human-readable error message.
     //! @return Read-only C string (valid until next call that may set an error).
     //! 获取最后一条可读错误信息。

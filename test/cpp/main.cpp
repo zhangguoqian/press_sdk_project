@@ -399,6 +399,26 @@ void runStartStopCases(Press& press)
     std::printf("\nstart/stop cases done.\n");
 }
 
+// ==================== 缓存固件版本 / cached device version ====================
+
+//! 读取连接握手时缓存的 m_JsonData.m_VersionInfo（不发起新请求）
+void runVersionCase(Press& press)
+{
+    std::printf("\n-- getDeviceVersionInfo (cached m_JsonData.m_VersionInfo) --\n");
+    VersionInfo vi{};
+    const bool ok = press.getDeviceVersionInfo(vi);
+    std::printf("  ret=%s AppNo=%u version=%u.%u.%u\n",
+                ok ? "true" : "false",
+                static_cast<unsigned>(vi.m_AppNo),
+                static_cast<unsigned>(vi.m_Major),
+                static_cast<unsigned>(vi.m_Minor),
+                static_cast<unsigned>(vi.m_Patch));
+    if (ok)
+        ++g_pass;
+    else
+        ++g_fail;
+}
+
 // ==================== 排气接口 / air venting ====================
 
 constexpr uint16_t CMD_SET_AIR = 0x1524;
@@ -1580,6 +1600,8 @@ void usage()
     std::printf("Usage:\n");
     std::printf("  press_cpp_test serial <port>        e.g. serial COM3\n");
     std::printf("  press_cpp_test tcp <host:port>      e.g. tcp 192.168.1.100:9000\n\n");
+    std::printf("  press_cpp_test serial <port> version     # 读取缓存的固件版本\n");
+    std::printf("                                           # read cached device version\n");
     std::printf("  press_cpp_test serial <port> air         # 仅执行排气接口测试\n");
     std::printf("                                           # air venting case only\n");
     std::printf("  press_cpp_test serial <port> airpress    # 启动加压后测试排气成功路径\n");
@@ -1638,8 +1660,16 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // 可选模式：仅执行排气接口测试（第三参数 air）
+    // 可选模式：读取缓存的固件版本（第三参数 version）
     const std::string runMode = (argc >= 4) ? argv[3] : std::string();
+    if (runMode == "version")
+    {
+        runVersionCase(press);
+        press.disconnect();
+        return 0;
+    }
+
+    // 可选模式：仅执行排气接口测试（第三参数 air）
     if (runMode == "air")
     {
         runStartAirCase(press);

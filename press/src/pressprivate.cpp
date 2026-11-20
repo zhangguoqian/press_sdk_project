@@ -330,6 +330,19 @@ bool PressPrivate::getVersionInfo(VersionInfo& versionInfo)
     return true;
 }
 
+bool PressPrivate::getCachedVersionInfo(VersionInfo& versionInfo) const
+{
+    if (!isConnected())
+    {
+        return false;
+    }
+    {
+        std::lock_guard<std::mutex> jsonLock(m_JsonDataMutex);
+        versionInfo = m_JsonData.m_VersionInfo;
+    }
+    return true;
+}
+
 bool PressPrivate::setPressing(bool isPressing)
 {
     std::vector<uint8_t> responseListData;

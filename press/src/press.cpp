@@ -33,6 +33,11 @@ uint64_t Press::getMachineRegisterNo() const
     return mpPrivate->getMachineRegisterNo();
 }
 
+bool Press::getDeviceVersionInfo(VersionInfo& versionInfo) const
+{
+    return mpPrivate->getCachedVersionInfo(versionInfo);
+}
+
 const char* Press::getLastErrorInfo()
 {
     return mpPrivate->getLastErrorInfo();

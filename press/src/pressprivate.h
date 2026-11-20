@@ -167,6 +167,7 @@ public:
     bool setPressDataJson(const std::string& json, bool isCompressed = false);
     bool getRealTimeDataJson(std::string& json, bool isCompressed = false);
     bool getVersionInfo(VersionInfo& versionInfo);
+    bool getCachedVersionInfo(VersionInfo& versionInfo) const;  //!< 读取连接时缓存的 m_JsonData.m_VersionInfo
     bool getSerialNumber(std::string& serialNumber);
     bool setPressing(bool isPressing);
     bool setDemolding(bool isDemolding);
