@@ -342,6 +342,20 @@ void StageTable::setColumnVisible(int column, bool visible)
     setColumnHidden(column, !visible);
 }
 
+void StageTable::setColumnDecimals(int column, int decimals)
+{
+    if (column <= 0 || column > m_columns.size())
+        return;
+    StageColumn &spec = m_columns[column - 1];
+    if (spec.type != StageColumnType::Number)
+        return;
+    const int clamped = qBound(0, decimals, 4);
+    if (spec.decimals == clamped)
+        return;
+    spec.decimals = clamped;
+    viewport()->update();
+}
+
 const StageColumn *StageTable::columnSpec(int column) const
 {
     if (column <= 0 || column > m_columns.size())

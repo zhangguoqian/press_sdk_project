@@ -42,10 +42,19 @@ CoopPage::CoopPage(MachineState *state, QWidget *parent)
     connect(m_state, &MachineState::changed, this, &CoopPage::refreshLive);
     connect(m_state, &MachineState::mixProgramChanged, this, [this] {
         rebuildTable();
+        m_table->setColumnDecimals(2, m_state->pDecimals);
+        m_table->setColumnDecimals(3, m_state->pDecimals);
+        refreshLive();
+    });
+    connect(m_state, &MachineState::settingsChanged, this, [this] {
+        m_table->setColumnDecimals(2, m_state->pDecimals);
+        m_table->setColumnDecimals(3, m_state->pDecimals);
         refreshLive();
     });
 
     rebuildTable();
+    m_table->setColumnDecimals(2, m_state->pDecimals);
+    m_table->setColumnDecimals(3, m_state->pDecimals);
     refreshLive();
     updateColumnWidth();
 }
@@ -147,14 +156,18 @@ QWidget *CoopPage::buildTableCard()
                 if (row < 0 || row >= m_state->coopRows.size())
                     return;
                 CoopStage &stage = m_state->coopRows[row];
-                if (column == 2)
+                if (column == 2) {
                     stage.p = value;
-                else if (column == 3)
+                    // 自动补压：补压设定 = 压力 - Max_Min
+                    stage.boost = qMax(0.0, value - m_state->autoBoost);
+                    m_table->setNumber(row, 3, stage.boost);
+                } else if (column == 3) {
                     stage.boost = value;
-                else if (column == 5)
+                } else if (column == 5) {
                     stage.tUp = value;
-                else if (column == 7)
+                } else if (column == 7) {
                     stage.tDown = value;
+                }
                 m_state->commitCoopStage(row);
                 refreshLive();
             });
@@ -240,13 +253,16 @@ void CoopPage::rebuildTable()
 void CoopPage::refreshLive()
 {
     const CoopStage &stage = m_state->coopRows.at(m_state->coopIndex());
-    m_kv->setValue(QStringLiteral("setP"), fmtNumber(stage.p));
-    m_kv->setValue(QStringLiteral("live"), fmtNumber(m_state->liveP));
-    const double moldPressure = m_state->coopMoldPressure(stage.p);
-    m_kv->setValue(QStringLiteral("mold"), moldPressure < 0 ? QStringLiteral("—")
-                                                             : fmtNumber(moldPressure, 2));
-    m_kv->setValue(QStringLiteral("setT"), fmtNumber(stage.tUp));
+    m_kv->setValue(QStringLiteral("setP"), fmtNumber(stage.p, m_state->pDecimals));
+    m_kv->setValue(QStringLiteral("live"), fmtNumber(m_state->liveP, m_state->pDecimals));
+    const double moldPressure = m_state->coopMoldPressure(m_state->liveP);
+    m_kv->setValue(QStringLiteral("mold"), moldPressure < 0
+                                               ? QStringLiteral("—")
+                                               : fmtNumber(moldPressure,
+                                                           m_state->moldDecimals));
+    m_kv->setValue(QStringLiteral("setTUp"), fmtNumber(stage.tUp));
     m_kv->setValue(QStringLiteral("upT"), fmtNumber(m_state->upT));
+    m_kv->setValue(QStringLiteral("setTDown"), fmtNumber(stage.tDown));
     m_kv->setValue(QStringLiteral("downT"), fmtNumber(m_state->downT));
     m_kv->setValue(QStringLiteral("hold"),
                    fmtTime(m_state->press ? m_state->pRemain : stage.hold));
@@ -280,6 +296,6 @@ void CoopPage::updateLegend()
         "<span style=\"color:#5F7488;\">°C</span>&nbsp;&nbsp;&nbsp;"
         "<span style=\"color:#E8730C;\">●</span>&nbsp;<b>%3</b>&nbsp;"
         "<span style=\"color:#5F7488;\">°C</span>")
-        .arg(fmtNumber(m_state->liveP), fmtNumber(m_state->upT),
+        .arg(fmtNumber(m_state->liveP, m_state->pDecimals), fmtNumber(m_state->upT),
              fmtNumber(m_state->downT)));
 }

@@ -56,9 +56,16 @@ SinglePage::SinglePage(MachineState *state, QWidget *parent)
     layout->addWidget(buildMiddleColumn(), 1);
     layout->addWidget(m_rightColumn, 0);
 
-    connect(m_state, &MachineState::settingsChanged, this, &SinglePage::refreshSettings);
+    connect(m_state, &MachineState::settingsChanged, this, [this] {
+        m_pressureTable->setColumnDecimals(1, m_state->pDecimals);
+        m_pressureTable->setColumnDecimals(2, m_state->pDecimals);
+        refreshSettings();
+        refreshLive();
+    });
     connect(m_state, &MachineState::pressProgramChanged, this, [this] {
         rebuildPressureTable();
+        m_pressureTable->setColumnDecimals(1, m_state->pDecimals);
+        m_pressureTable->setColumnDecimals(2, m_state->pDecimals);
         refreshLive();
     });
     connect(m_state, &MachineState::tempProgramChanged, this, [this] {
@@ -69,6 +76,8 @@ SinglePage::SinglePage(MachineState *state, QWidget *parent)
 
     rebuildPressureTable();
     rebuildTemperatureTable();
+    m_pressureTable->setColumnDecimals(1, m_state->pDecimals);
+    m_pressureTable->setColumnDecimals(2, m_state->pDecimals);
     refreshSettings();
     refreshLive();
 
@@ -169,10 +178,14 @@ QWidget *SinglePage::buildPressureCard()
                 if (row < 0 || row >= m_state->pStages.size())
                     return;
                 PressureStage &stage = m_state->pStages[row];
-                if (column == 1)
+                if (column == 1) {
                     stage.p = value;
-                else if (column == 2)
+                    // 自动补压：补压设定 = 压力 - Max_Min
+                    stage.boost = qMax(0.0, value - m_state->autoBoost);
+                    m_pressureTable->setNumber(row, 2, stage.boost);
+                } else if (column == 2) {
                     stage.boost = value;
+                }
                 m_state->commitPressureStage(row);
                 refreshLive();
             });
@@ -453,13 +466,17 @@ void SinglePage::refreshSettings()
 void SinglePage::refreshLive()
 {
     const PressureStage &pressure = m_state->pStages.at(m_state->pressureIndex());
-    m_pressureKv->setValue(QStringLiteral("setP"), fmtNumber(pressure.p));
-    m_pressureKv->setValue(QStringLiteral("boost"), fmtNumber(pressure.boost));
-    m_pressureKv->setValue(QStringLiteral("live"), fmtNumber(m_state->liveP));
-    const double moldPressure = m_state->moldPressure(pressure.p);
+    m_pressureKv->setValue(QStringLiteral("setP"),
+                           fmtNumber(pressure.p, m_state->pDecimals));
+    m_pressureKv->setValue(QStringLiteral("boost"),
+                           fmtNumber(pressure.boost, m_state->pDecimals));
+    m_pressureKv->setValue(QStringLiteral("live"),
+                           fmtNumber(m_state->liveP, m_state->pDecimals));
+    const double moldPressure = m_state->moldPressure(m_state->liveP);
     m_pressureKv->setValue(QStringLiteral("mold"),
                            moldPressure < 0 ? QStringLiteral("—")
-                                            : fmtNumber(moldPressure, 2));
+                                            : fmtNumber(moldPressure,
+                                                        m_state->moldDecimals));
     m_pressureKv->setValue(QStringLiteral("hold"),
                            fmtTime(m_state->press ? m_state->pRemain : pressure.hold));
 
@@ -503,6 +520,6 @@ void SinglePage::updateLegend()
         "<span style=\"color:#5F7488;\">°C</span>&nbsp;&nbsp;&nbsp;"
         "<span style=\"color:#E8730C;\">●</span>&nbsp;<b>%3</b>&nbsp;"
         "<span style=\"color:#5F7488;\">°C</span>")
-        .arg(fmtNumber(m_state->liveP), fmtNumber(m_state->upT),
+        .arg(fmtNumber(m_state->liveP, m_state->pDecimals), fmtNumber(m_state->upT),
              fmtNumber(m_state->downT)));
 }

@@ -37,6 +37,7 @@ public:
 
     void setCurrentStage(int stage);
     void setColumnVisible(int column, bool visible);
+    void setColumnDecimals(int column, int decimals);
 
     const StageColumn *columnSpec(int column) const;
     int m_currentStage = 0;

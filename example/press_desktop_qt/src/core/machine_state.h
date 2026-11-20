@@ -75,6 +75,10 @@ public:
     bool singleAllowed = true;
     bool coopAllowed = true;
 
+    int pDecimals = 1;     // PDecimal：压力（Ton）显示小数位
+    int moldDecimals = 2;  // PressDecimal：模具压强（MPa）显示小数位
+    double autoBoost = 0.3; // Max_Min：自动补压差（Ton）
+
     // ---- 运行状态 ----
     bool press = false;
     bool heat = false;

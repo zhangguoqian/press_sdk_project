@@ -123,6 +123,10 @@ void MachineState::attachService(PressService *service)
                 singleAllowed = versionType != 1;
                 coopAllowed = versionType != 0;
 
+                pDecimals = qBound(0, data.pDecimal, 4);
+                moldDecimals = qBound(0, data.pressDecimal, 4);
+                autoBoost = qBound(0.0, data.autoBoost, 10.0);
+
                 emit settingsChanged();
             });
 

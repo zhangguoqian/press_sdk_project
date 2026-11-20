@@ -60,9 +60,9 @@ struct PressReadOnlyData
     double maxTLimit = 0.0;   // 温度上限 °C
     double minTLimit = 0.0;   // 温度下限 °C
 
-    int pDecimal = 1;         // 压力值小数位数
-    int pressDecimal = 2;     // 压强值小数位数
-    int tDecimal = 1;         // 温度值小数位数
+    int pDecimal = 1;         // PDecimal：压力（Ton）显示小数位
+    int pressDecimal = 2;     // PressDecimal：模具压强（MPa）显示小数位
+    int tDecimal = 1;         // TDecimal：温度（°C）显示小数位
 
     bool hasWater = false;    // 支持水冷
     bool hasSpeed = false;    // 支持速度模式
