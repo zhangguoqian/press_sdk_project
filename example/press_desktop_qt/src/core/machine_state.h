@@ -96,6 +96,8 @@ public:
     double liveP = 0.0;
     double upT = -1.0;
     double downT = 0.0;
+    // IsAir：设备是否允许排气；本地模拟默认允许
+    bool airAllowed = true;
 
     double runtime = 0.0;
     int output = 0;
@@ -140,7 +142,7 @@ public:
     void startHeat();
     void stopHeat();
     void toggleCoop();
-    void vent();
+    bool vent();
 
     void setMoldShape(MoldShape shape);
     void setMoldDiameter(double mm);

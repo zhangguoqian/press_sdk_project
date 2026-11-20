@@ -424,11 +424,17 @@ void MainWindow::handleHeatRequest()
 
 void MainWindow::handleVentRequest()
 {
+    if (m_state->sdkMode() && !m_state->airAllowed) {
+        showToast(QStringLiteral("设备当前不支持排气"));
+        return;
+    }
     const QString text = QStringLiteral("将打开排气阀释放管路压力，请确认模具与人员安全。");
     if (Dialogs::confirm(this, QStringLiteral("排气"), text,
                          QStringLiteral("确认排气"), DialogTone::Warn, AppIcon::Air)) {
-        m_state->vent();
-        showToast(QStringLiteral("排气完成，压力已释放"));
+        if (m_state->vent()) {
+            showToast(m_state->sdkMode() ? QStringLiteral("排气指令已下发")
+                                         : QStringLiteral("排气完成，压力已释放"));
+        }
     }
 }
 

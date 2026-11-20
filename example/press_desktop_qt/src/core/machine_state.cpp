@@ -156,6 +156,7 @@ void MachineState::attachService(PressService *service)
                     pStage = tStage = coopStage = 0;
                     pRemain = tRemain = coopRemain = 0;
                     liveP = 0.0;
+                    airAllowed = true;
                 }
                 emit linkChanged(connected, endpoint);
                 emit changed();
@@ -175,9 +176,9 @@ void MachineState::applyRealTime(const PressRtData &data)
     pRemain = press ? qMax(0, data.pressRemainSec) : 0;
     tRemain = heat ? qMax(0, data.tempRemainSec) : 0;
     liveP = qMax(0.0, data.pressure);
-    m_sdkMoldPressure = data.moldPressure;
     upT = data.tempUp;
     downT = data.tempDown;
+    airAllowed = data.airAllowed;
 
     if (modelState != data.modelState) {
         modelState = data.modelState;
@@ -538,16 +539,19 @@ void MachineState::toggleCoop()
 }
 
 
-void MachineState::vent()
+bool MachineState::vent()
 {
+    if (sdkMode())
+        return m_service->startAir();
     liveP = 0.0;
     emit changed();
+    return true;
 }
 
 void MachineState::setMoldShape(MoldShape shape)
 {
     moldShape = shape;
-    commitMold();
+    commitMold(true);
     emit settingsChanged();
     emit changed();
 }

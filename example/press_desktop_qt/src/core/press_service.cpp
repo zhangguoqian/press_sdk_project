@@ -167,15 +167,15 @@ PressRtData parseRealTime(const std::string &json)
     data.modelState = jsonInt(object, "ModelState");
     data.pressOn = jsonInt(object, "IsPStart") != 0;
     data.heatOn = jsonInt(object, "IsTStart") != 0 || jsonInt(object, "IsT1Start") != 0;
-    data.air = jsonInt(object, "IsAir") != 0;
+    data.airAllowed = jsonInt(object, "IsAir") != 0;
     data.pressStep = jsonInt(object, "CPStep");
     data.tempStep = jsonInt(object, "CTStep");
     data.pressure = jsonNumber(object, "PValue");
-    data.moldPressure = jsonNumber(object, "MoldPressure");
     data.tempUp = jsonNumber(object, "TUpValue");
     data.tempDown = jsonNumber(object, "TDownValue");
     data.pressRemainSec = jsonInt(object, "PTime");
     data.tempRemainSec = jsonInt(object, "TTime");
+    data.flowChange = jsonInt(object, "FlowChange");
     return data;
 }
 
@@ -733,6 +733,12 @@ bool PressService::setStartHeat(bool on, QString *error)
                      on ? QStringLiteral("启动加热") : QStringLiteral("停止加热"));
     }
     return ok;
+}
+
+bool PressService::startAir(QString *error)
+{
+    return report(check(m_press->startAir(), error, QStringLiteral("启动排气")),
+                  QStringLiteral("指令：启动排气"));
 }
 
 bool PressService::setStart(bool on, QString *error)

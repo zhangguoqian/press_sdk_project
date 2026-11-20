@@ -28,15 +28,16 @@ struct PressRtData
     int modelState = 0;
     bool pressOn = false;       // 加压中
     bool heatOn = false;        // 加热中
-    bool air = false;           // 排气中
+    bool airAllowed = false;    // IsAir：设备是否允许排气（1 允许）
     int pressStep = 0;          // 当前压力段（与下位机一致，从 1 开始）
     int tempStep = 0;           // 当前温度段（与下位机一致，从 1 开始）
     double pressure = 0.0;      // 实时压力 Ton
-    double moldPressure = 0.0;  // 模具压强 MPa
     double tempUp = 0.0;        // 上板温度 °C
     double tempDown = 0.0;      // 下板温度 °C
     int pressRemainSec = 0;     // 压力倒计时 s（JSON 时间值为秒）
     int tempRemainSec = 0;      // 温度倒计时 s
+    // 参数变更标记：0 无操作，1 压力 JSON 变更，2 温度 JSON 变更，3 合作 JSON 变更
+    int flowChange = 0;
 };
 Q_DECLARE_METATYPE(PressRtData)
 
@@ -166,6 +167,7 @@ public:
     bool setPressing(bool on, QString *error = nullptr);
     bool setStartHeat(bool on, QString *error = nullptr);
     bool setStart(bool on, QString *error = nullptr);
+    bool startAir(QString *error = nullptr);
     bool selectModel(int model);   // 1 合作模式，2 单独模式
 
     // ---- 参数下发 ----

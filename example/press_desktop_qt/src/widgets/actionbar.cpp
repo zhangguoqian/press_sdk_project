@@ -37,14 +37,14 @@ ActionBar::ActionBar(MachineState *state, QWidget *parent)
     runLayout->setContentsMargins(0, 0, 0, 0);
     runLayout->setSpacing(10);
 
-    m_pressButton = createButton(QStringLiteral("启动加压"), QStringLiteral("btnGreen"),
-                                 AppIcon::Power, Qt::white);
     m_ventButton = createButton(QStringLiteral("排气"), QStringLiteral("btnDangerGhost"),
                                 AppIcon::Air, Theme::Red600);
+    m_pressButton = createButton(QStringLiteral("启动加压"), QStringLiteral("btnGreen"),
+                                 AppIcon::Power, Qt::white);
     m_heatButton = createButton(QStringLiteral("启动加热"), QStringLiteral("btnGreen"),
                                 AppIcon::Flame, Qt::white);
-    runLayout->addWidget(m_pressButton);
     runLayout->addWidget(m_ventButton);
+    runLayout->addWidget(m_pressButton);
     runLayout->addWidget(m_heatButton);
 
     m_coopGroup = new QWidget(this);
@@ -144,6 +144,12 @@ void ActionBar::refresh()
     setRunning(m_pressButton, m_state->press);
     setRunning(m_heatButton, m_state->heat);
     setRunning(m_coopButton, m_state->coopRunning);
+
+    // 排气按钮仅在设备允许排气（RT IsAir=1）时可用；本地模拟不受限制
+    const bool ventAllowed = !m_state->sdkMode() || m_state->airAllowed;
+    m_ventButton->setEnabled(ventAllowed);
+    m_ventButton->setToolTip(ventAllowed ? QString()
+                                         : QStringLiteral("设备当前不支持排气（IsAir=0）"));
 
     QString note;
     if (m_state->press && m_state->heat) {
