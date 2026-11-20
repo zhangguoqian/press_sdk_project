@@ -96,6 +96,28 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
+     * Device firmware version cached during the connect handshake
+     * (native m_JsonData.m_VersionInfo). Reading it does not issue a new request.
+     * 设备固件版本，连接握手时缓存（对应原生 m_JsonData.m_VersionInfo）；
+     * 读取不发起新请求。
+     */
+    public static final class DeviceVersionInfo {
+        /** Application type (AppType) / 应用类型 */
+        public byte appNo;
+        /** Major version / 主版本号 */
+        public byte major;
+        /** Minor version / 次版本号 */
+        public byte minor;
+        /** Patch version / 修订号 */
+        public byte patch;
+
+        /** Format as "Vmajor.minor.patch" / 格式化为 "V主.次.修订" */
+        public String versionString() {
+            return "V" + (major & 0xFF) + "." + (minor & 0xFF) + "." + (patch & 0xFF);
+        }
+    }
+
+    /**
      * Commonly used fields of the native PressData structure.
      * 压力参数的常用字段子集（字段顺序与 native PressData 对齐）。
      *
@@ -597,6 +619,22 @@ public final class PressSdk implements AutoCloseable {
     public boolean startAir() {
         ensureOpen();
         return press_start_air(this.handle) != 0;
+    }
+
+    /**
+     * Read the cached device firmware version (m_JsonData.m_VersionInfo, set
+     * during connect). Does not issue a new device request.
+     * 读取连接握手时缓存的设备固件版本，不发起新请求。
+     *
+     * @return version info, or null if not connected / 版本信息；未连接返回 null
+     */
+    public DeviceVersionInfo getDeviceVersionInfo() {
+        ensureOpen();
+        DeviceVersionInfo info = new DeviceVersionInfo();
+        if (press_get_device_version_info(this.handle, info) == 0) {
+            return null;
+        }
+        return info;
     }
 
     /**
@@ -1147,6 +1185,7 @@ public final class PressSdk implements AutoCloseable {
     public static native int press_set_pressing(long handle, int isPressing);
     public static native int press_set_demolding(long handle, int isDemolding);
     public static native int press_start_air(long handle);
+    public static native int press_get_device_version_info(long handle, DeviceVersionInfo info);
     public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks, int intervalSeconds);
     public static native void press_unregister_data_interface(long handle);
     public static native String press_version();

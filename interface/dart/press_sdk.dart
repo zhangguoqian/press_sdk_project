@@ -66,6 +66,31 @@ class ReadOnlyData {
   int mIsHasSpeed = 0;
 }
 
+/// Device firmware version cached during connect (m_JsonData.m_VersionInfo).
+/// 设备固件版本，连接握手时缓存（m_JsonData.m_VersionInfo）。
+class DeviceVersionInfo {
+  /// Application type (AppType) / 应用类型
+  int appNo = 0;
+  /// Major version / 主版本号
+  int major = 0;
+  /// Minor version / 次版本号
+  int minor = 0;
+  /// Patch version / 修订号
+  int patch = 0;
+}
+
+/// Native layout of CPressVersionInfo (field order matches the C ABI).
+class _NativeDeviceVersionInfo extends Struct {
+  @Uint8()
+  external int appNo;
+  @Uint8()
+  external int major;
+  @Uint8()
+  external int minor;
+  @Uint8()
+  external int patch;
+}
+
 /// A lightweight pressure profile container.
 /// 一个轻量的压力曲线参数容器。
 class PressData {
@@ -339,6 +364,34 @@ class PressSdk {
           int Function(Pointer<Void>)
         >('cpress_start_air');
     return startAir(_handle) != 0;
+  }
+
+  /// Read the cached device firmware version (m_JsonData.m_VersionInfo).
+  /// No new device request is issued.
+  /// 读取连接握手时缓存的设备固件版本，不发起新请求。
+  /// Returns null on failure (e.g. not connected). / 失败（如未连接）返回 null。
+  DeviceVersionInfo? getDeviceVersionInfo() {
+    _ensureNotDisposed();
+    final getDeviceVersionInfo = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>, Pointer<_NativeDeviceVersionInfo>),
+          int Function(Pointer<Void>, Pointer<_NativeDeviceVersionInfo>)
+        >('cpress_get_device_version_info');
+
+    final native = malloc<_NativeDeviceVersionInfo>();
+    try {
+      if (getDeviceVersionInfo(_handle, native) == 0) {
+        return null;
+      }
+      final ref = native.ref;
+      return DeviceVersionInfo()
+        ..appNo = ref.appNo
+        ..major = ref.major
+        ..minor = ref.minor
+        ..patch = ref.patch;
+    } finally {
+      malloc.free(native);
+    }
   }
 
   // ==================== Pressure / 压力 ====================

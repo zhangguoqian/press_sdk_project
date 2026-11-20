@@ -150,6 +150,21 @@ class ReadOnlyData(ctypes.Structure):
     ]
 
 
+class DeviceVersionInfo(ctypes.Structure):
+    """Device firmware version cached during connect (m_JsonData.m_VersionInfo).
+
+    Reading it does not issue a new device request.
+    设备固件版本，连接握手时缓存（m_JsonData.m_VersionInfo）；读取不发起新请求。
+    """
+
+    _fields_ = [
+        ("appNo", ctypes.c_ubyte),
+        ("major", ctypes.c_ubyte),
+        ("minor", ctypes.c_ubyte),
+        ("patch", ctypes.c_ubyte),
+    ]
+
+
 class PressData(ctypes.Structure):
     """Multi-step pressure profile passed to the native SDK."""
 
@@ -271,6 +286,9 @@ class PressSdk:
 
     _lib.cpress_start_air.argtypes = [ctypes.c_void_p]
     _lib.cpress_start_air.restype = ctypes.c_int
+
+    _lib.cpress_get_device_version_info.argtypes = [ctypes.c_void_p, ctypes.POINTER(DeviceVersionInfo)]
+    _lib.cpress_get_device_version_info.restype = ctypes.c_int
 
     # ==================== 压力单值 / 索引命令 ====================
     _lib.cpress_get_press_step_count.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
@@ -546,6 +564,14 @@ class PressSdk:
     def start_air(self) -> bool:
         """Start air venting (CMDID_SET_START_AIR 0x1524). / 启动排气，释放管路内压力。"""
         return self._lib.cpress_start_air(self._handle) != 0
+
+    def get_device_version_info(self) -> DeviceVersionInfo:
+        """Read cached device firmware version (m_JsonData.m_VersionInfo).
+        读取连接握手时缓存的设备固件版本，不发起新请求。"""
+        info = DeviceVersionInfo()
+        if self._lib.cpress_get_device_version_info(self._handle, ctypes.byref(info)) == 0:
+            raise RuntimeError(self.get_last_error_info())
+        return info
 
     # ==================== 压力单值 / 索引命令 ====================
 

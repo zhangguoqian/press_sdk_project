@@ -70,6 +70,19 @@ namespace PressSdk.Interop
     /// 固件新增字段（如排气时间）时请使用 PD JSON 接口。
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
+    public struct DeviceVersionInfo
+    {
+        /// <summary>Application type (AppType) / 应用类型。</summary>
+        public byte appNo;
+        /// <summary>Major version / 主版本号。</summary>
+        public byte major;
+        /// <summary>Minor version / 次版本号。</summary>
+        public byte minor;
+        /// <summary>Patch version / 修订号。</summary>
+        public byte patch;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct PressData
     {
         public byte m_PStep;
@@ -334,6 +347,9 @@ namespace PressSdk.Interop
 
         [DllImport("press", EntryPoint = "cpress_start_air", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeStartAir(IntPtr handle);
+
+        [DllImport("press", EntryPoint = "cpress_get_device_version_info", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetDeviceVersionInfo(IntPtr handle, out DeviceVersionInfo info);
 
         // ==================== 压力单值 / 索引命令 ====================
 
@@ -712,6 +728,17 @@ namespace PressSdk.Interop
         public bool StartAir()
         {
             return NativeStartAir(_handle) != 0;
+        }
+
+        /// <summary>
+        /// Read the cached device firmware version (m_JsonData.m_VersionInfo).
+        /// No new device request is issued. / 读取连接握手时缓存的设备固件版本，不发起新请求。
+        /// </summary>
+        /// <param name="info">[out] Cached version on success / 成功时填充缓存版本。</param>
+        /// <returns>true on success, false if not connected / 成功 true，未连接 false。</returns>
+        public bool GetDeviceVersionInfo(out DeviceVersionInfo info)
+        {
+            return NativeGetDeviceVersionInfo(_handle, out info) != 0;
         }
 
         // ==================== 压力单值 / 索引命令 ====================

@@ -119,6 +119,7 @@ const pressLib = ffi.Library(resolveLibraryPath(), {
   cpress_set_pressing: ['int', ['void*', 'int']],
   cpress_set_demolding: ['int', ['void*', 'int']],
   cpress_start_air: ['int', ['void*']],
+  cpress_get_device_version_info: ['int', ['void*', 'pointer']],
 
   // Pressure single value / index commands / 压力单值 / 索引命令
   cpress_get_press_step_count: ['int', ['void*', 'pointer']],
@@ -220,6 +221,15 @@ const ReadOnlyData = StructType({
   m_TDecimal: 'uchar',
   m_IsHasWater: 'uchar',
   m_IsHasSpeed: 'uchar',
+});
+
+// Device firmware version cached during connect (m_JsonData.m_VersionInfo).
+// 设备固件版本，连接握手时缓存（m_JsonData.m_VersionInfo）。
+const DeviceVersionInfo = StructType({
+  appNo: 'uchar',
+  major: 'uchar',
+  minor: 'uchar',
+  patch: 'uchar',
 });
 
 const PressData = StructType({
@@ -463,6 +473,27 @@ class PressSdk {
   startAir() {
     this._assertHandle();
     return pressLib.cpress_start_air(this.handle) !== 0;
+  }
+
+  /**
+   * Read the cached device firmware version (m_JsonData.m_VersionInfo).
+   * No new device request is issued.
+   * 读取连接握手时缓存的设备固件版本，不发起新请求。
+   * @returns {{appNo:number, major:number, minor:number, patch:number}|null}
+   *          version fields, or null on failure (e.g. not connected)
+   */
+  getDeviceVersionInfo() {
+    this._assertHandle();
+    const info = new DeviceVersionInfo();
+    if (pressLib.cpress_get_device_version_info(this.handle, info.ref()) === 0) {
+      return null;
+    }
+    return {
+      appNo: info.appNo,
+      major: info.major,
+      minor: info.minor,
+      patch: info.patch,
+    };
   }
 
   // ==================== Pressure / 压力 ====================
@@ -878,6 +909,7 @@ module.exports = {
   MAX_P_STEP,
   PortType,
   ReadOnlyData,
+  DeviceVersionInfo,
   PressData,
   RealTimeData,
   PressSdk,

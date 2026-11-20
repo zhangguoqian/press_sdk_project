@@ -516,6 +516,28 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_start_air(JNIEnv* env, jcl
     return cpress_start_air(reinterpret_cast<CPressContext*>(handle));
 }
 
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_device_version_info(JNIEnv* env, jclass, jlong handle, jobject info)
+{
+    CPressVersionInfo vi;
+    if (cpress_get_device_version_info(reinterpret_cast<CPressContext*>(handle), &vi) == 0)
+    {
+        return 0;
+    }
+    if (info != nullptr)
+    {
+        jclass cls = env->GetObjectClass(info);
+        jfieldID fAppNo = env->GetFieldID(cls, "appNo", "B");
+        jfieldID fMajor = env->GetFieldID(cls, "major", "B");
+        jfieldID fMinor = env->GetFieldID(cls, "minor", "B");
+        jfieldID fPatch = env->GetFieldID(cls, "patch", "B");
+        if (fAppNo != nullptr) env->SetByteField(info, fAppNo, static_cast<jbyte>(vi.appNo));
+        if (fMajor != nullptr) env->SetByteField(info, fMajor, static_cast<jbyte>(vi.major));
+        if (fMinor != nullptr) env->SetByteField(info, fMinor, static_cast<jbyte>(vi.minor));
+        if (fPatch != nullptr) env->SetByteField(info, fPatch, static_cast<jbyte>(vi.patch));
+    }
+    return 1;
+}
+
 extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_version(JNIEnv* env, jclass)
 {
     return toJavaString(env, cpress_version());

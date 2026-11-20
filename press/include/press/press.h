@@ -155,6 +155,17 @@ typedef struct CPressDataCallbacks
     PressCMixDataCallback onMixData;            //!< MD JSON / 混合模式参数
 } CPressDataCallbacks;
 
+//! Device firmware version cached during the connect handshake.
+//! Reading it does not issue a new device request (returns m_JsonData.m_VersionInfo).
+//! 设备固件版本，连接握手时缓存；读取不发起新请求（返回 m_JsonData.m_VersionInfo）。
+typedef struct CPressVersionInfo
+{
+    uint8_t appNo;   //!< Application type (AppType) / 应用类型
+    uint8_t major;   //!< Major version / 主版本号
+    uint8_t minor;   //!< Minor version / 次版本号
+    uint8_t patch;   //!< Patch version / 修订号
+} CPressVersionInfo;
+
 //! Create a new Press SDK handle / 创建新的 Press SDK 句柄
 //! @return Pointer to a new CPressContext, or NULL on failure / 新的 CPressContext 指针；失败返回 NULL
 PRESS_C_EXPORT CPressContext* cpress_create(void);
@@ -182,6 +193,14 @@ PRESS_C_EXPORT int cpress_is_connected(const CPressContext* handle);
 //! Query the unique hardware register number / 获取唯一设备注册号
 //! @return Device register number / 设备注册号
 PRESS_C_EXPORT uint64_t cpress_get_machine_register_no(const CPressContext* handle);
+
+//! Read the cached device firmware version (m_JsonData.m_VersionInfo).
+//! Populated during the connect handshake; this call does not issue a new
+//! device request. / 读取连接握手时缓存的设备固件版本，不发起新请求。
+//! @param handle Active context / 有效的上下文
+//! @param info   [out] Cached version on success / 成功时填充缓存版本
+//! @return 1 on success, 0 on failure (e.g. not connected) / 成功 1，未连接等失败 0
+PRESS_C_EXPORT int cpress_get_device_version_info(const CPressContext* handle, CPressVersionInfo* info);
 
 //! Query the last error message / 获取最后一条错误信息
 //! @return Null-terminated string. The pointer remains valid until the next API

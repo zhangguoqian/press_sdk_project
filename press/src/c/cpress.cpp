@@ -726,6 +726,25 @@ PRESS_C_EXPORT int cpress_start_air(CPressContext* handle)
     return handle->impl->startAir() ? 1 : 0;
 }
 
+PRESS_C_EXPORT int cpress_get_device_version_info(const CPressContext* handle, CPressVersionInfo* info)
+{
+    if (handle == nullptr || handle->impl == nullptr || info == nullptr)
+    {
+        return 0;
+    }
+
+    VersionInfo vi{};
+    if (!handle->impl->getDeviceVersionInfo(vi))
+    {
+        return 0;
+    }
+    info->appNo = static_cast<uint8_t>(vi.m_AppNo);
+    info->major = vi.m_Major;
+    info->minor = vi.m_Minor;
+    info->patch = vi.m_Patch;
+    return 1;
+}
+
 PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle,
                                                  const CPressDataCallbacks* callbacks,
                                                  int intervalSeconds)

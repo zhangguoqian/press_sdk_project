@@ -6,4 +6,3 @@ build_review*
 install
 *.class
 build*
-!example/ui/build.py
