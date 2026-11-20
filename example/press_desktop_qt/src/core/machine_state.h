@@ -124,7 +124,7 @@ public:
     void commitPressureStage(int index);
     void commitTemperatureStage(int index);
     void commitCoopStage(int index);
-    void commitMold();
+    void commitMold(bool includeType = false);
     void commitCoopMold();
     void applyPressProgram(const PressProgramData &data);
     void applyTempProgram(const PressTempProgramData &data);

@@ -232,10 +232,16 @@ void MachineState::commitCoopStage(int index)
         emit sdkError(QStringLiteral("合作流程参数下发失败"));
 }
 
-void MachineState::commitMold()
+void MachineState::commitMold(bool includeType)
 {
     if (!sdkMode())
         return;
+    if (includeType) {
+        const int type = moldShape == MoldShape::Special ? 0
+                       : (moldShape == MoldShape::Circle ? 1 : 2);
+        if (!m_service->pushMoldType(type))
+            emit sdkError(QStringLiteral("模具类型下发失败"));
+    }
     if (moldShape == MoldShape::Circle) {
         if (!m_service->pushMoldCircle(moldDia))
             emit sdkError(QStringLiteral("圆形模具参数下发失败"));

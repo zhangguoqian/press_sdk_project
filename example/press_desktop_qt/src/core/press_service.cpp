@@ -934,6 +934,17 @@ bool PressService::pushMoldRect(double length, double width)
     return true;
 }
 
+bool PressService::pushMoldType(int type)
+{
+    if (!m_connected)
+        return false;
+    queueWrite(QStringLiteral("press-mold-type"), QStringLiteral("单独模具类型"),
+               [this, type] {
+                   return m_press->setMoldType(static_cast<uint8_t>(type));
+               });
+    return true;
+}
+
 bool PressService::pushCoopMoldCircle(double diameter)
 {
     if (!m_connected)
