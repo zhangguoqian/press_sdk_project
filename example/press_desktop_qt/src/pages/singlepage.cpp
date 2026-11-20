@@ -304,6 +304,7 @@ QWidget *SinglePage::buildTemperatureControlCard()
     groupLayout->addWidget(sub);
 
     m_temperatureKv = new KvList(group);
+    m_temperatureKv->setRowHeight(35);
     m_temperatureKv->addRow(QStringLiteral("setT"), QStringLiteral("设定温度"),
                             QStringLiteral("°C"));
     m_temperatureKv->addRow(QStringLiteral("upT"), QStringLiteral("上板温度"),

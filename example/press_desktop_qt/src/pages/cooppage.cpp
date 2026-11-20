@@ -95,6 +95,7 @@ QWidget *CoopPage::buildLeftColumn()
     groupLayout->setSpacing(0);
 
     m_kv = new KvList(group);
+    m_kv->setRowHeight(35);
     m_kv->addRow(QStringLiteral("setP"), QStringLiteral("设定压力"), QStringLiteral("Ton"));
     m_kv->addRow(QStringLiteral("live"), QStringLiteral("实时压力"), QStringLiteral("Ton"),
                  Theme::Brand);
