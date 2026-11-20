@@ -90,9 +90,12 @@ QWidget *CoopPage::buildLeftColumn()
     m_kv->addRow(QStringLiteral("live"), QStringLiteral("实时压力"), QStringLiteral("Ton"),
                  Theme::Brand);
     m_kv->addRow(QStringLiteral("mold"), QStringLiteral("模具压强"), QStringLiteral("MPa"));
-    m_kv->addRow(QStringLiteral("setT"), QStringLiteral("设定温度"), QStringLiteral("°C"));
+    m_kv->addRow(QStringLiteral("setTUp"), QStringLiteral("上板设定温度"),
+                 QStringLiteral("°C"));
     m_kv->addRow(QStringLiteral("upT"), QStringLiteral("上板温度"), QStringLiteral("°C"),
                  Theme::Red);
+    m_kv->addRow(QStringLiteral("setTDown"), QStringLiteral("下板设定温度"),
+                 QStringLiteral("°C"));
     m_kv->addRow(QStringLiteral("downT"), QStringLiteral("下板温度"), QStringLiteral("°C"),
                  Theme::Amber);
     m_kv->addRow(QStringLiteral("hold"), QStringLiteral("计时"), QStringLiteral("mm:ss"));
