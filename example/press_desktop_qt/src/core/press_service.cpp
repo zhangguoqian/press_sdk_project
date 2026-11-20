@@ -480,7 +480,54 @@ void PressService::handleRealTime(int errorCode, const std::string &json)
         emit logMessage(QStringLiteral("实时数据已开始上报，周期采集运行中（1 s）"));
     }
     m_lastRtMs.store(QDateTime::currentMSecsSinceEpoch());
-    emit realTimeUpdated(parseRealTime(json));
+    const PressRtData data = parseRealTime(json);
+    handleFlowChange(data.flowChange);
+    emit realTimeUpdated(data);
+}
+
+void PressService::handleFlowChange(int flowChange)
+{
+    // 0：无变更；非 0 值重复上报时只处理一次，回到 0 后重新武装
+    if (flowChange == 0) {
+        m_lastFlowChange.store(0);
+        return;
+    }
+    if (flowChange == m_lastFlowChange.load())
+        return;
+    m_lastFlowChange.store(flowChange);
+
+    // 读取 JSON 为同步请求，RT 回调运行在 SDK 定时线程，切回界面线程执行
+    QMetaObject::invokeMethod(this, [this, flowChange] {
+        std::string json;
+        switch (flowChange) {
+        case 1:
+            emit logMessage(
+                QStringLiteral("设备压力参数已变更（FlowChange=1），重新读取 PressData"));
+            if (!m_press->getPressDataJson(json))
+                emit logMessage(QStringLiteral("重新读取 PressData 失败：%1").arg(lastError()),
+                                LogLevel::Warning);
+            break;
+        case 2:
+            emit logMessage(
+                QStringLiteral("设备温度参数已变更（FlowChange=2），重新读取 TempData"));
+            if (!m_press->getTempDataJson(json))
+                emit logMessage(QStringLiteral("重新读取 TempData 失败：%1").arg(lastError()),
+                                LogLevel::Warning);
+            break;
+        case 3:
+            emit logMessage(
+                QStringLiteral("设备合作参数已变更（FlowChange=3），重新读取 MixData"));
+            if (!m_press->getMixDataJson(json))
+                emit logMessage(QStringLiteral("重新读取 MixData 失败：%1").arg(lastError()),
+                                LogLevel::Warning);
+            break;
+        default:
+            emit logMessage(QStringLiteral("收到未知的参数变更标记 FlowChange=%1")
+                                .arg(flowChange),
+                            LogLevel::Warning);
+            break;
+        }
+    }, Qt::QueuedConnection);
 }
 
 void PressService::handleReadOnlyData(uint64_t registerNo, const std::string &json)
@@ -579,6 +626,7 @@ void PressService::connectEndpoint(const QString &endpoint, bool tcp, bool autom
     }
     m_endpoint = target;
     m_loggedFirstRt = false;
+    m_lastFlowChange.store(0);
     emit logMessage(automatic
                         ? QStringLiteral("正在自动重连设备 %1（%2）…")
                               .arg(target, tcp ? QStringLiteral("TCP")
@@ -693,6 +741,7 @@ void PressService::disconnectDevice()
     }
     m_connected = false;
     setStale(false);
+    m_lastFlowChange.store(0);
     if (hadLink) {
         emit logMessage(QStringLiteral("设备连接已断开：%1").arg(m_endpoint),
                         LogLevel::Warning);

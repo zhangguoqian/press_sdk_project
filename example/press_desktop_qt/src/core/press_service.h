@@ -233,6 +233,7 @@ private:
     };
 
     void handleRealTime(int errorCode, const std::string &json);
+    void handleFlowChange(int flowChange);
     void handleReadOnlyData(uint64_t registerNo, const std::string &json);
     void handlePressData(const std::string &json);
     void handleTempData(const std::string &json);
@@ -279,4 +280,5 @@ private:
     QVector<PendingCommand> m_pendingCommands;
     QVector<PendingWrite> m_pendingWrites;
     PressRtData m_lastRt;
+    std::atomic<int> m_lastFlowChange{0};
 };
