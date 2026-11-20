@@ -191,12 +191,4 @@ void RealtimeChart::paintEvent(QPaintEvent *)
     drawTemperature(m_down, QColor(0xE8, 0x73, 0x0C), QColor(232, 115, 12, 40));
 
     p.restore();
-
-    // x 轴说明
-    p.setFont(Theme::num(9));
-    p.setPen(QColor(0xA9, 0xBC, 0xCB));
-    p.drawText(QRectF(padLeft, padTop + plotHeight + 7, 80, 14),
-               Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("-180 s"));
-    p.drawText(QRectF(padLeft + plotWidth - 80, padTop + plotHeight + 7, 80, 14),
-               Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("现在"));
 }
