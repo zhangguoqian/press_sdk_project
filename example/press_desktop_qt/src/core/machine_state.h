@@ -176,5 +176,4 @@ private:
     bool m_coopRequested = false;
     bool m_coopSeenRunning = false;
     int m_coopIdleFrames = 0;
-    double m_sdkMoldPressure = -1.0;
 };

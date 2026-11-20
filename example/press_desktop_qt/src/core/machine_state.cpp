@@ -94,9 +94,6 @@ double MachineState::moldArea() const
 
 double MachineState::moldPressure(double ton) const
 {
-    // 已连接设备时直接采用设备上报的模具压强
-    if (m_sdkMoldPressure >= 0.0)
-        return m_sdkMoldPressure;
     const double area = moldArea();
     if (area <= 0.0)
         return -1.0;
@@ -146,7 +143,6 @@ void MachineState::attachService(PressService *service)
             [this](bool connected, const QString &endpoint) {
                 if (!connected) {
                     // 断开后回到本地模拟，清空设备侧运行态
-                    m_sdkMoldPressure = -1.0;
                     press = false;
                     heat = false;
                     coopRunning = false;
@@ -293,8 +289,6 @@ double MachineState::coopMoldArea() const
 
 double MachineState::coopMoldPressure(double ton) const
 {
-    if (m_sdkMoldPressure >= 0.0)
-        return m_sdkMoldPressure;
     const double area = coopMoldArea();
     if (area <= 0.0)
         return -1.0;
