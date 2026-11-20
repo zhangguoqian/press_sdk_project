@@ -42,7 +42,7 @@ private:
         QString time;      // yyyy-MM-dd HH:mm:ss.zzz
         LogLevel level = LogLevel::Info;
         QString text;
-        int repeat = 1;    // 5 s 内相同消息合并次数
+        int repeat = 1;    // 合并窗口内相同消息合并次数
         qint64 timeMs = 0; // 用于重复判定
     };
 
@@ -64,6 +64,11 @@ private:
     QVector<Entry> m_entries;
     QString m_logDir;
     int m_unseen = 0;
+    // config.ini 中的运行参数（启动时读取一次）
+    int m_maxEntries = 500;
+    int m_mergeWindowMs = 5000;
+    qint64 m_maxFileBytes = 5 * 1024 * 1024;
+    int m_retentionDays = 7;
 
     bool m_dragging = false;
     int m_dragStartY = 0;

@@ -1,0 +1,15 @@
+{
+  "ModelState": 2,
+  "IsPStart": 1,
+  "IsTStart": 1,
+  "IsT1Start": 0,
+  "IsAir": 1,
+  "CPStep": 2,
+  "CTStep": 3,
+  "PValue": 12.5,
+  "TUpValue": 88.5,
+  "TDownValue": 90.2,
+  "PTime": 123,
+  "TTime": 456,
+  "FlowChange": 3
+}

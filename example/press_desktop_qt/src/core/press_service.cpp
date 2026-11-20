@@ -1,185 +1,16 @@
 #include "core/press_service.h"
 
+#include "core/app_config.h"
+#include "core/app_settings.h"
 #include "core/format.h"
+#include "core/press_json.h"
 #include "press/press.hpp"
 
 #include <QByteArray>
 #include <QDateTime>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonValue>
 #include <QTimer>
 
 using PortType = PressPortType;
-
-namespace {
-
-double jsonNumber(const QJsonObject &object, const char *key)
-{
-    return object.value(QLatin1String(key)).toDouble();
-}
-
-int jsonInt(const QJsonObject &object, const char *key)
-{
-    return object.value(QLatin1String(key)).toInt();
-}
-
-PressReadOnlyData parseReadOnly(const std::string &json)
-{
-    PressReadOnlyData data;
-    const QJsonObject object = QJsonDocument::fromJson(
-        QByteArray::fromStdString(json)).object();
-
-    data.nameZh = object.value(QLatin1String("NameZH")).toString();
-    data.nameEn = object.value(QLatin1String("NameEN")).toString();
-    data.type = object.value(QLatin1String("Type")).toString();
-    data.serialNumber = object.value(QLatin1String("SerialNumber")).toString();
-
-    data.maxPStep = jsonInt(object, "MaxPStep");
-    data.maxTStep = jsonInt(object, "MaxTStep");
-    data.maxPLimit = jsonNumber(object, "MaxPLimit");
-    data.minPLimit = jsonNumber(object, "MinPLimit");
-    data.autoBoost = jsonNumber(object, "Max_Min");
-    data.diameter = jsonNumber(object, "Diameter");
-    data.maxTLimit = jsonNumber(object, "MaxTLimit");
-    data.minTLimit = jsonNumber(object, "MinTLimit");
-
-    data.pDecimal = jsonInt(object, "PDecimal");
-    data.pressDecimal = jsonInt(object, "PressDecimal");
-    data.tDecimal = jsonInt(object, "TDecimal");
-
-    data.hasWater = jsonInt(object, "IsHasWater") != 0;
-    data.hasSpeed = jsonInt(object, "IsHasSpeed") != 0;
-    data.network = jsonInt(object, "Network") != 0;
-    data.startDelay = jsonInt(object, "StartDelay");
-    data.versionType = jsonInt(object, "VersionType");
-    return data;
-}
-
-PressProgramData parsePressProgram(const std::string &json)
-{
-    PressProgramData data;
-    const QJsonObject object = QJsonDocument::fromJson(
-        QByteArray::fromStdString(json)).object();
-
-    data.stepCount = qBound(1, jsonInt(object, "PStep"), 30);
-    data.type = jsonInt(object, "Type");
-    data.a = jsonNumber(object, "A");
-    data.b = jsonNumber(object, "B");
-    data.d = jsonNumber(object, "D");
-    data.checkValue = jsonNumber(object, "CheckValue");
-    data.airTime = jsonInt(object, "AirTime");
-
-    const auto readNumbers = [&object](const char *key) {
-        QVector<double> values;
-        const QJsonArray array = object.value(QLatin1String(key)).toArray();
-        values.reserve(array.size());
-        for (const QJsonValue &value : array)
-            values.append(value.toDouble());
-        return values;
-    };
-    data.setP = readNumbers("SetPValue");
-    data.afterP = readNumbers("AfterValue");
-
-    const QJsonArray keep = object.value(QLatin1String("KPTime")).toArray();
-    data.keepSec.reserve(keep.size());
-    for (const QJsonValue &value : keep)
-        data.keepSec.append(value.toInt());
-    return data;
-}
-
-PressTempProgramData parseTempProgram(const std::string &json)
-{
-    PressTempProgramData data;
-    const QJsonObject object = QJsonDocument::fromJson(
-        QByteArray::fromStdString(json)).object();
-
-    data.stepCount = qBound(1, jsonInt(object, "TStep"), 30);
-    data.type = jsonInt(object, "Type");
-    data.minWater = jsonNumber(object, "MinWater");
-    data.maxWater = jsonNumber(object, "MaxWater");
-
-    const auto readNumbers = [&object](const char *key) {
-        QVector<double> values;
-        const QJsonArray array = object.value(QLatin1String(key)).toArray();
-        values.reserve(array.size());
-        for (const QJsonValue &value : array)
-            values.append(value.toDouble());
-        return values;
-    };
-    data.startTemp = readNumbers("StartTemp");
-    data.speed = readNumbers("Speed");
-
-    const QJsonArray keep = object.value(QLatin1String("KTTime")).toArray();
-    data.keepSec.reserve(keep.size());
-    for (const QJsonValue &value : keep)
-        data.keepSec.append(value.toInt());
-    return data;
-}
-
-PressMixProgramData parseMixProgram(const std::string &json)
-{
-    PressMixProgramData data;
-    const QJsonObject object = QJsonDocument::fromJson(
-        QByteArray::fromStdString(json)).object();
-
-    data.stepCount = qBound(1, jsonInt(object, "Step"), 30);
-    data.type = jsonInt(object, "Type");
-    data.a = jsonNumber(object, "A");
-    data.b = jsonNumber(object, "B");
-    data.d = jsonNumber(object, "D");
-
-    const auto readNumbers = [&object](const char *key) {
-        QVector<double> values;
-        const QJsonArray array = object.value(QLatin1String(key)).toArray();
-        values.reserve(array.size());
-        for (const QJsonValue &value : array)
-            values.append(value.toDouble());
-        return values;
-    };
-    const auto readInts = [&object](const char *key) {
-        QVector<int> values;
-        const QJsonArray array = object.value(QLatin1String(key)).toArray();
-        values.reserve(array.size());
-        for (const QJsonValue &value : array)
-            values.append(value.toInt());
-        return values;
-    };
-
-    data.isPress = readInts("IsPress");
-    data.setP = readNumbers("SetPValue");
-    data.afterP = readNumbers("AfterValue");
-    data.isUpHeat = readInts("IsUpHeat");
-    data.upTemp = readNumbers("UpTemp");
-    data.isDownHeat = readInts("IsDownHeat");
-    data.downTemp = readNumbers("DownTemp");
-    data.keepSec = readInts("KTime");
-    return data;
-}
-
-PressRtData parseRealTime(const std::string &json)
-{
-    PressRtData data;
-    const QJsonObject object = QJsonDocument::fromJson(
-        QByteArray::fromStdString(json)).object();
-
-    data.modelState = jsonInt(object, "ModelState");
-    data.pressOn = jsonInt(object, "IsPStart") != 0;
-    data.heatOn = jsonInt(object, "IsTStart") != 0 || jsonInt(object, "IsT1Start") != 0;
-    data.airAllowed = jsonInt(object, "IsAir") != 0;
-    data.pressStep = jsonInt(object, "CPStep");
-    data.tempStep = jsonInt(object, "CTStep");
-    data.pressure = jsonNumber(object, "PValue");
-    data.tempUp = jsonNumber(object, "TUpValue");
-    data.tempDown = jsonNumber(object, "TDownValue");
-    data.pressRemainSec = jsonInt(object, "PTime");
-    data.tempRemainSec = jsonInt(object, "TTime");
-    data.flowChange = jsonInt(object, "FlowChange");
-    return data;
-}
-
-} // namespace
 
 /**
  * SDK 回调适配器：只负责把 SDK 线程的回调转给 PressService，
@@ -237,7 +68,7 @@ PressService::PressService(QObject *parent)
 
     // 看门狗：1 s 检查一次实时数据是否超时
     m_watchdog = new QTimer(this);
-    m_watchdog->setInterval(1000);
+    m_watchdog->setInterval(AppSettings::instance().watchdogIntervalMs());
     connect(m_watchdog, &QTimer::timeout, this, &PressService::checkWatchdog);
 
     // 自动重连定时器（单次触发，每次失败后重新计算退避时间）
@@ -256,7 +87,7 @@ PressService::PressService(QObject *parent)
 
     // 控制指令确认：200 ms 检查一次超时，RT 到达时校验设备状态
     m_commandTimer = new QTimer(this);
-    m_commandTimer->setInterval(200);
+    m_commandTimer->setInterval(AppConfig::CommandCheckMs);
     connect(m_commandTimer, &QTimer::timeout, this, &PressService::checkCommandTimeouts);
     connect(this, &PressService::realTimeUpdated, this,
             &PressService::checkPendingCommands, Qt::QueuedConnection);
@@ -264,7 +95,7 @@ PressService::PressService(QObject *parent)
     // 参数写入去抖：400 ms 内的连续修改合并为一次下发
     m_writeTimer = new QTimer(this);
     m_writeTimer->setSingleShot(true);
-    m_writeTimer->setInterval(400);
+    m_writeTimer->setInterval(AppSettings::instance().writeDebounceMs());
     connect(m_writeTimer, &QTimer::timeout, this, [this] { flushWrites(); });
 }
 
@@ -309,7 +140,7 @@ void PressService::checkWatchdog()
         return;
 
     const qint64 idle = QDateTime::currentMSecsSinceEpoch() - m_lastRtMs.load();
-    if (idle < 3000) {
+    if (idle < AppSettings::instance().staleTimeoutMs()) {
         if (m_stale) {
             setStale(false);
             m_reconnectTimer->stop();
@@ -326,7 +157,7 @@ void PressService::checkWatchdog()
         emit sdkError(QStringLiteral("通讯中断：超过 3 秒未收到设备实时数据"));
     }
 
-    if (idle >= 10000)
+    if (idle >= AppSettings::instance().reconnectTriggerMs())
         scheduleReconnect();
 }
 
@@ -363,7 +194,8 @@ void PressService::trackCommand(CommandKind kind, const QString &name, int model
     command.kind = kind;
     command.name = name;
     command.model = model;
-    command.deadlineMs = QDateTime::currentMSecsSinceEpoch() + 3000;
+    command.deadlineMs = QDateTime::currentMSecsSinceEpoch()
+        + AppSettings::instance().commandTimeoutMs();
     m_pendingCommands.append(command);
 
     if (!m_commandTimer->isActive())
@@ -481,7 +313,7 @@ void PressService::handleRealTime(int errorCode, const std::string &json)
         emit logMessage(QStringLiteral("实时数据已开始上报，周期采集运行中（1 s）"));
     }
     m_lastRtMs.store(QDateTime::currentMSecsSinceEpoch());
-    const PressRtData data = parseRealTime(json);
+    const PressRtData data = PressJson::parseRealTime(json);
     handleFlowChange(data.flowChange);
     emit realTimeUpdated(data);
 }
@@ -536,7 +368,7 @@ void PressService::handleReadOnlyData(uint64_t registerNo, const std::string &js
     Q_UNUSED(registerNo)
     if (json.empty())
         return;
-    const PressReadOnlyData data = parseReadOnly(json);
+    const PressReadOnlyData data = PressJson::parseReadOnly(json);
     emit logMessage(QStringLiteral(
         "ReadOnlyData：%1（%2），SN %3，VersionType=%4，压力段上限 %5，温度段上限 %6")
         .arg(data.nameZh, data.type, data.serialNumber)
@@ -550,7 +382,7 @@ void PressService::handlePressData(const std::string &json)
 {
     if (json.empty())
         return;
-    const PressProgramData data = parsePressProgram(json);
+    const PressProgramData data = PressJson::parsePressProgram(json);
     emit logMessage(QStringLiteral("PressData：%1 段，模具类型 %2")
                         .arg(data.stepCount)
                         .arg(data.type));
@@ -561,7 +393,7 @@ void PressService::handleTempData(const std::string &json)
 {
     if (json.empty())
         return;
-    const PressTempProgramData data = parseTempProgram(json);
+    const PressTempProgramData data = PressJson::parseTempProgram(json);
     emit logMessage(QStringLiteral("TempData：%1 段，降温水温 %2 °C，升温水温 %3 °C，模式 %4")
                         .arg(data.stepCount)
                         .arg(fmtNumber(data.minWater))
@@ -575,7 +407,7 @@ void PressService::handleMixData(const std::string &json)
 {
     if (json.empty())
         return;
-    const PressMixProgramData data = parseMixProgram(json);
+    const PressMixProgramData data = PressJson::parseMixProgram(json);
     emit logMessage(QStringLiteral("MixData：%1 段，模具类型 %2")
                         .arg(data.stepCount)
                         .arg(data.type));

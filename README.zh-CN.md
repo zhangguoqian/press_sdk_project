@@ -89,10 +89,12 @@ press_sdk_project/
 │           ├── json_writer.cpp
 │           └── ...
 ├── example/
-│   └── Qt/
+│   └── press_desktop_qt/
 │       ├── CMakeLists.txt
-│       ├── main.cpp
-│       └── ui/
+│       ├── src/
+│       └── tests/
+├── test/
+│   └── cpp/
 ├── interface/
 │   ├── java/
 │   ├── csharp/
@@ -106,7 +108,7 @@ press_sdk_project/
 
 - `press/include/press` 目录中的头文件是 SDK 对外公开 API。
 - `press/src` 目录中包含协议实现、端口抽象和私有逻辑。
-- `example/Qt` 中的代码用于展示如何在真实应用中接入该 SDK。
+- `example/press_desktop_qt` 为 Qt 桌面应用示例（含 JSON 解析单元测试）；`test/cpp` 为 SDK C++ 接口测试。
 
 ---
 
@@ -114,7 +116,7 @@ press_sdk_project/
 
 - CMake 3.27+
 - 支持 C++17 的编译器（MSVC、GCC、Clang 等）
-- 若构建 Qt 示例，需要 Qt 5 或 Qt 6
+- 若构建 Qt 示例，需要 Qt 5.12+（当前示例验证于 Qt 5.15.2 / mingw81_32）
 - Windows 下可使用 MSVC 或 MinGW；Linux/macOS 可使用系统自带工具链
 
 ---
@@ -379,18 +381,39 @@ press.registerDataInterface(&handler);
 
 ## 跨平台编译说明
 
-本项目默认不编译示例程序，仅构建 SDK 共享库和安装产物；如需启用 Qt 示例，可额外设置 `-DBUILD_QT_EXAMPLE=ON`。
+Qt 示例与 C++ 测试分别由 `BUILD_QT_EXAMPLE`、`BUILD_CPP_TEST` 控制（默认 ON）。Qt 路径不再写死在 CMake 中，按 `-DCMAKE_PREFIX_PATH` / 环境变量 / PATH 中的 qmake 自动确定。
 
-### Windows (MSVC / MinGW)
+### Windows (MinGW + Qt)
+
+```powershell
+$env:Path = "C:\Qt\5.15.2\mingw81_32\bin;C:\Qt\Tools\mingw810_32\bin;" + $env:Path
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH=C:/Qt/5.15.2/mingw81_32
+cmake --build build -- -j 8
+ctest --test-dir build -R press_json_test --output-on-failure
+```
+
+### 运行参数配置
+
+Qt 示例首次启动会在 `%APPDATA%\AUTO HOT PRESS\自动热压机 · 上位机\config.ini` 写入默认值，修改后重启生效（越界值会被自动收敛到合法范围）：
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `runtime/tickIntervalMs` | 500 | 界面节拍 / 本地模拟步长 |
+| `runtime/watchdogIntervalMs` | 1000 | 通讯看门狗检查周期 |
+| `runtime/staleTimeoutMs` | 3000 | 超过该时长未收到 RT 判为中断 |
+| `runtime/reconnectTriggerMs` | 10000 | 中断持续该时长后触发自动重连 |
+| `runtime/commandTimeoutMs` | 3000 | 控制指令等待确认的超时 |
+| `runtime/writeDebounceMs` | 400 | 参数写入去抖 |
+| `logs/maxEntries` | 500 | 界面日志最大条数 |
+| `logs/mergeWindowMs` | 5000 | 重复日志合并窗口 |
+| `logs/maxFileBytes` | 5242880 | 单个日志文件上限（字节） |
+| `logs/retentionDays` | 7 | 日志保留天数 |
+
+### Windows (MSVC)
 
 ```bash
-# MSVC x64
-cmake -B build -G "Visual Studio 17 2022" -A x64
-cmake --build build
-
-# MinGW
-cmake -B build -G "MinGW Makefiles"
-cmake --build build
+cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/5.15.2/msvc2019_64
+cmake --build build --config Release
 ```
 
 ### Linux

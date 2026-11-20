@@ -1,4 +1,5 @@
 #include "widgets/logpanel.h"
+#include "core/app_settings.h"
 #include "theme/theme.h"
 
 #include <QCheckBox>
@@ -18,18 +19,13 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QShowEvent>
+
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QUrl>
 #include <QVBoxLayout>
 
 namespace {
-
-constexpr int kMaxEntries = 500;
-constexpr qint64 kMergeWindowMs = 5000;
-constexpr qint64 kMaxFileBytes = 5 * 1024 * 1024;
-constexpr int kRetentionDays = 7;
-
 LogLevel detectLevel(const QString &text)
 {
     if (text.contains(QStringLiteral("失败"))
@@ -82,6 +78,13 @@ LogPanel::LogPanel(QWidget *parent)
     setObjectName(QStringLiteral("logPanel"));
     setAttribute(Qt::WA_StyledBackground, true);
     setFixedHeight(156);
+
+    // 读取 config.ini 中的日志参数（仅启动时一次）
+    const AppSettings &settings = AppSettings::instance();
+    m_maxEntries = settings.logMaxEntries();
+    m_mergeWindowMs = settings.logMergeWindowMs();
+    m_maxFileBytes = settings.logMaxFileBytes();
+    m_retentionDays = settings.logRetentionDays();
 
     // 自动落盘目录：<AppData>/logs，按天一个文件
     m_logDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
@@ -164,7 +167,7 @@ LogPanel::LogPanel(QWidget *parent)
     m_text->setObjectName(QStringLiteral("logText"));
     m_text->setReadOnly(true);
     m_text->setFrameShape(QFrame::NoFrame);
-    m_text->setMaximumBlockCount(kMaxEntries);
+    m_text->setMaximumBlockCount(m_maxEntries);
     m_text->setFont(Theme::num(11));
     layout->addWidget(m_text, 1);
 
@@ -193,10 +196,10 @@ void LogPanel::append(const QString &message, LogLevel level)
     entry.text = message;
     entry.timeMs = now.toMSecsSinceEpoch();
 
-    // 5 s 内相同消息合并为一条，显示重复次数，避免通讯错误刷屏
+    // 相同消息在合并窗口内合并为一条，显示重复次数，避免通讯错误刷屏
     if (!m_entries.isEmpty()) {
         Entry &last = m_entries.last();
-        if (last.text == message && entry.timeMs - last.timeMs <= kMergeWindowMs) {
+        if (last.text == message && entry.timeMs - last.timeMs <= m_mergeWindowMs) {
             ++last.repeat;
             writeToFile(entry);
             if (matches(last))
@@ -208,7 +211,7 @@ void LogPanel::append(const QString &message, LogLevel level)
     }
 
     m_entries.append(entry);
-    if (m_entries.size() > kMaxEntries)
+    if (m_entries.size() > m_maxEntries)
         m_entries.removeFirst();
 
     writeToFile(entry);
@@ -393,8 +396,8 @@ void LogPanel::writeToFile(const Entry &entry)
     const QString date = QDate::currentDate().toString(QStringLiteral("yyyyMMdd"));
     QString path = QStringLiteral("%1/%2.log").arg(m_logDir, date);
     QFileInfo info(path);
-    if (info.exists() && info.size() >= kMaxFileBytes) {
-        // 超过 5 MB 轮转一次，最多保留当天两个文件
+    if (info.exists() && info.size() >= m_maxFileBytes) {
+        // 超过配置上限轮转一次，最多保留当天两个文件
         const QString backup = QStringLiteral("%1/%2.1.log").arg(m_logDir, date);
         QFile::remove(backup);
         QFile::rename(path, backup);
@@ -414,7 +417,7 @@ void LogPanel::pruneOldLogs()
     QDir dir(m_logDir);
     if (!dir.exists())
         return;
-    const QDateTime cutoff = QDateTime::currentDateTime().addDays(-kRetentionDays);
+    const QDateTime cutoff = QDateTime::currentDateTime().addDays(-m_retentionDays);
     const QFileInfoList files = dir.entryInfoList(
         {QStringLiteral("*.log")}, QDir::Files, QDir::Time);
     for (const QFileInfo &info : files) {

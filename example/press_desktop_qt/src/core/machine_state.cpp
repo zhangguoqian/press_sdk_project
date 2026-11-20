@@ -1,17 +1,14 @@
 #include "core/machine_state.h"
-#include "core/format.h"
 
-#include <QRandomGenerator>
+#include "core/app_settings.h"
+#include "core/format.h"
+#include "core/machine_simulator.h"
+
 #include <QTimer>
 #include <QtMath>
 
 namespace {
 constexpr double kPi = 3.14159265358979323846;
-
-double noise(double amplitude)
-{
-    return (QRandomGenerator::global()->generateDouble() - 0.5) * amplitude;
-}
 } // namespace
 
 MachineState::MachineState(QObject *parent)
@@ -50,7 +47,7 @@ MachineState::MachineState(QObject *parent)
     }
 
     m_timer = new QTimer(this);
-    m_timer->setInterval(500);
+    m_timer->setInterval(AppSettings::instance().tickIntervalMs());
     connect(m_timer, &QTimer::timeout, this, &MachineState::tick);
     m_timer->start();
 }
@@ -682,75 +679,15 @@ void MachineState::notifySettingsChanged()
 void MachineState::tick()
 {
     // 已连接设备：运行数据由 SDK 1s 回调驱动，
-    // 这里只保留 500ms 采样节拍供曲线刷新。
+    // 这里只保留界面节拍供曲线刷新。
     if (sdkMode()) {
         if (running())
-            runtime += 0.5;
+            runtime += m_timer->interval() / 1000.0;
         emit ticked();
         return;
     }
 
-    bool anyRunning = press || heat || coopRunning;
-
-    if (press) {
-        const double target = pStages[pressureIndex()].p;
-        liveP += (target - liveP) * 0.18 + noise(0.03);
-        liveP = qBound(0.0, liveP, target * 1.02);
-        pRemain -= 30;
-        if (pRemain <= 0) {
-            if (pStage < pCount) {
-                ++pStage;
-                pRemain = pStages[pStage - 1].hold;
-            } else {
-                press = false;
-                pStage = 0;
-                liveP = 0.0;
-                pRemain = 0;
-                ++output;
-            }
-        }
-    } else if (liveP > 0.0) {
-        liveP = qMax(0.0, liveP - liveP * 0.3);
-        if (liveP < 0.02)
-            liveP = 0.0;
-    }
-
-    if (heat) {
-        const TemperatureStage &ts = tStages[temperatureIndex()];
-        const double diff = ts.t - upT;
-        upT += (diff >= 0 ? 1.0 : -1.0)
-            * qMin(qAbs(diff), qMax(0.08, qAbs(diff) * 0.08))
-            + noise(0.05);
-        downT += ((ts.t - 0.6) - downT) * 0.1;
-
-        tRemain -= 12;
-        if (tRemain <= 0) {
-            if (tStage < tCount) {
-                ++tStage;
-                tRemain = tStages[tStage - 1].hold;
-            } else {
-                heat = false;
-                tStage = 0;
-            }
-        }
-    }
-
-    if (coopRunning) {
-        coopRemain -= 30;
-        if (coopRemain <= 0) {
-            if (coopStage < coopCount) {
-                ++coopStage;
-                coopRemain = coopRows[coopStage - 1].hold;
-            } else {
-                coopRunning = false;
-                coopStage = 0;
-                coopRemain = 0;
-            }
-        }
-    }
-
-    if (anyRunning)
-        runtime += 0.5;
+    Simulation::step(*this);
 
     emit ticked();
     emit changed();

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.27)
 
 project(press_desktop_qt VERSION 3.1.4 LANGUAGES CXX)
 
@@ -7,8 +7,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+# Qt 路径按以下优先级确定，CMake 中不硬编码：
+# 1) -DCMAKE_PREFIX_PATH=... 或环境变量 CMAKE_PREFIX_PATH
+# 2) PATH 中的 qmake（自动查询 QT_INSTALL_PREFIX）
 if(NOT CMAKE_PREFIX_PATH)
-    set(CMAKE_PREFIX_PATH "C:/Qt/5.15.2/mingw81_32")
+    find_program(QT_QMAKE_EXECUTABLE NAMES qmake qmake.exe)
+    if(QT_QMAKE_EXECUTABLE)
+        execute_process(COMMAND "${QT_QMAKE_EXECUTABLE}" -query QT_INSTALL_PREFIX
+                        OUTPUT_VARIABLE _qt_prefix
+                        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(_qt_prefix)
+            set(CMAKE_PREFIX_PATH "${_qt_prefix}")
+        endif()
+    endif()
 endif()
 
 find_package(Qt5 5.12 REQUIRED COMPONENTS Core Gui Widgets)
@@ -43,4 +54,19 @@ if(TARGET press::press)
                 "$<TARGET_FILE:press>" "$<TARGET_FILE_DIR:press_desktop_qt>")
 else()
     message(WARNING "未找到 press::press，设备通讯将不可用（仅本地模拟）")
+endif()
+
+# 单元测试：设备 JSON 解析与样例报文（ctest）
+option(BUILD_QT_TESTS "Build press_desktop_qt unit tests" ON)
+if(BUILD_QT_TESTS)
+    enable_testing()
+    add_executable(press_json_test
+        tests/test_press_json.cpp
+        src/core/press_json.cpp
+    )
+    target_include_directories(press_json_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_link_libraries(press_json_test PRIVATE Qt5::Core)
+    target_compile_definitions(press_json_test PRIVATE
+        FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
+    add_test(NAME press_json_test COMMAND press_json_test)
 endif()

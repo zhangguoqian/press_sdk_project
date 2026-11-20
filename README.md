@@ -115,7 +115,7 @@ Notes:
 
 - The headers under `press/include/press` are the public SDK API.
 - The implementation details and protocol logic live under `press/src`.
-- The `example/Qt` directory demonstrates how to integrate the library into an application.
+- The `example/press_desktop_qt` directory contains the Qt desktop example (with JSON parsing unit tests); `test/cpp` contains the SDK C++ API test.
 
 ---
 
@@ -390,14 +390,26 @@ Typical includes:
 
 ## Cross-platform build notes
 
-### Windows (MSVC / MinGW)
+The Qt example and C++ test are controlled by `BUILD_QT_EXAMPLE` and `BUILD_CPP_TEST` (both ON by default). The Qt path is no longer hard-coded; pass `-DCMAKE_PREFIX_PATH` or rely on the `CMAKE_PREFIX_PATH` environment variable / `qmake` in `PATH`.
+
+### Windows (MinGW + Qt)
+
+```powershell
+$env:Path = "C:\Qt\5.15.2\mingw81_32\bin;C:\Qt\Tools\mingw810_32\bin;" + $env:Path
+cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_PREFIX_PATH=C:/Qt/5.15.2/mingw81_32
+cmake --build build -- -j 8
+ctest --test-dir build -R press_json_test --output-on-failure
+```
+
+### Runtime configuration
+
+On first launch the Qt example writes defaults to `%APPDATA%\AUTO HOT PRESS\自动热压机 · 上位机\config.ini`; restart to apply changes. Keys: `runtime/{tickIntervalMs, watchdogIntervalMs, staleTimeoutMs, reconnectTriggerMs, commandTimeoutMs, writeDebounceMs}` and `logs/{maxEntries, mergeWindowMs, maxFileBytes, retentionDays}`. Out-of-range values are clamped automatically.
+
+### Windows (MSVC)
 
 ```bash
-# MSVC x64
-cmake -B build -G "Visual Studio 17 2022" -A x64
-
-# MinGW
-cmake -B build -G "MinGW Makefiles"
+cmake -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/5.15.2/msvc2019_64
+cmake --build build --config Release
 ```
 
 ### Linux
