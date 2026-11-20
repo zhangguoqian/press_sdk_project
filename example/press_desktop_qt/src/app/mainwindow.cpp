@@ -197,6 +197,19 @@ MainWindow::MainWindow(QWidget *parent)
         const QString key = model == 1 ? QStringLiteral("coop")
                           : model == 2 ? QStringLiteral("single")
                                        : QString();
+        // 设置页不跟随设备模式自动跳转，避免打断设置操作
+        if (m_current == QStringLiteral("settings"))
+            return;
+        // 主动切换后等待设备确认目标模式；确认前的旧模式帧一律忽略，避免页面闪回
+        if (!m_expectedModeKey.isEmpty() && m_modeRequestAge.isValid()) {
+            if (key == m_expectedModeKey) {
+                m_expectedModeKey.clear();
+                return;
+            }
+            if (m_modeRequestAge.elapsed() < 3000)
+                return;
+            m_expectedModeKey.clear();
+        }
         const bool allowed = (key == QStringLiteral("coop") && m_state->coopAllowed)
                           || (key == QStringLiteral("single") && m_state->singleAllowed);
         if (key.isEmpty() || !allowed || key == m_current || m_state->running())
@@ -351,6 +364,10 @@ void MainWindow::navigate(const QString &key)
             && !m_service->selectModel(key == QStringLiteral("coop") ? 1 : 2)) {
             showToast(QStringLiteral("模式切换失败，请检查设备状态"));
             return;
+        }
+        if (m_service->isConnected()) {
+            m_expectedModeKey = key;
+            m_modeRequestAge.restart();
         }
     }
     showPage(key);
