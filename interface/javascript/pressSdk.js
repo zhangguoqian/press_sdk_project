@@ -118,14 +118,15 @@ const pressLib = ffi.Library(resolveLibraryPath(), {
   cpress_set_mix_data_json: ['int', ['void*', 'string', 'int']],
   cpress_set_pressing: ['int', ['void*', 'int']],
   cpress_set_demolding: ['int', ['void*', 'int']],
+  cpress_start_air: ['int', ['void*']],
 
   // Pressure single value / index commands / 压力单值 / 索引命令
   cpress_get_press_step_count: ['int', ['void*', 'pointer']],
   cpress_set_press_step_count: ['int', ['void*', 'uint8']],
   cpress_get_calibration_value: ['int', ['void*', 'pointer']],
   cpress_set_calibration_value: ['int', ['void*', 'float']],
-  cpress_get_mode_type: ['int', ['void*', 'pointer']],
-  cpress_set_mode_type: ['int', ['void*', 'uint8']],
+  cpress_get_mold_type: ['int', ['void*', 'pointer']],
+  cpress_set_mold_type: ['int', ['void*', 'uint8']],
   cpress_get_circle: ['int', ['void*', 'pointer']],
   cpress_set_circle: ['int', ['void*', 'float']],
   cpress_get_rectangle: ['int', ['void*', 'pointer', 'pointer']],
@@ -455,6 +456,15 @@ class PressSdk {
     return pressLib.cpress_set_demolding(this.handle, isDemolding ? 1 : 0) !== 0;
   }
 
+  /**
+   * Start air venting (CMDID_SET_START_AIR 0x1524) / 启动排气，释放管路内压力。
+   * @returns {boolean} true on success / 成功返回 true
+   */
+  startAir() {
+    this._assertHandle();
+    return pressLib.cpress_start_air(this.handle) !== 0;
+  }
+
   // ==================== Pressure / 压力 ====================
 
   // Get/set the pressure step count / 读取或设置压力段数
@@ -479,15 +489,15 @@ class PressSdk {
     return pressLib.cpress_set_calibration_value(this.handle, value) !== 0;
   }
 
-  // Get/set the mode type / 读取或设置模式类型
-  getModeType() {
+  // Get/set the mold type / 读取或设置模具类型
+  getMoldType() {
     this._assertHandle();
-    return readScalarValue('uint8', (out) => pressLib.cpress_get_mode_type(this.handle, out));
+    return readScalarValue('uint8', (out) => pressLib.cpress_get_mold_type(this.handle, out));
   }
 
-  setModeType(type) {
+  setMoldType(type) {
     this._assertHandle();
-    return pressLib.cpress_set_mode_type(this.handle, type) !== 0;
+    return pressLib.cpress_set_mold_type(this.handle, type) !== 0;
   }
 
   // Get/set the circle diameter / 读取或设置圆形直径

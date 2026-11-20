@@ -95,6 +95,11 @@ bool Press::setDemolding(bool isDemolding)
     return mpPrivate->setDemolding(isDemolding);
 }
 
+bool Press::startAir()
+{
+    return mpPrivate->startAir();
+}
+
 // ==================== 设备信息与参数块 ====================
 
 bool Press::getName(std::string& name, uint8_t language)
@@ -144,14 +149,14 @@ bool Press::setCalibrationValue(float value)
     return mpPrivate->setCalibrationValue(value);
 }
 
-bool Press::getModeType(uint8_t& type)
+bool Press::getMoldType(uint8_t& type)
 {
-    return mpPrivate->getModeType(type);
+    return mpPrivate->getMoldType(type);
 }
 
-bool Press::setModeType(uint8_t type)
+bool Press::setMoldType(uint8_t type)
 {
-    return mpPrivate->setModeType(type);
+    return mpPrivate->setMoldType(type);
 }
 
 bool Press::getCircle(float& diameter)

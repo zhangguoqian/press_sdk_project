@@ -383,16 +383,16 @@ PRESS_C_EXPORT int cpress_set_calibration_value(CPressContext* handle, float val
     return handle->impl->setCalibrationValue(value) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_get_mode_type(CPressContext* handle, uint8_t* type)
+PRESS_C_EXPORT int cpress_get_mold_type(CPressContext* handle, uint8_t* type)
 {
     if (handle == nullptr || handle->impl == nullptr || type == nullptr) return 0;
-    return handle->impl->getModeType(*type) ? 1 : 0;
+    return handle->impl->getMoldType(*type) ? 1 : 0;
 }
 
-PRESS_C_EXPORT int cpress_set_mode_type(CPressContext* handle, uint8_t type)
+PRESS_C_EXPORT int cpress_set_mold_type(CPressContext* handle, uint8_t type)
 {
     if (handle == nullptr || handle->impl == nullptr) return 0;
-    return handle->impl->setModeType(type) ? 1 : 0;
+    return handle->impl->setMoldType(type) ? 1 : 0;
 }
 
 PRESS_C_EXPORT int cpress_get_circle(CPressContext* handle, float* diameter)
@@ -714,6 +714,16 @@ PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding)
     }
 
     return handle->impl->setDemolding(isDemolding != 0) ? 1 : 0;
+}
+
+PRESS_C_EXPORT int cpress_start_air(CPressContext* handle)
+{
+    if (handle == nullptr || handle->impl == nullptr)
+    {
+        return 0;
+    }
+
+    return handle->impl->startAir() ? 1 : 0;
 }
 
 PRESS_C_EXPORT void cpress_register_data_interface(CPressContext* handle,

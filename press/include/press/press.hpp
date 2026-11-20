@@ -402,11 +402,11 @@ public:
     bool setCalibrationValue(float value);
 
     //! Read mold type (CMDID_MOLD_TYPE, 1 byte).
-    //! 读取模具类型。
-    bool getModeType(uint8_t& type);
+    //! 读取模具类型（压力段）。
+    bool getMoldType(uint8_t& type);
 
-    //! Write mold type / 写入模具类型。
-    bool setModeType(uint8_t type);
+    //! Write mold type / 写入模具类型（压力段）。
+    bool setMoldType(uint8_t type);
 
     //! Read circular mold diameter (CMDID_CIRCLE_D, 4-byte float).
     //! 读取圆形容器直径。
@@ -697,6 +697,10 @@ public:
     //! 适用机型：自动压片机可用；自动热压机不可用（固件未实现 CMDID_SET_START_DEMOLD 0x1523，调用返回失败）。
     //! Device support: available on automatic tablet press, NOT available on automatic hot press.
     bool setDemolding(bool isDemolding);
+
+    //! Start air venting (CMDID_SET_START_AIR, 0x1524).
+    //! @return true on success / 启动排气，释放管路内压力。
+    bool startAir();
 
     //! Start or stop heating (CMDID_SET_START_HEAT).
     //! @param isHeating true to start heating, false to stop.

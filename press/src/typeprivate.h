@@ -224,6 +224,7 @@ enum STATE_CMDID {
     CMDID_SET_START_PRESS       = 0x1521,   // Start / stop pressing          // 启动/停止加压
     CMDID_SET_START_HEAT        = 0x1522,   // Start / stop heating           // 启动/停止加热
     CMDID_SET_START_DEMOLD      = 0x1523,   // Start / stop demolding         // 启动/停止脱模
+    CMDID_SET_START_AIR         = 0x1524,   // Start Air                      // 启动排气
 
     CMDID_SET_START             = 0x1511,   // Start / stop all motors        // 启动/停止全部电机
 

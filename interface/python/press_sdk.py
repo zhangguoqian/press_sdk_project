@@ -269,6 +269,9 @@ class PressSdk:
     _lib.cpress_set_demolding.argtypes = [ctypes.c_void_p, ctypes.c_int]
     _lib.cpress_set_demolding.restype = ctypes.c_int
 
+    _lib.cpress_start_air.argtypes = [ctypes.c_void_p]
+    _lib.cpress_start_air.restype = ctypes.c_int
+
     # ==================== 压力单值 / 索引命令 ====================
     _lib.cpress_get_press_step_count.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
     _lib.cpress_get_press_step_count.restype = ctypes.c_int
@@ -280,10 +283,10 @@ class PressSdk:
     _lib.cpress_set_calibration_value.argtypes = [ctypes.c_void_p, ctypes.c_float]
     _lib.cpress_set_calibration_value.restype = ctypes.c_int
 
-    _lib.cpress_get_mode_type.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
-    _lib.cpress_get_mode_type.restype = ctypes.c_int
-    _lib.cpress_set_mode_type.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
-    _lib.cpress_set_mode_type.restype = ctypes.c_int
+    _lib.cpress_get_mold_type.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ubyte)]
+    _lib.cpress_get_mold_type.restype = ctypes.c_int
+    _lib.cpress_set_mold_type.argtypes = [ctypes.c_void_p, ctypes.c_ubyte]
+    _lib.cpress_set_mold_type.restype = ctypes.c_int
 
     _lib.cpress_get_circle.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_float)]
     _lib.cpress_get_circle.restype = ctypes.c_int
@@ -540,6 +543,10 @@ class PressSdk:
     def set_demolding(self, is_demolding: bool) -> bool:
         return self._lib.cpress_set_demolding(self._handle, 1 if is_demolding else 0) != 0
 
+    def start_air(self) -> bool:
+        """Start air venting (CMDID_SET_START_AIR 0x1524). / 启动排气，释放管路内压力。"""
+        return self._lib.cpress_start_air(self._handle) != 0
+
     # ==================== 压力单值 / 索引命令 ====================
 
     def get_press_step_count(self) -> int:
@@ -560,14 +567,14 @@ class PressSdk:
     def set_calibration_value(self, value: float) -> bool:
         return self._lib.cpress_set_calibration_value(self._handle, value) != 0
 
-    def get_mode_type(self) -> int:
+    def get_mold_type(self) -> int:
         value = ctypes.c_ubyte()
-        if self._lib.cpress_get_mode_type(self._handle, ctypes.byref(value)) == 0:
+        if self._lib.cpress_get_mold_type(self._handle, ctypes.byref(value)) == 0:
             raise RuntimeError(self.get_last_error_info())
         return value.value
 
-    def set_mode_type(self, mode_type: int) -> bool:
-        return self._lib.cpress_set_mode_type(self._handle, mode_type) != 0
+    def set_mold_type(self, mold_type: int) -> bool:
+        return self._lib.cpress_set_mold_type(self._handle, mold_type) != 0
 
     def get_circle(self) -> float:
         diameter = ctypes.c_float()

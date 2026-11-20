@@ -510,6 +510,12 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_demolding(JNIEnv* env,
     return cpress_set_demolding(reinterpret_cast<CPressContext*>(handle), isDemolding);
 }
 
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_start_air(JNIEnv* env, jclass, jlong handle)
+{
+    (void)env;
+    return cpress_start_air(reinterpret_cast<CPressContext*>(handle));
+}
+
 extern "C" JNIEXPORT jstring JNICALL Java_PressSdk_press_version(JNIEnv* env, jclass)
 {
     return toJavaString(env, cpress_version());
@@ -582,7 +588,7 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_calibration_value(JNIE
     return cpress_set_calibration_value(reinterpret_cast<CPressContext*>(handle), static_cast<float>(value));
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mode_type(JNIEnv* env, jclass, jlong handle, jintArray out)
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mold_type(JNIEnv* env, jclass, jlong handle, jintArray out)
 {
     if (out == nullptr || env->GetArrayLength(out) < 1)
     {
@@ -590,7 +596,7 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mode_type(JNIEnv* env,
     }
 
     uint8_t type = 0;
-    if (cpress_get_mode_type(reinterpret_cast<CPressContext*>(handle), &type) == 0)
+    if (cpress_get_mold_type(reinterpret_cast<CPressContext*>(handle), &type) == 0)
     {
         return 0;
     }
@@ -600,10 +606,10 @@ extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_mode_type(JNIEnv* env,
     return 1;
 }
 
-extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mode_type(JNIEnv* env, jclass, jlong handle, jint type)
+extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_set_mold_type(JNIEnv* env, jclass, jlong handle, jint type)
 {
     (void)env;
-    return cpress_set_mode_type(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(type));
+    return cpress_set_mold_type(reinterpret_cast<CPressContext*>(handle), static_cast<uint8_t>(type));
 }
 
 extern "C" JNIEXPORT jint JNICALL Java_PressSdk_press_get_circle(JNIEnv* env, jclass, jlong handle, jfloatArray out)

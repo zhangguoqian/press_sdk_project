@@ -282,8 +282,8 @@ PRESS_C_EXPORT int cpress_get_press_step_count(CPressContext* handle, uint8_t* s
 PRESS_C_EXPORT int cpress_set_press_step_count(CPressContext* handle, uint8_t step);
 PRESS_C_EXPORT int cpress_get_calibration_value(CPressContext* handle, float* value);
 PRESS_C_EXPORT int cpress_set_calibration_value(CPressContext* handle, float value);
-PRESS_C_EXPORT int cpress_get_mode_type(CPressContext* handle, uint8_t* type);
-PRESS_C_EXPORT int cpress_set_mode_type(CPressContext* handle, uint8_t type);
+PRESS_C_EXPORT int cpress_get_mold_type(CPressContext* handle, uint8_t* type);
+PRESS_C_EXPORT int cpress_set_mold_type(CPressContext* handle, uint8_t type);
 PRESS_C_EXPORT int cpress_get_circle(CPressContext* handle, float* diameter);
 PRESS_C_EXPORT int cpress_set_circle(CPressContext* handle, float diameter);
 PRESS_C_EXPORT int cpress_get_rectangle(CPressContext* handle, float* a, float* b);
@@ -352,6 +352,10 @@ PRESS_C_EXPORT int cpress_set_mix_keep_time(CPressContext* handle, uint8_t index
 //!       so this call currently fails or times out.
 //!       当前固件尚未实现 0x1523，调用会失败或超时。
 PRESS_C_EXPORT int cpress_set_demolding(CPressContext* handle, int isDemolding);
+
+//! Start air venting (CMDID_SET_START_AIR 0x1524) / 启动排气，释放管路内压力
+//! @return 1 on success, 0 on failure / 成功返回 1，失败返回 0
+PRESS_C_EXPORT int cpress_start_air(CPressContext* handle);
 
 //! Register callback handlers / 注册回调处理器
 //! @param handle     Active context / 有效的上下文

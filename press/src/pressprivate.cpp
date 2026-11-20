@@ -49,6 +49,9 @@ const char* errorToString(MachineError err)
     case MachineError::StateUnchanged:      return "State unchanged";
     case MachineError::UnknownError:        return "Unknown error";
     case MachineError::FrameTooLong:        return "Request payload exceeds protocol limit";
+    case MachineError::AirPressNotStarted:  return "Air rejected: pressing not started";
+    case MachineError::AirPressureNotReached: return "Air rejected: pressure not reached yet";
+    case MachineError::AirAlreadyRunning:   return "Air rejected: venting already running";
     default:                                return "Unknown error";
     }
 }
@@ -1288,7 +1291,7 @@ bool PressPrivate::setCalibrationValue(float value)
     return true;
 }
 
-bool PressPrivate::getModeType(uint8_t& type)
+bool PressPrivate::getMoldType(uint8_t& type)
 {
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(GET_MOLD_TYPE_V, {0x00}, responseListData))
@@ -1306,7 +1309,7 @@ bool PressPrivate::getModeType(uint8_t& type)
     return true;
 }
 
-bool PressPrivate::setModeType(uint8_t type)
+bool PressPrivate::setMoldType(uint8_t type)
 {
     std::vector<uint8_t> responseListData;
     if (!_requestCommand(SET_MOLD_TYPE_V, {type}, responseListData))
@@ -2613,6 +2616,45 @@ bool PressPrivate::setStartHeat(bool isHeating)
         return false;
     }
     return _handleSetResponse(command, responseListData, isHeating ? 1 : 0);
+}
+
+bool PressPrivate::startAir()
+{
+    std::vector<uint8_t> responseListData;
+    if (!_requestCommand(SET_START_AIR_V, {0x01}, responseListData))
+    {
+        if (auto iface = _safeGetInterface()) iface->onError(SET_START_AIR_V, responseListData);
+        return false;
+    }
+    // 下位机排气状态码（receive.cpp CMDID_SET_START_AIR）：
+    //   0x00=未启动加压 0x01=排气执行成功 0x02=立即信号阻塞
+    //   0x03=已加压但未到压力 0x04=排气已在进行
+    if (responseListData.size() == 1)
+    {
+        switch (responseListData[0])
+        {
+        case 0x01:
+            return true;
+        case 0x00:
+            _setError(MachineError::AirPressNotStarted);
+            break;
+        case 0x03:
+            _setError(MachineError::AirPressureNotReached);
+            break;
+        case 0x04:
+            _setError(MachineError::AirAlreadyRunning);
+            break;
+        case 0x02:
+            _setError(MachineError::ImmediateSignalBlocked);
+            break;
+        default:
+            _setError(MachineError::UnknownError);
+            break;
+        }
+        if (auto iface = _safeGetInterface()) iface->onError(SET_START_AIR_V, responseListData);
+        return false;
+    }
+    return _handleSetResponse(SET_START_AIR_V, responseListData, 1);
 }
 
 bool PressPrivate::setStart(bool isStart)

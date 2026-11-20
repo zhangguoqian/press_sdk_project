@@ -332,6 +332,9 @@ namespace PressSdk.Interop
         [DllImport("press", EntryPoint = "cpress_set_demolding", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeSetDemolding(IntPtr handle, int isDemolding);
 
+        [DllImport("press", EntryPoint = "cpress_start_air", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeStartAir(IntPtr handle);
+
         // ==================== 压力单值 / 索引命令 ====================
 
         [DllImport("press", EntryPoint = "cpress_get_press_step_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -346,11 +349,11 @@ namespace PressSdk.Interop
         [DllImport("press", EntryPoint = "cpress_set_calibration_value", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeSetCalibrationValue(IntPtr handle, float value);
 
-        [DllImport("press", EntryPoint = "cpress_get_mode_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern int NativeGetModeType(IntPtr handle, out byte type);
+        [DllImport("press", EntryPoint = "cpress_get_mold_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeGetMoldType(IntPtr handle, out byte type);
 
-        [DllImport("press", EntryPoint = "cpress_set_mode_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        private static extern int NativeSetModeType(IntPtr handle, byte type);
+        [DllImport("press", EntryPoint = "cpress_set_mold_type", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        private static extern int NativeSetMoldType(IntPtr handle, byte type);
 
         [DllImport("press", EntryPoint = "cpress_get_circle", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         private static extern int NativeGetCircle(IntPtr handle, out float diameter);
@@ -703,6 +706,14 @@ namespace PressSdk.Interop
             return NativeSetDemolding(_handle, isDemolding ? 1 : 0) != 0;
         }
 
+        /// <summary>
+        /// Start air venting (CMDID_SET_START_AIR 0x1524). / 启动排气，释放管路内压力。
+        /// </summary>
+        public bool StartAir()
+        {
+            return NativeStartAir(_handle) != 0;
+        }
+
         // ==================== 压力单值 / 索引命令 ====================
 
         public bool GetPressStepCount(out byte step)
@@ -725,14 +736,14 @@ namespace PressSdk.Interop
             return NativeSetCalibrationValue(_handle, value) != 0;
         }
 
-        public bool GetModeType(out byte type)
+        public bool GetMoldType(out byte type)
         {
-            return NativeGetModeType(_handle, out type) != 0;
+            return NativeGetMoldType(_handle, out type) != 0;
         }
 
-        public bool SetModeType(byte type)
+        public bool SetMoldType(byte type)
         {
-            return NativeSetModeType(_handle, type) != 0;
+            return NativeSetMoldType(_handle, type) != 0;
         }
 
         public bool GetCircle(out float diameter)

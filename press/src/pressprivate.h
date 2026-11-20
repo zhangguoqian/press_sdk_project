@@ -71,6 +71,7 @@ static constexpr uint16_t GET_RT_JSON_V                  = CMDID_GET_CURRENT_STA
 // 写入/控制命令 / write & control commands
 static constexpr uint16_t SET_PRESS_V                    = CMDID_SET_START_PRESS;
 static constexpr uint16_t SET_DEMOLD_V                   = CMDID_SET_START_DEMOLD;
+static constexpr uint16_t SET_START_AIR_V                = CMDID_SET_START_AIR;
 static constexpr uint16_t SET_START_HEAT_V               = CMDID_SET_START_HEAT;
 static constexpr uint16_t SET_START_V                    = CMDID_SET_START;
 static constexpr uint16_t SELECT_MODEL_STATE_V           = CMDID_SELECT_MODEL_STATE;
@@ -136,6 +137,10 @@ enum class MachineError
 
     UnknownError,
     FrameTooLong,       //!< 发送数据超过协议长度上限（0xFFFF）
+
+    AirPressNotStarted,     //!< 排气被拒：尚未启动加压（0x1524 回 0x00）
+    AirPressureNotReached,  //!< 排气被拒：加压未到达压力（0x1524 回 0x03）
+    AirAlreadyRunning,      //!< 排气被拒：排气已在进行（0x1524 回 0x04）
 };
 
 struct FrameData
@@ -181,8 +186,8 @@ public:
     bool setPressStepCount(uint8_t step);
     bool getCalibrationValue(float& value);                         //!< CMDID_PRESS_CALIBRATE
     bool setCalibrationValue(float value);
-    bool getModeType(uint8_t& type);                                //!< CMDID_MOLD_TYPE
-    bool setModeType(uint8_t type);
+    bool getMoldType(uint8_t& type);                                //!< CMDID_MOLD_TYPE
+    bool setMoldType(uint8_t type);
     bool getCircle(float& diameter);                                //!< CMDID_CIRCLE_D
     bool setCircle(float diameter);
     bool getRectangle(float& a, float& b);                          //!< CMDID_RECT_AB
@@ -259,6 +264,7 @@ public:
     // ==================== 状态与控制命令 ====================
     bool getMachineState(MachineState& state);                     //!< CMDID_GET_CURRENT_STATE
     bool setStartHeat(bool isHeating);                              //!< CMDID_SET_START_HEAT
+    bool startAir();                                                //!< CMDID_SET_START_AIR
     bool setStart(bool isStart);                                    //!< CMDID_SET_START（全部电机）
     bool selectModelState(uint8_t model);                           //!< CMDID_SELECT_MODEL_STATE（1/2）
 

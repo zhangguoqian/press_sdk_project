@@ -589,6 +589,17 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /**
+     * Start air venting (CMDID_SET_START_AIR 0x1524).
+     * 启动排气，释放管路内压力。
+     *
+     * @return true on success / 成功返回 true
+     */
+    public boolean startAir() {
+        ensureOpen();
+        return press_start_air(this.handle) != 0;
+    }
+
+    /**
      * Read the device serial number (CMDID_SERIAL_NUMBER 0x0003).
      * On success the value is also cached into the native ReadOnlyData.m_SerialNumber.
      * 读取设备序列号；成功后该值同时缓存到原生 ReadOnlyData.m_SerialNumber。
@@ -646,19 +657,19 @@ public final class PressSdk implements AutoCloseable {
     }
 
     /** Read mold type; null on failure. / 读取模具类型，失败返回 null。 */
-    public Integer getModeType() {
+    public Integer getMoldType() {
         ensureOpen();
         int[] out = new int[1];
-        if (press_get_mode_type(this.handle, out) == 0) {
+        if (press_get_mold_type(this.handle, out) == 0) {
             return null;
         }
         return out[0];
     }
 
     /** Write mold type. / 写入模具类型。 */
-    public boolean setModeType(int type) {
+    public boolean setMoldType(int type) {
         ensureOpen();
-        return press_set_mode_type(this.handle, type) != 0;
+        return press_set_mold_type(this.handle, type) != 0;
     }
 
     /** Read circular mold diameter; null on failure. / 读取圆形容器直径，失败返回 null。 */
@@ -1135,6 +1146,7 @@ public final class PressSdk implements AutoCloseable {
     public static native int press_set_mix_data_json(long handle, String json, int isCompressed);
     public static native int press_set_pressing(long handle, int isPressing);
     public static native int press_set_demolding(long handle, int isDemolding);
+    public static native int press_start_air(long handle);
     public static native void press_register_data_interface(long handle, PressSdk self, DataCallbacks callbacks, int intervalSeconds);
     public static native void press_unregister_data_interface(long handle);
     public static native String press_version();
@@ -1146,8 +1158,8 @@ public final class PressSdk implements AutoCloseable {
     public static native int press_set_press_step_count(long handle, int step);
     public static native int press_get_calibration_value(long handle, float[] out);
     public static native int press_set_calibration_value(long handle, float value);
-    public static native int press_get_mode_type(long handle, int[] out);
-    public static native int press_set_mode_type(long handle, int type);
+    public static native int press_get_mold_type(long handle, int[] out);
+    public static native int press_set_mold_type(long handle, int type);
     public static native int press_get_circle(long handle, float[] out);
     public static native int press_set_circle(long handle, float diameter);
     public static native int press_get_rectangle(long handle, float[] out);

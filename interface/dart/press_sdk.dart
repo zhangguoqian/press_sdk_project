@@ -329,6 +329,18 @@ class PressSdk {
     return setDemolding(_handle, isDemolding ? 1 : 0) != 0;
   }
 
+  /// Start air venting (CMDID_SET_START_AIR 0x1524).
+  /// 启动排气，释放管路内压力。
+  bool startAir() {
+    _ensureNotDisposed();
+    final startAir = _library
+        .lookupFunction<
+          Int32 Function(Pointer<Void>),
+          int Function(Pointer<Void>)
+        >('cpress_start_air');
+    return startAir(_handle) != 0;
+  }
+
   // ==================== Pressure / 压力 ====================
 
   /// Read the pressure step count.
@@ -391,34 +403,34 @@ class PressSdk {
     return setCalibrationValue(_handle, value) != 0;
   }
 
-  /// Read the mode type.
-  /// 读取模式类型。
-  int? getModeType() {
+  /// Read the mold type.
+  /// 读取模具类型。
+  int? getMoldType() {
     _ensureNotDisposed();
-    final getModeType = _library
+    final getMoldType = _library
         .lookupFunction<
           Int32 Function(Pointer<Void>, Pointer<Uint8>),
           int Function(Pointer<Void>, Pointer<Uint8>)
-        >('cpress_get_mode_type');
+        >('cpress_get_mold_type');
 
     final type = malloc<Uint8>();
     try {
-      return getModeType(_handle, type) != 0 ? type.value : null;
+      return getMoldType(_handle, type) != 0 ? type.value : null;
     } finally {
       malloc.free(type);
     }
   }
 
-  /// Write the mode type.
-  /// 设置模式类型。
-  bool setModeType(int type) {
+  /// Write the mold type.
+  /// 设置模具类型。
+  bool setMoldType(int type) {
     _ensureNotDisposed();
-    final setModeType = _library
+    final setMoldType = _library
         .lookupFunction<
           Int32 Function(Pointer<Void>, Uint8),
           int Function(Pointer<Void>, int)
-        >('cpress_set_mode_type');
-    return setModeType(_handle, type) != 0;
+        >('cpress_set_mold_type');
+    return setMoldType(_handle, type) != 0;
   }
 
   /// Read the circle diameter.
