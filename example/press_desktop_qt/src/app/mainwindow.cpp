@@ -15,9 +15,11 @@
 
 #include <QCoreApplication>
 #include <QEvent>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QResizeEvent>
+#include <QScreen>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
@@ -39,7 +41,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setWindowTitle(TitleBar::appTitle());
     setWindowFlag(Qt::FramelessWindowHint);
-    resize(1440, 900);
+    // 默认高度最多 960，兼顾压力参数页模具区完整显示与 1080p 屏幕可用空间
+    int defaultHeight = 900;
+    if (QScreen *screen = QGuiApplication::primaryScreen())
+        defaultHeight = qMin(960, screen->availableGeometry().height() - 60);
+    resize(1440, qMax(700, defaultHeight));
     setMinimumSize(1180, 700);
 
     // --sdk <地址>：启动时自动连接设备（例如 192.168.1.20:9000 或 COM3）
@@ -133,6 +139,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // SDK 通讯状态 / 错误提示
     connect(m_state, &MachineState::sdkError, this, &MainWindow::showToast);
+
+    // 设备侧（HMI）启动时提示，避免误认为是上位机发起的流程
+    connect(m_state, &MachineState::externalRunDetected, this,
+            [this](const QString &message) { showToast(message); });
     connect(m_service, &PressService::logMessage, this,
             [this](const QString &text, LogLevel level) {
                 if (m_logPanel)
@@ -182,11 +192,19 @@ MainWindow::MainWindow(QWidget *parent)
                     // 连接成功后清空历史曲线，从当前时刻重新采集
                     m_singlePage->resetChart();
                     m_coopPage->resetChart();
+                    // 连接后先恢复默认标题，设备名称到达后再替换
+                    m_titleBar->setTitle(TitleBar::appTitle());
+                    setWindowTitle(TitleBar::appTitle());
                 } else {
                     // 主动断开/取消失败：解除遮罩并恢复本地操作
                     if (m_staleOverlay)
                         m_staleOverlay->hide();
                     m_actionBar->setControlsEnabled(true);
+                    // 标题标识本地模拟，避免与真实设备状态混淆
+                    const QString localTitle =
+                        TitleBar::appTitle() + QStringLiteral(" · 本地模拟");
+                    m_titleBar->setTitle(localTitle);
+                    setWindowTitle(localTitle);
                 }
                 showToast(connected ? QStringLiteral("设备已连接：%1").arg(endpoint)
                                     : QStringLiteral("设备未连接，当前为本地模拟"));
@@ -262,8 +280,12 @@ void MainWindow::start(bool showConnectDialog)
     if (exitRequested)
         return;
 
-    if (!m_service->isConnected() && !m_service->isConnecting())
+    if (!m_service->isConnected() && !m_service->isConnecting()) {
         showToast(QStringLiteral("已进入本地模拟运行"));
+        const QString localTitle = TitleBar::appTitle() + QStringLiteral(" · 本地模拟");
+        m_titleBar->setTitle(localTitle);
+        setWindowTitle(localTitle);
+    }
 
     show();
     raise();
@@ -397,8 +419,13 @@ void MainWindow::updateActionBar()
 void MainWindow::handlePressRequest()
 {
     if (m_state->press) {
-        m_state->stopPress();
-        showToast(QStringLiteral("加压已停止"));
+        // 停止属于危险操作，二次确认避免误触（尤其是由下位机启动的流程）
+        if (Dialogs::confirm(this, QStringLiteral("停止加压"),
+                             QStringLiteral("将立即停止当前加压流程，请确认模具与人员安全。"),
+                             QStringLiteral("确认停止"), DialogTone::Warn, AppIcon::Power)) {
+            m_state->stopPress();
+            showToast(QStringLiteral("加压已停止"));
+        }
         return;
     }
 
@@ -420,8 +447,12 @@ void MainWindow::handlePressRequest()
 void MainWindow::handleHeatRequest()
 {
     if (m_state->heat) {
-        m_state->stopHeat();
-        showToast(QStringLiteral("加热已停止"));
+        if (Dialogs::confirm(this, QStringLiteral("停止加热"),
+                             QStringLiteral("将立即停止当前加热流程，请确认模具与人员安全。"),
+                             QStringLiteral("确认停止"), DialogTone::Warn, AppIcon::Flame)) {
+            m_state->stopHeat();
+            showToast(QStringLiteral("加热已停止"));
+        }
         return;
     }
 
@@ -457,6 +488,12 @@ void MainWindow::handleVentRequest()
 
 void MainWindow::handleCoopRequest()
 {
+    if (m_state->coopRunning
+        && !Dialogs::confirm(this, QStringLiteral("停止合作流程"),
+                             QStringLiteral("将立即停止当前合作流程，请确认模具与人员安全。"),
+                             QStringLiteral("确认停止"), DialogTone::Warn, AppIcon::Power)) {
+        return;
+    }
     m_state->toggleCoop();
     showToast(m_state->coopRunning ? QStringLiteral("合作模式已启动")
                                    : QStringLiteral("合作模式已停止"));

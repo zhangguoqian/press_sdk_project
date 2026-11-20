@@ -124,6 +124,7 @@ QWidget *SinglePage::buildLeftColumn()
     QVBoxLayout *groupLayout = nullptr;
     QWidget *group = makeGroup(card, &groupLayout);
     m_pressureKv = new KvList(group);
+    m_pressureKv->setRowHeight(35);
     m_pressureKv->addRow(QStringLiteral("setP"), QStringLiteral("设定压力"),
                          QStringLiteral("Ton"));
     m_pressureKv->addRow(QStringLiteral("boost"), QStringLiteral("补压设定"),
@@ -141,7 +142,6 @@ QWidget *SinglePage::buildLeftColumn()
     body->addWidget(makeDivider(card));
 
     // 模具类型（贴底）
-    body->addStretch(1);
     QVBoxLayout *moldLayout = nullptr;
     QWidget *moldGroup = makeGroup(card, &moldLayout);
     m_mold = new MoldPanel(m_state, moldGroup);
@@ -482,8 +482,12 @@ void SinglePage::refreshLive()
 
     const TemperatureStage &temperature = m_state->tStages.at(m_state->temperatureIndex());
     m_temperatureKv->setValue(QStringLiteral("setT"), fmtNumber(temperature.t));
-    m_temperatureKv->setValue(QStringLiteral("upT"), fmtNumber(m_state->upT));
-    m_temperatureKv->setValue(QStringLiteral("downT"), fmtNumber(m_state->downT));
+    // 负值表示传感器无效/断线，显示占位符
+    const auto tempText = [](double value) {
+        return value < 0.0 ? QStringLiteral("—") : fmtNumber(value);
+    };
+    m_temperatureKv->setValue(QStringLiteral("upT"), tempText(m_state->upT));
+    m_temperatureKv->setValue(QStringLiteral("downT"), tempText(m_state->downT));
     m_temperatureKv->setValue(QStringLiteral("holdT"),
                               fmtTime(m_state->heat ? m_state->tRemain : temperature.hold));
 
@@ -520,6 +524,7 @@ void SinglePage::updateLegend()
         "<span style=\"color:#5F7488;\">°C</span>&nbsp;&nbsp;&nbsp;"
         "<span style=\"color:#E8730C;\">●</span>&nbsp;<b>%3</b>&nbsp;"
         "<span style=\"color:#5F7488;\">°C</span>")
-        .arg(fmtNumber(m_state->liveP, m_state->pDecimals), fmtNumber(m_state->upT),
-             fmtNumber(m_state->downT)));
+        .arg(fmtNumber(m_state->liveP, m_state->pDecimals),
+             m_state->upT < 0.0 ? QStringLiteral("—") : fmtNumber(m_state->upT),
+             m_state->downT < 0.0 ? QStringLiteral("—") : fmtNumber(m_state->downT)));
 }

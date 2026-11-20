@@ -61,13 +61,18 @@ KvList::KvList(QWidget *parent)
     layout->setSpacing(0);
 }
 
+void KvList::setRowHeight(int height)
+{
+    m_rowHeight = qMax(24, height);
+}
+
 void KvList::addRow(const QString &key, const QString &label,
                     const QString &unit, const QColor &dot)
 {
     auto *row = new QWidget(this);
     row->setObjectName(QStringLiteral("kvRow"));
     row->setAttribute(Qt::WA_StyledBackground, true);
-    row->setFixedHeight(42);
+    row->setFixedHeight(m_rowHeight);
 
     auto *layout = new QHBoxLayout(row);
     layout->setContentsMargins(0, 0, 0, 0);

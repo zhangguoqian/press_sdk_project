@@ -261,9 +261,13 @@ void CoopPage::refreshLive()
                                                : fmtNumber(moldPressure,
                                                            m_state->moldDecimals));
     m_kv->setValue(QStringLiteral("setTUp"), fmtNumber(stage.tUp));
-    m_kv->setValue(QStringLiteral("upT"), fmtNumber(m_state->upT));
+    // 负值表示传感器无效/断线，显示占位符
+    const auto tempText = [](double value) {
+        return value < 0.0 ? QStringLiteral("—") : fmtNumber(value);
+    };
+    m_kv->setValue(QStringLiteral("upT"), tempText(m_state->upT));
     m_kv->setValue(QStringLiteral("setTDown"), fmtNumber(stage.tDown));
-    m_kv->setValue(QStringLiteral("downT"), fmtNumber(m_state->downT));
+    m_kv->setValue(QStringLiteral("downT"), tempText(m_state->downT));
     m_kv->setValue(QStringLiteral("hold"),
                    fmtTime(m_state->press ? m_state->pRemain : stage.hold));
 
@@ -296,6 +300,7 @@ void CoopPage::updateLegend()
         "<span style=\"color:#5F7488;\">°C</span>&nbsp;&nbsp;&nbsp;"
         "<span style=\"color:#E8730C;\">●</span>&nbsp;<b>%3</b>&nbsp;"
         "<span style=\"color:#5F7488;\">°C</span>")
-        .arg(fmtNumber(m_state->liveP, m_state->pDecimals), fmtNumber(m_state->upT),
-             fmtNumber(m_state->downT)));
+        .arg(fmtNumber(m_state->liveP, m_state->pDecimals),
+             m_state->upT < 0.0 ? QStringLiteral("—") : fmtNumber(m_state->upT),
+             m_state->downT < 0.0 ? QStringLiteral("—") : fmtNumber(m_state->downT)));
 }

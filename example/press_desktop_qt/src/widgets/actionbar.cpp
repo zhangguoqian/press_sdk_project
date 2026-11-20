@@ -165,5 +165,8 @@ void ActionBar::refresh()
     } else {
         note = QStringLiteral("<b>待机</b> · 启动加热前请确认上 / 下板温度与模具已就位");
     }
+    // 未连接设备时明确标识，避免与真实运行混淆
+    if (!m_state->sdkMode())
+        note = QStringLiteral("<b>本地模拟</b> · ") + note;
     m_note->setText(note);
 }

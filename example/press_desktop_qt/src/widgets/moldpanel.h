@@ -23,6 +23,8 @@ private:
     MachineState *m_state;
     bool m_coop = false;
     Segmented *m_seg = nullptr;
+    UnitInput *m_calibration = nullptr;  // 校准值 Ton（单独模式）
+    UnitInput *m_airTime = nullptr;      // 排气时间 s（单独模式）
     QWidget *m_specialPane = nullptr;
     QWidget *m_circlePane = nullptr;
     QWidget *m_rectPane = nullptr;

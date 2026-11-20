@@ -1000,6 +1000,28 @@ bool PressService::pushMoldType(int type)
     return true;
 }
 
+bool PressService::pushCalibrationValue(double value)
+{
+    if (!m_connected)
+        return false;
+    queueWrite(QStringLiteral("press-calibration"), QStringLiteral("压力校准值"),
+               [this, value] {
+                   return m_press->setCalibrationValue(static_cast<float>(value));
+               });
+    return true;
+}
+
+bool PressService::pushAirTime(int seconds)
+{
+    if (!m_connected)
+        return false;
+    queueWrite(QStringLiteral("press-air-time"), QStringLiteral("排气时间"),
+               [this, seconds] {
+                   return m_press->setAirTime(static_cast<uint8_t>(seconds));
+               });
+    return true;
+}
+
 bool PressService::pushCoopMoldCircle(double diameter)
 {
     if (!m_connected)

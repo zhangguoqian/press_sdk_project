@@ -20,13 +20,13 @@ MoldPanel::MoldPanel(MachineState *state, QWidget *parent, bool coop)
     sub->setObjectName(QStringLiteral("subLabel"));
     sub->setFont(Theme::ui(11, QFont::DemiBold));
     layout->addWidget(sub);
-    layout->addSpacing(8);
+    layout->addSpacing(6);
 
     m_seg = new Segmented({QStringLiteral("异形"), QStringLiteral("圆形"),
                            QStringLiteral("矩形")},
                           this);
     layout->addWidget(m_seg);
-    layout->addSpacing(12);
+    layout->addSpacing(8);
 
     // 异形
     m_specialPane = new QWidget(this);
@@ -65,7 +65,7 @@ MoldPanel::MoldPanel(MachineState *state, QWidget *parent, bool coop)
     rectLayout->addWidget(createMeasureRow(QStringLiteral("宽"), m_width));
     layout->addWidget(m_rectPane);
 
-    layout->addSpacing(12);
+    layout->addSpacing(8);
 
     // 受力面积
     m_area = new QFrame(this);
@@ -84,6 +84,39 @@ MoldPanel::MoldPanel(MachineState *state, QWidget *parent, bool coop)
     areaLayout->addStretch(1);
     areaLayout->addWidget(m_areaValue);
     layout->addWidget(m_area);
+
+    // 校准值与排气时间（仅单独模式，位于模具类型区块下方）
+    if (!m_coop) {
+        layout->addSpacing(10);
+        auto *pair = new QWidget(this);
+        auto *pairLayout = new QHBoxLayout(pair);
+        pairLayout->setContentsMargins(0, 0, 0, 0);
+        pairLayout->setSpacing(10);
+
+        const auto makeField = [pair](const QString &label, const QString &unit,
+                                      UnitInput **out) {
+            auto *column = new QWidget(pair);
+            auto *columnLayout = new QVBoxLayout(column);
+            columnLayout->setContentsMargins(0, 0, 0, 0);
+            columnLayout->setSpacing(4);
+            auto *name = new QLabel(label, column);
+            name->setFont(Theme::ui(12));
+            name->setStyleSheet(QStringLiteral("color:#3B5770;"));
+            *out = new UnitInput(unit, column);
+            columnLayout->addWidget(name);
+            columnLayout->addWidget(*out);
+            return column;
+        };
+
+        pairLayout->addWidget(makeField(QStringLiteral("校准值"), QStringLiteral("Ton"),
+                                        &m_calibration), 1);
+        pairLayout->addWidget(makeField(QStringLiteral("排气时间"), QStringLiteral("秒"),
+                                        &m_airTime), 1);
+        m_calibration->setRange(-3.0, 3.0, 1);
+        m_airTime->setRange(1.0, 5.0, 0);
+
+        layout->addWidget(pair);
+    }
 
     connect(m_seg, &Segmented::changed, this, [this](int index) {
         if (m_syncing)
@@ -119,6 +152,18 @@ MoldPanel::MoldPanel(MachineState *state, QWidget *parent, bool coop)
         else
             m_state->setMoldWidth(v);
     });
+    if (m_calibration) {
+        connect(m_calibration, &UnitInput::valueChanged, this, [this](double v) {
+            if (m_syncing)
+                return;
+            m_state->setCalibration(v);
+        });
+        connect(m_airTime, &UnitInput::valueChanged, this, [this](double v) {
+            if (m_syncing)
+                return;
+            m_state->setAirTime(qRound(v));
+        });
+    }
     connect(m_state, &MachineState::settingsChanged, this, &MoldPanel::syncFromState);
 
     syncFromState();
@@ -157,6 +202,10 @@ void MoldPanel::syncFromState()
     m_diameter->setValue(m_coop ? m_state->coopMoldDia : m_state->moldDia);
     m_length->setValue(m_coop ? m_state->coopMoldLen : m_state->moldLen);
     m_width->setValue(m_coop ? m_state->coopMoldWid : m_state->moldWid);
+    if (m_calibration) {
+        m_calibration->setValue(m_state->calibration);
+        m_airTime->setValue(m_state->airTime);
+    }
 
     m_areaValue->setText(QStringLiteral(
         "<span style=\"font-size:15px;font-weight:700;color:#0079B4;\">%1</span>"

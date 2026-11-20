@@ -181,6 +181,8 @@ public:
     bool pushMoldCircle(double diameter);
     bool pushMoldRect(double length, double width);
     bool pushMoldType(int type);
+    bool pushCalibrationValue(double value);
+    bool pushAirTime(int seconds);
     bool pushCoopMoldCircle(double diameter);
     bool pushCoopMoldRect(double length, double width);
     bool pushCoopMoldType(int type);

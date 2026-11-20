@@ -13,6 +13,8 @@ class KvList : public QWidget
 public:
     explicit KvList(QWidget *parent = nullptr);
 
+    void setRowHeight(int height);
+
     void addRow(const QString &key, const QString &label,
                 const QString &unit = QString(), const QColor &dot = QColor());
     void setValue(const QString &key, const QString &text);
@@ -23,4 +25,5 @@ private:
     QHash<QString, QLabel *> m_values;
     QHash<QString, QWidget *> m_rows;
     int m_rowCount = 0;
+    int m_rowHeight = 42;
 };

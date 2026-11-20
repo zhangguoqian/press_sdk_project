@@ -153,6 +153,9 @@ void MachineState::attachService(PressService *service)
                     pRemain = tRemain = coopRemain = 0;
                     liveP = 0.0;
                     airAllowed = true;
+                    // 重连后从新样本重新建立滑动平均
+                    m_pressSampleCount = 0;
+                    m_pressSampleIndex = 0;
                 }
                 emit linkChanged(connected, endpoint);
                 emit changed();
@@ -164,6 +167,9 @@ void MachineState::applyRealTime(const PressRtData &data)
     if (!sdkMode())
         return;
 
+    const bool wasPress = press;
+    const bool wasHeat = heat;
+
     press = data.pressOn;
     heat = data.heatOn;
     // CPStep / CTStep 与下位机阶段编号一致（从 1 开始），直接使用
@@ -171,10 +177,34 @@ void MachineState::applyRealTime(const PressRtData &data)
     tStage = heat ? qBound(1, data.tempStep, qMax(1, tCount)) : 0;
     pRemain = press ? qMax(0, data.pressRemainSec) : 0;
     tRemain = heat ? qMax(0, data.tempRemainSec) : 0;
-    liveP = qMax(0.0, data.pressure);
-    upT = data.tempUp;
-    downT = data.tempDown;
+
+    // 压力：3 点滑动平均，减少末位跳动
+    m_pressSamples[m_pressSampleIndex] = qMax(0.0, data.pressure);
+    m_pressSampleIndex = (m_pressSampleIndex + 1) % 3;
+    if (m_pressSampleCount < 3)
+        ++m_pressSampleCount;
+    double sum = 0.0;
+    for (int i = 0; i < m_pressSampleCount; ++i)
+        sum += m_pressSamples[i];
+    liveP = sum / m_pressSampleCount;
+
+    // 温度：负值表示传感器无效/断线，保留 -1 供界面显示“—”
+    upT = data.tempUp < 0.0 ? -1.0 : data.tempUp;
+    downT = data.tempDown < 0.0 ? -1.0 : data.tempDown;
     airAllowed = data.airAllowed;
+
+    // 非上位机发起、状态由停止变为运行：提示设备侧已启动
+    // 上位机指令下发后 5 s 内的状态变化视为自身操作，避免误报
+    if (!m_coopRequested) {
+        const bool externalPress = !wasPress && press
+            && (!m_pressCmdAge.isValid() || m_pressCmdAge.elapsed() > 5000);
+        const bool externalHeat = !wasHeat && heat
+            && (!m_heatCmdAge.isValid() || m_heatCmdAge.elapsed() > 5000);
+        if (externalPress)
+            emit externalRunDetected(QStringLiteral("检测到下位机已启动加压"));
+        if (externalHeat)
+            emit externalRunDetected(QStringLiteral("检测到下位机已启动加热"));
+    }
 
     if (modelState != data.modelState) {
         modelState = data.modelState;
@@ -319,6 +349,9 @@ void MachineState::applyPressProgram(const PressProgramData &data)
     if (press)
         pStage = qMin(pStage, pCount);
 
+    calibration = qBound(-3.0, data.checkValue, 3.0);
+    airTime = qBound(1, data.airTime, 5);
+
     // 模具：Type 0 异形 / 1 圆形 / 2 矩形（3 环形暂未支持，保持当前类型）
     if (data.type >= 0 && data.type <= 2) {
         moldShape = data.type == 0 ? MoldShape::Special
@@ -455,6 +488,7 @@ void MachineState::startPress()
             emit sdkError(error);
             return;
         }
+        m_pressCmdAge.restart();
     }
     press = true;
     pStage = 1;
@@ -488,6 +522,7 @@ void MachineState::startHeat()
             emit sdkError(error);
             return;
         }
+        m_heatCmdAge.restart();
     }
     heat = true;
     tStage = 1;
@@ -532,7 +567,6 @@ void MachineState::toggleCoop()
     emit changed();
 }
 
-
 bool MachineState::vent()
 {
     if (sdkMode())
@@ -540,6 +574,32 @@ bool MachineState::vent()
     liveP = 0.0;
     emit changed();
     return true;
+}
+
+void MachineState::setCalibration(double value)
+{
+    const double next = qBound(-3.0, value, 3.0);
+    if (qFuzzyCompare(calibration + 1.0, next + 1.0))
+        return;
+    if (sdkMode() && !m_service->pushCalibrationValue(next)) {
+        emit sdkError(QStringLiteral("校准值下发失败"));
+        return;
+    }
+    calibration = next;
+    emit settingsChanged();
+}
+
+void MachineState::setAirTime(int seconds)
+{
+    const int next = qBound(1, seconds, 5);
+    if (airTime == next)
+        return;
+    if (sdkMode() && !m_service->pushAirTime(next)) {
+        emit sdkError(QStringLiteral("排气时间下发失败"));
+        return;
+    }
+    airTime = next;
+    emit settingsChanged();
 }
 
 void MachineState::setMoldShape(MoldShape shape)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QString>
 #include <QVector>
@@ -98,6 +99,10 @@ public:
     double downT = 0.0;
     // IsAir：设备是否允许排气；本地模拟默认允许
     bool airAllowed = true;
+    double calibration = 0.0;   // 校准值 Ton（-3~3）
+    int airTime = 2;            // 排气时间 s（1~5）
+    void setCalibration(double value);
+    void setAirTime(int seconds);
 
     double runtime = 0.0;
     int output = 0;
@@ -164,6 +169,7 @@ signals:
     void mixProgramChanged();    // 设备合作工艺参数已同步
     void linkChanged(bool connected, const QString &endpoint);
     void modelStateChanged(int modelState);  // 设备工作模式变化
+    void externalRunDetected(const QString &message); // 下位机侧启动，非上位机指令
     void sdkError(const QString &message);
 
 private slots:
@@ -176,4 +182,11 @@ private:
     bool m_coopRequested = false;
     bool m_coopSeenRunning = false;
     int m_coopIdleFrames = 0;
+    // 实时压力 3 点滑动平均（仅显示），避免末位跳动
+    double m_pressSamples[3] = {0.0, 0.0, 0.0};
+    int m_pressSampleIndex = 0;
+    int m_pressSampleCount = 0;
+    // 上位机最近一次启动加压/加热的时刻，用于区分设备侧启动
+    QElapsedTimer m_pressCmdAge;
+    QElapsedTimer m_heatCmdAge;
 };
