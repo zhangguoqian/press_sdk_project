@@ -38,6 +38,7 @@ bool confirm(QWidget *parent, const QString &title, const QString &text,
 bool editTiming(QWidget *parent, int seconds, int *result);
 
 // 设备连接对话框：串口 / 网络二选一，连接在后台线程执行
-void connectDevice(QWidget *parent, PressService *service);
+// 返回 true 表示用户点击了“退出”，调用方不应再显示主界面
+bool connectDevice(QWidget *parent, PressService *service);
 
 } // namespace Dialogs

@@ -228,10 +228,22 @@ void SettingsPage::connectOrDisconnect()
     }
 
     m_linkState->setToolTip(QString());
-    // 断开当前连接后回到设备连接对话框（可选串口、网络或本地模拟）
+    // 断开当前连接后回到设备连接对话框（可选串口、网络或本地模拟）；
+    // 对话框打开期间隐藏主界面，关闭后再恢复
     if (m_service->isConnected())
         m_service->disconnectDevice();
-    Dialogs::connectDevice(window(), m_service);
+
+    QWidget *host = window();
+    if (host)
+        host->hide();
+    const bool exitRequested = Dialogs::connectDevice(host ? host : this, m_service);
+    if (exitRequested)
+        return;
+    if (host) {
+        host->show();
+        host->raise();
+        host->activateWindow();
+    }
 }
 
 QWidget *SettingsPage::buildHeroCard()

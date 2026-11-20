@@ -208,19 +208,39 @@ MainWindow::MainWindow(QWidget *parent)
     m_stack->setCurrentWidget(m_pageWidgets.value(m_current));
     updateActionBar();
 
-    if (!sdkEndpoint.isEmpty()) {
-        QTimer::singleShot(150, this, [this, sdkEndpoint] {
-            m_service->connectDevice(sdkEndpoint,
-                                     sdkEndpoint.contains(QLatin1Char(':')));
+    m_sdkEndpoint = sdkEndpoint;
+}
+
+void MainWindow::start(bool showConnectDialog)
+{
+    if (!m_sdkEndpoint.isEmpty()) {
+        show();
+        QTimer::singleShot(150, this, [this] {
+            m_service->connectDevice(m_sdkEndpoint,
+                                     m_sdkEndpoint.contains(QLatin1Char(':')));
         });
-    } else {
-        // 启动后先弹出设备连接对话框：串口、网络或本地模拟运行
-        QTimer::singleShot(250, this, [this] {
-            Dialogs::connectDevice(this, m_service);
-            if (!m_service->isConnected() && !m_service->isConnecting())
-                showToast(QStringLiteral("已进入本地模拟运行"));
-        });
+        return;
     }
+
+    if (!showConnectDialog) {
+        show();
+        return;
+    }
+
+    // 先让窗口完成平台初始化以获得正确几何位置，随后隐藏主界面再弹连接对话框
+    show();
+    hide();
+
+    const bool exitRequested = Dialogs::connectDevice(this, m_service);
+    if (exitRequested)
+        return;
+
+    if (!m_service->isConnected() && !m_service->isConnecting())
+        showToast(QStringLiteral("已进入本地模拟运行"));
+
+    show();
+    raise();
+    activateWindow();
 }
 
 QWidget *MainWindow::createContent()

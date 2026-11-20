@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QElapsedTimer>
 #include <QHash>
 #include <QMainWindow>
 #include <QString>
@@ -24,6 +25,9 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = nullptr);
+
+    // 显示主界面前先完成连接选择；showConnectDialog=false 用于截图等自动化模式
+    void start(bool showConnectDialog = true);
 
     void showPage(const QString &key);
     QString currentPage() const { return m_current; }
@@ -66,5 +70,9 @@ private:
 
     QHash<QString, QWidget *> m_pageWidgets;
     QString m_current = QStringLiteral("single");
+    QString m_sdkEndpoint;
+    // 主动切换模式后，等待设备上报目标模式；确认前忽略旧模式，避免页面闪回
+    QString m_expectedModeKey;
+    QElapsedTimer m_modeRequestAge;
     bool m_didInitialScroll = false;
 };

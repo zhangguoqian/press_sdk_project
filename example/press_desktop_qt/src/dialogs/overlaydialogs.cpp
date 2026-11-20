@@ -406,10 +406,11 @@ bool editTiming(QWidget *parent, int seconds, int *result)
     return true;
 }
 
-void connectDevice(QWidget *parent, PressService *service)
+bool connectDevice(QWidget *parent, PressService *service)
 {
+    bool exitRequested = false;
     if (!service)
-        return;
+        return false;
 
     OverlayDialog dialog(parent);
     auto *layout = new QVBoxLayout(dialog.card());
@@ -618,10 +619,12 @@ void connectDevice(QWidget *parent, PressService *service)
     }
 
     // 退出：关闭对话框并终止整个软件
-    QObject::connect(exitButton, &QPushButton::clicked, &dialog, [&dialog] {
-        dialog.reject();
-        QCoreApplication::quit();
-    });
+    QObject::connect(exitButton, &QPushButton::clicked, &dialog,
+                     [&dialog, &exitRequested] {
+                         exitRequested = true;
+                         dialog.reject();
+                         QCoreApplication::quit();
+                     });
 
     // 区分“用户主动断开”与“连接失败”，两者都会触发 connectionChanged(false)
     auto disconnectRequested = std::make_shared<bool>(false);
@@ -731,6 +734,7 @@ void connectDevice(QWidget *parent, PressService *service)
         ipEdit->setFocus();
 
     dialog.exec();
+    return exitRequested;
 }
 
 } // namespace Dialogs

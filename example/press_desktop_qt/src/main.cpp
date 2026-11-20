@@ -252,7 +252,8 @@ int main(int argc, char *argv[])
         ? arguments.at(annotateIndex + 1)
         : QString();
 
-    window.show();
+    // 截图/控件标注模式不弹连接对话框；正常启动时先完成连接选择再显示主界面
+    window.start(shotPath.isEmpty() && annotateDir.isEmpty());
 
     if (!annotateDir.isEmpty()) {
         QTimer::singleShot(700, &window, [&window, annotateDir] {
