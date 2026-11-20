@@ -260,21 +260,21 @@ QWidget *SettingsPage::buildHeroCard()
     layout->addStretch(1);
     layout->addWidget(new AboutLogo(hero), 0, Qt::AlignHCenter);
 
-    auto *title = new QLabel(QStringLiteral("自动热压机"), hero);
-    title->setObjectName(QStringLiteral("heroTitle"));
+    m_heroTitle = new QLabel(QStringLiteral("自动热压机"), hero);
+    m_heroTitle->setObjectName(QStringLiteral("heroTitle"));
     QFont titleFont = Theme::ui(19, QFont::Bold);
     titleFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.0);
-    title->setFont(titleFont);
-    title->setAlignment(Qt::AlignCenter);
-    layout->addWidget(title);
+    m_heroTitle->setFont(titleFont);
+    m_heroTitle->setAlignment(Qt::AlignCenter);
+    layout->addWidget(m_heroTitle);
 
-    auto *subtitle = new QLabel(QStringLiteral("AUTO HOT PRESS"), hero);
-    subtitle->setObjectName(QStringLiteral("heroSub"));
+    m_heroSub = new QLabel(QStringLiteral("AUTO HOT PRESS"), hero);
+    m_heroSub->setObjectName(QStringLiteral("heroSub"));
     QFont subFont = Theme::num(12);
     subFont.setLetterSpacing(QFont::AbsoluteSpacing, 1.2);
-    subtitle->setFont(subFont);
-    subtitle->setAlignment(Qt::AlignCenter);
-    layout->addWidget(subtitle);
+    m_heroSub->setFont(subFont);
+    m_heroSub->setAlignment(Qt::AlignCenter);
+    layout->addWidget(m_heroSub);
 
     auto *chip = new QLabel(QStringLiteral("已授权 · 单机永久许可"), hero);
     chip->setObjectName(QStringLiteral("chipBrand"));
@@ -376,6 +376,17 @@ void SettingsPage::applyReadOnlyData(const PressReadOnlyData &data)
     setText(m_devName, data.nameZh.isEmpty() ? data.nameEn : data.nameZh);
     if (m_devName)
         m_devName->setToolTip(data.nameEn);
+    // 品牌区标题与窗口标题、侧栏一致，使用设备上报的名称
+    if (m_heroTitle) {
+        const QString heroName = data.nameZh.trimmed().isEmpty()
+            ? data.nameEn.trimmed()
+            : data.nameZh.trimmed();
+        if (!heroName.isEmpty())
+            m_heroTitle->setText(heroName);
+    }
+    // 品牌区副标题显示设备型号，与侧栏品牌区一致
+    if (m_heroSub && !data.type.trimmed().isEmpty())
+        m_heroSub->setText(data.type.trimmed());
     setText(m_devType, data.type);
     setText(m_devSerial, data.serialNumber);
     setText(m_devDiameter, QStringLiteral("%1 mm").arg(number1(data.diameter)));

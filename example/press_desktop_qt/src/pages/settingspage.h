@@ -35,6 +35,8 @@ private:
     QLabel *m_linkState = nullptr;
     QPushButton *m_linkButton = nullptr;
     QLabel *m_heroLinkValue = nullptr;
+    QLabel *m_heroTitle = nullptr;   // 品牌区标题，随设备名称自动更新
+    QLabel *m_heroSub = nullptr;     // 品牌区副标题，随设备型号自动更新
 
     // “关于本机”中由 ReadOnlyData 填充的值控件
     QLabel *m_devName = nullptr;

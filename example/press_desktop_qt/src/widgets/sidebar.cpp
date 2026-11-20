@@ -202,20 +202,20 @@ QWidget *Sidebar::createBrand()
     textLayout->setContentsMargins(0, 0, 0, 0);
     textLayout->setSpacing(2);
 
-    auto *name = new QLabel(QStringLiteral("自动热压机"), texts);
-    name->setObjectName(QStringLiteral("brandName"));
+    m_brandName = new QLabel(QStringLiteral("自动热压机"), texts);
+    m_brandName->setObjectName(QStringLiteral("brandName"));
     QFont nameFont = Theme::ui(13, QFont::Bold);
     nameFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.6);
-    name->setFont(nameFont);
+    m_brandName->setFont(nameFont);
 
-    auto *sub = new QLabel(QStringLiteral("AUTO HOT PRESS · V3.1.4"), texts);
-    sub->setObjectName(QStringLiteral("brandSub"));
+    m_brandModel = new QLabel(QStringLiteral("AUTO HOT PRESS"), texts);
+    m_brandModel->setObjectName(QStringLiteral("brandSub"));
     QFont subFont = Theme::num(8);
     subFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
-    sub->setFont(subFont);
+    m_brandModel->setFont(subFont);
 
-    textLayout->addWidget(name);
-    textLayout->addWidget(sub);
+    textLayout->addWidget(m_brandName);
+    textLayout->addWidget(m_brandModel);
 
     layout->addWidget(mark, 0, Qt::AlignTop);
     layout->addWidget(texts, 1, Qt::AlignVCenter);
@@ -278,6 +278,14 @@ void Sidebar::setLinkStatus(bool connected, const QString &detail)
     }
     if (m_linkDot)
         m_linkDot->setOnline(connected);
+}
+
+void Sidebar::setBrand(const QString &name, const QString &model)
+{
+    if (m_brandName && !name.trimmed().isEmpty())
+        m_brandName->setText(name);
+    if (m_brandModel && !model.trimmed().isEmpty())
+        m_brandModel->setText(model);
 }
 
 void Sidebar::setLinkWarning(const QString &detail)

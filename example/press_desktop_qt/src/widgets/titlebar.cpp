@@ -2,6 +2,8 @@
 #include "theme/icons.h"
 #include "theme/theme.h"
 
+#include <press/press.hpp>
+
 #include <QAbstractButton>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -65,6 +67,15 @@ private:
 
 } // namespace
 
+QString TitleBar::appTitle(const QString &deviceName)
+{
+    const QString name = deviceName.trimmed().isEmpty()
+        ? QStringLiteral("自动热压机")
+        : deviceName.trimmed();
+    return QStringLiteral("%1 · 上位机 (SDK %2)")
+        .arg(name, QString::fromStdString(Press::version()));
+}
+
 TitleBar::TitleBar(QWidget *parent)
     : QWidget(parent)
 {
@@ -77,12 +88,12 @@ TitleBar::TitleBar(QWidget *parent)
     layout->setSpacing(10);
 
     auto *mark = new IconWidget(AppIcon::Press, Theme::Brand, 16, this);
-    auto *title = new QLabel(QStringLiteral("自动热压机 · 上位机"), this);
-    title->setObjectName(QStringLiteral("titleText"));
-    title->setFont(Theme::ui(12));
+    m_title = new QLabel(appTitle(), this);
+    m_title->setObjectName(QStringLiteral("titleText"));
+    m_title->setFont(Theme::ui(12));
 
     layout->addWidget(mark);
-    layout->addWidget(title);
+    layout->addWidget(m_title);
     layout->addStretch(1);
 
     auto *minimize = new CaptionButton(CaptionButton::Minimize, this);
@@ -96,6 +107,12 @@ TitleBar::TitleBar(QWidget *parent)
     connect(minimize, &QAbstractButton::clicked, this, &TitleBar::minimizeRequested);
     connect(maximize, &QAbstractButton::clicked, this, &TitleBar::maximizeRequested);
     connect(close, &QAbstractButton::clicked, this, &TitleBar::closeRequested);
+}
+
+void TitleBar::setTitle(const QString &text)
+{
+    if (m_title && !text.trimmed().isEmpty())
+        m_title->setText(text);
 }
 
 void TitleBar::mousePressEvent(QMouseEvent *event)

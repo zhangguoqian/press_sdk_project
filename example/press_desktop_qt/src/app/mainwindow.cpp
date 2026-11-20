@@ -37,7 +37,7 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    setWindowTitle(QStringLiteral("自动热压机 · 上位机"));
+    setWindowTitle(TitleBar::appTitle());
     setWindowFlag(Qt::FramelessWindowHint);
     resize(1440, 900);
     setMinimumSize(1180, 700);
@@ -116,6 +116,20 @@ MainWindow::MainWindow(QWidget *parent)
         m_actionBar->setLogBadge(m_logPanel->isVisible() ? 0 : count);
     });
     connect(m_logPanel, &LogPanel::statusMessage, this, &MainWindow::showToast);
+
+    // 设备名称 / 型号驱动标题与侧栏品牌区
+    connect(m_service, &PressService::readOnlyDataUpdated, this,
+            [this](const PressReadOnlyData &data) {
+                const QString name = !data.nameZh.trimmed().isEmpty()
+                    ? data.nameZh.trimmed()
+                    : data.nameEn.trimmed();
+                if (!name.isEmpty()) {
+                    const QString title = TitleBar::appTitle(name);
+                    m_titleBar->setTitle(title);
+                    setWindowTitle(title);
+                }
+                m_sidebar->setBrand(name, data.type);
+            });
 
     // SDK 通讯状态 / 错误提示
     connect(m_state, &MachineState::sdkError, this, &MainWindow::showToast);
