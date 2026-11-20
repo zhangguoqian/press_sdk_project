@@ -134,7 +134,7 @@ The project also provides a C-compatible interface for integration scenarios whe
 - Public header: `press/include/press/press.h`
 - The exported C symbols all use the `cpress_` prefix.
 - The C API wraps the underlying C++ `Press` implementation behind an opaque `PressCContext` handle.
-- Common operations include create/destroy, connect/disconnect, read/write data, and optional callback registration through `PressCDataCallbacks`.
+- Common operations include create/destroy, connect/disconnect, read/write data, reading the cached firmware version (`cpress_get_device_version_info` / `CPressVersionInfo`), and optional callback registration through `PressCDataCallbacks`.
 - The Java JNI bridge uses native names such as `press_create` and `press_connect` to match the Java-side naming style, but it still calls the same underlying `cpress_*` implementation.
 
 Example:
@@ -198,6 +198,10 @@ System.setProperty("java.library.path", "C:/path/to/native/lib");
 if (!sdk.connect("COM3", PressSdk.PortType.SerialPortType)) {
     return;
 }
+PressSdk.DeviceVersionInfo v = sdk.getDeviceVersionInfo(); // null when not connected
+if (v != null) {
+    System.out.println(v.versionString()); // "V<major>.<minor>.<patch>"
+}
 System.out.println(sdk.getLastErrorInfo());
 sdk.close();
 ```
@@ -216,6 +220,11 @@ using PressSdk.Interop;
 using var sdk = new PressSdk();
 if (!sdk.Connect("COM3", PortType.SerialPortType)) {
     return;
+}
+
+DeviceVersionInfo ver;
+if (sdk.GetDeviceVersionInfo(out ver)) {
+    Console.WriteLine($"V{ver.major}.{ver.minor}.{ver.patch}");
 }
 
 PressData data;
@@ -237,6 +246,8 @@ from press_sdk import PressSdk, PortType
 
 sdk = PressSdk()
 if sdk.connect("COM3", PortType.SerialPortType):
+    v = sdk.get_device_version_info()  # raises RuntimeError when not connected
+    print(f"V{v.major}.{v.minor}.{v.patch}")
     print(sdk.get_press_data_json())   # raw PD JSON string / PD JSON 字符串
 sdk.close()
 ```
@@ -254,6 +265,8 @@ const { PressSdk, PortType } = require('./interface/javascript/pressSdk');
 
 const sdk = new PressSdk();
 if (sdk.connect('COM3', PortType.SerialPortType)) {
+  const v = sdk.getDeviceVersionInfo(); // null when not connected
+  if (v) console.log(`V${v.major}.${v.minor}.${v.patch}`);
   const data = JSON.parse(sdk.getPressDataJson());
   console.log(data.PStep);
 }
@@ -271,6 +284,8 @@ Important:
 ```dart
 final sdk = PressSdk();
 if (sdk.connect('COM3', portType: PortType.serialPortType)) {
+  final v = sdk.getDeviceVersionInfo(); // null when not connected
+  if (v != null) print('V${v.major}.${v.minor}.${v.patch}');
   print(sdk.isConnected());
   sdk.close();
 }
@@ -293,6 +308,13 @@ Press press;
 
 if (!press.connect("COM3", SerialPortType)) {
     return 1;
+}
+
+// Read the firmware version cached during the connect handshake.
+// No new request is issued; returns false when not connected.
+VersionInfo ver{};
+if (press.getDeviceVersionInfo(ver)) {
+    // ver.m_AppNo / ver.m_Major / ver.m_Minor / ver.m_Patch
 }
 
 std::string rodJson;
@@ -353,6 +375,7 @@ press.registerDataInterface(&handler);
 - ReadOnlyData: static device identity and parameter limits
 - PressData: multi-step pressure control configuration
 - RealTimeData: live machine operating state
+- VersionInfo: cached device firmware version (app type + major.minor.patch), populated during the connect handshake
 - PressDataInterface: asynchronous callback interface defined in the main public header
 
 ### Main functions
@@ -363,6 +386,7 @@ press.registerDataInterface(&handler);
 - Press::getPressDataJson
 - Press::setPressDataJson
 - Press::getRealTimeDataJson
+- Press::getDeviceVersionInfo
 - Press::setPressing
 - Press::setDemolding
 - Press::run

@@ -128,7 +128,7 @@ press_sdk_project/
 - 公共头文件：`press/include/press/press.h`
 - 导出的 C 符号统一使用 `cpress_` 前缀。
 - C 接口通过不透明句柄 `PressCContext` 包装底层的 C++ `Press` 实现。
-- 常见能力包括创建/销毁对象、连接/断开设备、读取/写入参数，以及通过 `PressCDataCallbacks` 注册回调。
+- 常见能力包括创建/销毁对象、连接/断开设备、读取/写入参数、读取缓存固件版本（`cpress_get_device_version_info` / `CPressVersionInfo`），以及通过 `PressCDataCallbacks` 注册回调。
 
 示例：
 
@@ -189,6 +189,10 @@ System.setProperty("java.library.path", "C:/path/to/native/lib");
 if (!sdk.connect("COM3", PressSdk.PortType.SerialPortType)) {
     return;
 }
+PressSdk.DeviceVersionInfo v = sdk.getDeviceVersionInfo(); // 未连接返回 null
+if (v != null) {
+    System.out.println(v.versionString()); // "V<major>.<minor>.<patch>"
+}
 System.out.println(sdk.getLastErrorInfo());
 sdk.close();
 ```
@@ -207,6 +211,11 @@ using PressSdk.Interop;
 using var sdk = new PressSdk();
 if (!sdk.Connect("COM3", PortType.SerialPortType)) {
     return;
+}
+
+DeviceVersionInfo ver;
+if (sdk.GetDeviceVersionInfo(out ver)) {
+    Console.WriteLine($"V{ver.major}.{ver.minor}.{ver.patch}");
 }
 
 PressData data;
@@ -228,6 +237,8 @@ from press_sdk import PressSdk, PortType
 
 sdk = PressSdk()
 if sdk.connect("COM3", PortType.SerialPortType):
+    v = sdk.get_device_version_info()  # 未连接时抛 RuntimeError
+    print(f"V{v.major}.{v.minor}.{v.patch}")
     print(sdk.get_press_data_json())   # 原始 PD JSON 字符串
 sdk.close()
 ```
@@ -245,6 +256,8 @@ const { PressSdk, PortType } = require('./interface/javascript/pressSdk');
 
 const sdk = new PressSdk();
 if (sdk.connect('COM3', PortType.SerialPortType)) {
+  const v = sdk.getDeviceVersionInfo(); // 未连接返回 null
+  if (v) console.log(`V${v.major}.${v.minor}.${v.patch}`);
   const data = JSON.parse(sdk.getPressDataJson());
   console.log(data.PStep);
 }
@@ -262,6 +275,8 @@ sdk.close();
 ```dart
 final sdk = PressSdk();
 if (sdk.connect('COM3', portType: PortType.serialPortType)) {
+  final v = sdk.getDeviceVersionInfo(); // 未连接返回 null
+  if (v != null) print('V${v.major}.${v.minor}.${v.patch}');
   print(sdk.isConnected());
   sdk.close();
 }
@@ -284,6 +299,12 @@ Press press;
 
 if (!press.connect("COM3", SerialPortType)) {
     return 1;
+}
+
+// 读取连接握手时缓存的固件版本，不发起新请求；未连接时返回 false。
+VersionInfo ver{};
+if (press.getDeviceVersionInfo(ver)) {
+    // ver.m_AppNo / ver.m_Major / ver.m_Minor / ver.m_Patch
 }
 
 std::string rodJson;
@@ -344,6 +365,7 @@ press.registerDataInterface(&handler);
 - ReadOnlyData：设备静态身份和参数限制
 - PressData：多步压力控制配置
 - RealTimeData：设备实时状态
+- VersionInfo：连接握手时缓存的设备固件版本（应用类型 + 主.次.修订），connect 成功后填充
 - PressDataInterface：在主公开头文件中定义的异步回调接口
 
 ### 主要函数
@@ -354,6 +376,7 @@ press.registerDataInterface(&handler);
 - Press::getPressDataJson
 - Press::setPressDataJson
 - Press::getRealTimeDataJson
+- Press::getDeviceVersionInfo
 - Press::setPressing
 - Press::setDemolding
 - Press::run
