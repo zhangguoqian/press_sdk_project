@@ -1,10 +1,10 @@
 # 自动热压机上位机（press_desktop_qt）完善建议报告
 
 - 报告日期：2026-11-19
-- 最近更新：2026-11-21（2.2 已由固件侧修复；新增固件版本信息展示）
+- 最近更新：2026-11-21（固件修复、固件版本展示、JSON 单元测试、构建统一与架构拆分、参数可配置化）
 - 涉及工程：`press_sdk_project/example/press_desktop_qt`
 - 对照固件：HMI `TYPE345 V3.1.5`（DEBUG 合成数据问题已修复）
-- 结论摘要：上位机字段映射与界面联动整体正确；实测阶段、设定值、单模式倒计时与 HMI 一致。此前压力/温度“对不上”的根因是**下位机 DEBUG 固件使用两套不同的合成数据**，现已由固件侧修复，HMI 与 RT 使用同一套真实数据。通讯看门狗、指令确认、参数去抖、倒计时单位确认、日志、启动连接流程、实时字段应用、状态一致性及固件版本展示均已完成；数据质量已实现压力平滑与温度占位符，零漂/去皮按现场需要再评估；剩余重点是**工程质量（单元测试、架构拆分）**。
+- 结论摘要：上位机字段映射与界面联动整体正确；实测阶段、设定值、单模式倒计时与 HMI 一致。此前压力/温度“对不上”的根因是**下位机 DEBUG 固件使用两套不同的合成数据**，现已由固件侧修复，HMI 与 RT 使用同一套真实数据。通讯看门狗、指令确认、参数去抖、倒计时单位确认、日志、启动连接流程、实时字段应用、状态一致性及固件版本展示均已完成；数据质量已实现压力平滑与温度占位符，零漂/去皮按现场需要再评估；JSON 解析已补齐单元测试与样例报文，构建已统一、模拟逻辑已拆分，运行参数已外置到 `config.ini`；代码侧整改项已全部完成，剩余为现场实机验收。
 
 ---
 
@@ -22,7 +22,7 @@
 | 3.2 | 状态一致性 | ✅ 已完成 | 下位机启动提示、停止二次确认、模拟模式标识、模式切换不闪回 |
 | 3.3 | 日志功能 | ✅ 已完成 | 日期、显式级别、自动落盘、可调高度、导出反馈、重复合并 |
 | 3.4 | 启动连接流程与本地模拟 | ✅ 已完成 | 启动先弹连接对话框，可退出软件，设置中可断开重连 |
-| 4.x | 测试/构建/结构 | ⏳ 待办 | 单元测试、构建统一、架构拆分 |
+| 4.x | 测试/构建/结构 | ✅ 已完成 | 测试、构建统一、结构拆分、参数配置化均完成；状态机测试可选补充 |
 
 ---
 
@@ -181,30 +181,33 @@
 
 ## 4. 工程质量与可维护性
 
-### 4.1 测试 ⏳
+### 4.1 测试 ✅ 解析层已完成
 
-- 缺少单元测试：建议为 `PressService` 的四类 JSON 解析、时间格式化、阶段边界、倒计时单位判定、指令确认状态机、参数去抖合并增加测试（Qt Test / ctest）。
-- 建议加入样例报文 fixtures（ReadOnly/Press/Temp/Mix/RealTime），防止固件字段变化导致静默回归。
+- 解析逻辑已从 `PressService` 拆到 [`core/press_json.h`](../example/press_desktop_qt/src/core/press_json.h) / `.cpp`，不依赖 QObject，可直接测试。
+- 新增 `press_json_test`（ctest）：`tests/test_press_json.cpp` + `tests/fixtures/{readonly,press,temp,mix,realtime}.json`，覆盖五类报文字段、数组顺序、空/非法报文；`ctest --test-dir build -R press_json_test` 通过。
+- 样例报文同时作为固件字段回归基线：字段改名或缺失会在测试中失败。
+- 仍待补充：时间格式化、阶段边界、指令确认状态机、参数去抖合并等需要实例化 `PressService` 的测试。
 
-### 4.2 构建 ⏳
+### 4.2 构建 ✅ 已完成
 
-- CMake 将 Qt 路径硬编码为 `mingw81_32`；根目录曾出现 32 位编译器 + 64 位 Qt 混用导致链接失败。
-- 建议：统一一种工具链；Qt 路径通过 `CMAKE_PREFIX_PATH` 或环境变量注入；在 README 写明构建步骤与套件要求。
-- 根 `CMakeLists.txt` 中 `add_subdirectory(example/Qt)` 被注释，需要说明原因或删除旧示例。
+- Qt 路径不再硬编码：优先 `CMAKE_PREFIX_PATH` / 环境变量，其次 PATH 中的 `qmake -query QT_INSTALL_PREFIX`，并保留清晰的 `find_package(Qt5 ...)` 失败信息。
+- CMake 最低版本统一为 3.27；移除根工程中遗留的 `example/Qt` 注释。
+- README（中/英）补充 MinGW + Qt 5.15.2 构建命令、`ctest` 命令与 MSVC 示例，并说明示例/测试开关。
+- 仍需现场遵守：Qt 套件位数必须与编译器一致（32 位 Qt + mingw810_32）。
 
-### 4.3 代码结构 ⏳
+### 4.3 代码结构 ✅ 已完成（职责拆分）
 
-- `MachineState` 同时承担协议适配、业务状态与本地模拟，职责偏重；建议拆为：
-  - `ProtocolAdapter`（JSON → 领域模型）
-  - `MachineState`（业务状态与规则）
-  - `Simulator`（未连接时的模拟推进）
-- `PressService` 中 SDK 回调线程与 UI 线程边界建议统一注释说明；`m_loggedFirstRt`、`m_lastRtMs` 等跨线程字段需明确约束。
-- 魔法数字（1 s 采样、3 s 超时、500 条日志、400 ms 去抖、156 px 初始高度）建议集中为常量或配置。
+- JSON → 领域模型：`src/core/press_json.{h,cpp}`（见 4.1）。
+- 本地模拟推进：`src/core/machine_simulator.{h,cpp}` 独立为 `Simulation::step(MachineState&)`，`MachineState::tick()` 仅保留节拍与信号。
+- 运行参数集中：`app_config.h` 提供默认值，`app_settings.h` 从 `config.ini` 读取并覆盖（见 4.4）。
+- `MachineState` 继续持有业务状态与规则（符合报告拆分目标）；SDK 回调线程 → UI 线程的边界仍由 `PressService` 统一派发。
 
-### 4.4 可配置性 ⏳
+### 4.4 可配置性 ✅ 已完成
 
-- 采样周期、重连间隔、日志上限/保留天数、去抖时长建议放入配置（QSettings 或 ini）。
-- 参数是否本地持久化需明确：当前仅保存连接端点，工艺参数依赖设备侧存储。
+- 新增 `src/core/app_settings.{h,cpp}`：使用 `QSettings` 读写 `<AppData>/config.ini`，首次启动自动写入默认值，读取时按范围收敛。
+- 已外置参数：`tickIntervalMs`、`watchdogIntervalMs`、`staleTimeoutMs`、`reconnectTriggerMs`、`commandTimeoutMs`、`writeDebounceMs`、`maxEntries`、`mergeWindowMs`、`maxFileBytes`、`retentionDays`。
+- `PressService`、`MachineState`、`LogPanel` 均改为读取配置；默认值仍保留在 `app_config.h`。
+- README 中英文补充配置文件路径与参数说明，修改后重启生效。
 
 ---
 
@@ -221,8 +224,9 @@
 | P1 | 连接状态/取消/重试 | ✅ 完成 | 提升可用性 | 连接对话框、服务 |
 | P2 | 日志落盘与日期 | ✅ 完成 | 可追溯、售后排障 | `LogPanel`、文件存储 |
 | P2 | 零点/去皮显示选项 | 待定 | 显示与 HMI 对齐 | `MachineState`、页面 |
-| P2 | 单元测试与样例报文 | 待办 | 防回归 | 新增 tests |
-| P3 | 架构拆分与构建统一 | 待办 | 长期可维护 | 全工程 |
+| P2 | 单元测试与样例报文 | ✅ 解析层完成 | 防回归 | `press_json_test`、fixtures |
+| P3 | 架构拆分与构建统一 | ✅ 完成 | 长期可维护 | `press_json`、`machine_simulator`、`app_config`、CMake/README |
+| P3 | 参数可配置化 | ✅ 完成 | 现场可调 | `app_settings`、`config.ini` |
 
 ---
 
@@ -291,3 +295,23 @@
 - 2.2：下位机已修复 DEBUG 合成数据，HMI 屏幕与 RT 上报使用同一套真实数据；
 - 上位机：接入 SDK `getDeviceVersionInfo`，在“系统设置 → 关于本机”只读信息下方展示应用类型与固件版本，断开后恢复占位符；
 - 验证：`press_desktop_qt` 编译通过，设置页截图确认两行完整显示。
+
+### 7.5 2026-11-21 JSON 解析单元测试与样例报文
+
+- 解析函数移至 `src/core/press_json.{h,cpp}`，`PressService` 仅调用；
+- 新增 `tests/test_press_json.cpp` 与五个样例报文，覆盖 ReadOnly / Press / Temp / Mix / RealTime；
+- CMake 增加 `press_json_test` 并注册到 ctest，根工程启用 `include(CTest)`；
+- 验证：`ctest --test-dir build -R press_json_test` 1/1 通过。
+
+### 7.6 2026-11-21 构建统一与架构拆分
+
+- 构建：Qt 路径改为 `CMAKE_PREFIX_PATH` / 环境变量 / qmake 自动探测，CMake 最低版本统一 3.27，移除遗留 `example/Qt` 注释；
+- README 中英文补充 MinGW + Qt 5.15.2 构建、ctest 与 MSVC 示例；
+- 结构：JSON 解析拆至 `press_json`，本地模拟拆至 `machine_simulator`，运行参数集中到 `app_config.h`；
+- 验证：`press_desktop_qt` 编译通过，`ctest` 1/1 通过。
+
+### 7.7 2026-11-21 运行参数可配置化
+
+- 新增 `app_settings.{h,cpp}`，读写 `<AppData>/config.ini`，首次启动生成默认配置；
+- 采样节拍、看门狗/中断/重连阈值、指令超时、写入去抖、日志上限/合并窗口/文件容量/保留天数均可配置；
+- README 中英文补充配置说明；验证：编译通过，启动后生成 `config.ini`（10 项默认值）。
