@@ -7,6 +7,7 @@
 class MachineState;
 class PressService;
 struct PressReadOnlyData;
+struct DeviceVersionInfo;
 class QLabel;
 class QLineEdit;
 class QPushButton;
@@ -28,6 +29,7 @@ private:
     void updateLinkUi(bool connected);
     void connectOrDisconnect();
     void applyReadOnlyData(const PressReadOnlyData &data);
+    void applyVersionInfo(const DeviceVersionInfo &info);
 
     MachineState *m_state = nullptr;
     PressService *m_service = nullptr;
@@ -51,4 +53,7 @@ private:
     QLabel *m_devPrecision = nullptr;
     QLabel *m_devPStep = nullptr;
     QLabel *m_devTStep = nullptr;
+    // 固件版本信息（连接握手时缓存）
+    QLabel *m_devAppType = nullptr;
+    QLabel *m_devVersion = nullptr;
 };

@@ -228,6 +228,7 @@ PressService::PressService(QObject *parent)
 {
     qRegisterMetaType<PressRtData>("PressRtData");
     qRegisterMetaType<PressReadOnlyData>("PressReadOnlyData");
+    qRegisterMetaType<DeviceVersionInfo>("DeviceVersionInfo");
     qRegisterMetaType<PressProgramData>("PressProgramData");
     qRegisterMetaType<PressTempProgramData>("PressTempProgramData");
     qRegisterMetaType<PressMixProgramData>("PressMixProgramData");
@@ -643,6 +644,8 @@ void PressService::connectEndpoint(const QString &endpoint, bool tcp, bool autom
                                              : PortType::SerialPortType);
         QString error;
         std::string firstRt;
+        VersionInfo sdkVersion{};
+        const bool hasVersion = ok && m_press->getDeviceVersionInfo(sdkVersion);
         if (ok) {
             // 连接成功后启动周期采集：1s 一次，回调在 SDK 线程执行
             m_press->registerDataInterface(m_adapter.get(), 1);
@@ -664,7 +667,8 @@ void PressService::connectEndpoint(const QString &endpoint, bool tcp, bool autom
                         .arg(text ? QString::fromUtf8(text) : QStringLiteral("未知错误"));
         }
 
-        QMetaObject::invokeMethod(this, [this, ok, error, firstRt, automatic] {
+        QMetaObject::invokeMethod(this, [this, ok, error, firstRt, automatic,
+                                         hasVersion, sdkVersion] {
             m_connecting = false;
 
             // 连接过程中用户点击了断开/取消
@@ -695,6 +699,15 @@ void PressService::connectEndpoint(const QString &endpoint, bool tcp, bool autom
                                     ? QStringLiteral("自动重连成功：%1").arg(m_endpoint)
                                     : QStringLiteral("设备连接成功，已注册 1 s 周期采集，开始读取设备参数"));
                 emit connectionChanged(true, m_endpoint);
+                if (hasVersion) {
+                    DeviceVersionInfo info;
+                    info.valid = true;
+                    info.appType = static_cast<int>(sdkVersion.m_AppNo);
+                    info.major = sdkVersion.m_Major;
+                    info.minor = sdkVersion.m_Minor;
+                    info.patch = sdkVersion.m_Patch;
+                    emit versionInfoUpdated(info);
+                }
                 // 周期采集启用时 getRealTimeDataJson 不触发回调，这里补发首次实时数据
                 if (!firstRt.empty())
                     handleRealTime(0, firstRt);

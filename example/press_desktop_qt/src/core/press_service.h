@@ -74,6 +74,19 @@ struct PressReadOnlyData
 Q_DECLARE_METATYPE(PressReadOnlyData)
 
 /**
+ * 设备固件版本（连接握手时缓存的 VersionInfo，不额外发请求）。
+ */
+struct DeviceVersionInfo
+{
+    bool valid = false;
+    int appType = 0;   // AppType：1 自动热压，2 自动压片，3 自动加热，4 手动压片
+    int major = 0;
+    int minor = 0;
+    int patch = 0;
+};
+Q_DECLARE_METATYPE(DeviceVersionInfo)
+
+/**
  * 压力工艺参数（连接后从 PressData JSON 解析）。
  * setP / afterP / keepSec 为 30 段数组，stepCount 为设备当前使用的段数。
  */
@@ -192,6 +205,7 @@ signals:
     void realTimeUpdated(const PressRtData &data);
     // 连接后主动读取的静态参数
     void readOnlyDataUpdated(const PressReadOnlyData &data);
+    void versionInfoUpdated(const DeviceVersionInfo &info);
     void pressProgramUpdated(const PressProgramData &data);
     void tempProgramUpdated(const PressTempProgramData &data);
     void mixProgramUpdated(const PressMixProgramData &data);

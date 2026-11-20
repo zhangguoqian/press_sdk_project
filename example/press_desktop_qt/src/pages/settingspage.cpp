@@ -121,6 +121,8 @@ SettingsPage::SettingsPage(MachineState *state, PressService *service, QWidget *
     // 连接设备后，用 ReadOnlyData 填充“关于本机”
     connect(m_service, &PressService::readOnlyDataUpdated,
             this, &SettingsPage::applyReadOnlyData);
+    connect(m_service, &PressService::versionInfoUpdated,
+            this, &SettingsPage::applyVersionInfo);
 }
 
 QWidget *SettingsPage::buildTabCard()
@@ -173,7 +175,16 @@ QWidget *SettingsPage::buildLinkCard()
 
     connect(m_linkButton, &QPushButton::clicked, this, &SettingsPage::connectOrDisconnect);
     connect(m_service, &PressService::connectionChanged, this,
-            [this](bool connected, const QString &) { updateLinkUi(connected); });
+            [this](bool connected, const QString &) {
+                updateLinkUi(connected);
+                // 断开后固件信息失效，恢复占位符
+                if (!connected) {
+                    if (m_devAppType)
+                        m_devAppType->setText(QStringLiteral("—"));
+                    if (m_devVersion)
+                        m_devVersion->setText(QStringLiteral("—"));
+                }
+            });
     connect(m_service, &PressService::sdkError, this, [this](const QString &message) {
         if (m_service->isConnected() || m_service->isConnecting())
             return;
@@ -314,8 +325,8 @@ QWidget *SettingsPage::buildAboutCard()
 {
     auto *card = new Card(QString(), AppIcon::Info, this);
     card->setHeaderVisible(false);
-    card->setBodyMargins(16, 16, 16, 16);
-    card->contentLayout()->setSpacing(14);
+    card->setBodyMargins(16, 12, 16, 12);
+    card->contentLayout()->setSpacing(10);
 
     // 数值由 ReadOnlyData 回调填充，未连接时显示占位符
     const QVector<QPair<QString, QString>> firstRows = {
@@ -334,12 +345,19 @@ QWidget *SettingsPage::buildAboutCard()
         {QStringLiteral("压力段数"), QStringLiteral("—")},
         {QStringLiteral("温度段数"), QStringLiteral("—")}};
 
+    // 只读信息下方：固件版本
+    const QVector<QPair<QString, QString>> versionRows = {
+        {QStringLiteral("应用类型"), QStringLiteral("—")},
+        {QStringLiteral("固件版本"), QStringLiteral("—")}};
+
     card->contentLayout()->addWidget(buildAboutList(
         firstRows, {&m_devName, &m_devType, &m_devSerial,
                     &m_devDiameter, &m_devMaxP, &m_devMinP}));
     card->contentLayout()->addWidget(buildAboutList(
         secondRows, {&m_devMaxT, &m_devMinT, &m_devBoost,
                      &m_devPrecision, &m_devPStep, &m_devTStep}));
+    card->contentLayout()->addWidget(buildAboutList(
+        versionRows, {&m_devAppType, &m_devVersion}));
     card->contentLayout()->addStretch(1);
     return card;
 }
@@ -402,4 +420,38 @@ void SettingsPage::applyReadOnlyData(const PressReadOnlyData &data)
                 .arg(precisionText(data.tDecimal)));
     setText(m_devPStep, QStringLiteral("%1 段").arg(data.maxPStep));
     setText(m_devTStep, QStringLiteral("%1 段").arg(data.maxTStep));
+}
+
+void SettingsPage::applyVersionInfo(const DeviceVersionInfo &info)
+{
+    if (!info.valid)
+        return;
+
+    QString appType;
+    switch (info.appType) {
+    case 1:
+        appType = QStringLiteral("自动热压");
+        break;
+    case 2:
+        appType = QStringLiteral("自动压片");
+        break;
+    case 3:
+        appType = QStringLiteral("自动加热");
+        break;
+    case 4:
+        appType = QStringLiteral("手动压片");
+        break;
+    default:
+        appType = QStringLiteral("未知（%1）").arg(info.appType);
+        break;
+    }
+
+    if (m_devAppType)
+        m_devAppType->setText(appType);
+    if (m_devVersion) {
+        m_devVersion->setText(QStringLiteral("V%1.%2.%3")
+                                  .arg(info.major)
+                                  .arg(info.minor)
+                                  .arg(info.patch));
+    }
 }
