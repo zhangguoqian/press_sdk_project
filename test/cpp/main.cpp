@@ -399,6 +399,106 @@ void runStartStopCases(Press& press)
     std::printf("\nstart/stop cases done.\n");
 }
 
+// ==================== 排气接口 / air venting ====================
+
+constexpr uint16_t CMD_SET_AIR = 0x1524;
+
+//! 排气接口测试：调用一次 startAir()，记录 参数 / 返回值 / 错误 / 耗时，并观察 2 s 内状态标志变化
+void runStartAirCase(Press& press)
+{
+    std::printf("\n-- startAir (CMD 0x1524) --\n");
+    std::printf("  frame hex dump: set PRESS_HEX_TRACE=1 to print TX/RX raw frames\n");
+    printFlags("before", press);
+
+    const bool ok = callAndLog("startAir", "(none)", CMD_SET_AIR, press,
+                               [&] { return press.startAir(); });
+    std::printf("  [check] startAir=%s\n", ok ? "ok" : "fail");
+
+    uint8_t lastFlags = 0xFF;
+    bool changed = false;
+    for (int i = 0; i < 4; ++i)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        MachineState st{};
+        if (!press.getMachineState(st) || st.m_Flags == lastFlags)
+        {
+            continue;
+        }
+        changed = true;
+        lastFlags = st.m_Flags;
+        std::printf("  [state] +%.1fs flags=0x%02X mode=%u\n",
+                    (i + 1) * 0.5, st.m_Flags,
+                    static_cast<unsigned>(st.m_ModelState));
+    }
+    if (!changed)
+    {
+        std::printf("  [state] flags unchanged within 2.0 s\n"
+                    "          (排气可能为瞬时脉冲，固件不置状态位)\n");
+    }
+
+    printFlags("after", press);
+    if (ok)
+        ++g_pass;
+    else
+        ++g_fail;
+}
+
+//! 排气成功路径：启动加压 → 轮询 startAir 直到设备接受(0x01) → 停止加压
+//! 依据下位机逻辑：未启动加压回 0x00，未到压力回 0x03，已到压力才执行排气回 0x01
+void runAirWithPressCase(Press& press)
+{
+    constexpr uint16_t CMD_SET_PRESS_LOCAL = 0x1521;
+    std::printf("\n-- startAir with pressing (CMD 0x1524) --\n");
+    std::printf("  frame hex dump: set PRESS_HEX_TRACE=1 to print TX/RX raw frames\n");
+    printFlags("before", press);
+
+    forceIdle(press);
+    const bool pressOk = callAndLog("setPressing", "true", CMD_SET_PRESS_LOCAL, press,
+                                    [&] { return press.setPressing(true); });
+    const bool pressOn = pressOk && waitForFlag(press, 0x01, true, 5000);
+    printFlags("press=on", press);
+    std::printf("  [check] pressing started=%s\n", pressOn ? "ok" : "fail");
+
+    bool airOk = false;
+    std::printf("\n  poll startAir every 500 ms while pressing (max 60 s)\n");
+    for (int i = 0; i < 120 && pressOn; ++i)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        const auto begin = std::chrono::steady_clock::now();
+        const bool ret = press.startAir();
+        const double ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - begin).count();
+        std::printf("  [air] t=%5.1fs ret=%-5s err=\"%s\" %.1f ms\n",
+                    (i + 1) * 0.5, ret ? "true" : "false",
+                    press.getLastErrorInfo(), ms);
+        if (ret)
+        {
+            airOk = true;
+            break;
+        }
+        const std::string errText = press.getLastErrorInfo();
+        if (errText.find("Unchanged") != std::string::npos
+            || errText.find("Unknown") != std::string::npos)
+        {
+            // 非预期回执，继续观察 3 次后放弃，避免长时间反复下发
+            if (i >= 6)
+                break;
+        }
+    }
+
+    callAndLog("setPressing", "false", CMD_SET_PRESS_LOCAL, press,
+               [&] { return press.setPressing(false); });
+    const bool pressOff = waitForFlag(press, 0x01, false, 5000);
+    forceIdle(press);
+    printFlags("after", press);
+    std::printf("  [check] air=%s press_off=%s\n",
+                airOk ? "ok" : "fail", pressOff ? "ok" : "fail");
+    if (airOk)
+        ++g_pass;
+    else
+        ++g_fail;
+}
+
 // ==================== 全接口逐调用追踪 / per-call trace for all interfaces ====================
 
 int g_traceTotal = 0;
@@ -794,7 +894,7 @@ void runInterfaceTrace(Press& press)
     }
     {
         uint8_t v = 0;
-        traceGet("getModeType", "out=uint8", press, v, [&] { return press.getModeType(v); });
+        traceGet("getMoldType", "out=uint8", press, v, [&] { return press.getMoldType(v); });
     }
     {
         float v = 0.0f;
@@ -980,9 +1080,9 @@ void runInterfaceTrace(Press& press)
     traceFloatSetter(press, "setCalibrationValue",
                      [&](float& v) { return press.getCalibrationValue(v); },
                      [&](float v) { return press.setCalibrationValue(v); });
-    traceByteSetter(press, "setModeType",
-                    [&](uint8_t& v) { return press.getModeType(v); },
-                    [&](uint8_t v) { return press.setModeType(v); });
+    traceByteSetter(press, "setMoldType",
+                    [&](uint8_t& v) { return press.getMoldType(v); },
+                    [&](uint8_t v) { return press.setMoldType(v); });
     traceFloatSetter(press, "setCircle",
                      [&](float& v) { return press.getCircle(v); },
                      [&](float v) { return press.setCircle(v); });
@@ -1480,6 +1580,10 @@ void usage()
     std::printf("Usage:\n");
     std::printf("  press_cpp_test serial <port>        e.g. serial COM3\n");
     std::printf("  press_cpp_test tcp <host:port>      e.g. tcp 192.168.1.100:9000\n\n");
+    std::printf("  press_cpp_test serial <port> air         # 仅执行排气接口测试\n");
+    std::printf("                                           # air venting case only\n");
+    std::printf("  press_cpp_test serial <port> airpress    # 启动加压后测试排气成功路径\n");
+    std::printf("                                           # air venting after pressing\n");
     std::printf("  press_cpp_test serial <port> startstop   # 仅执行启停分项测试\n");
     std::printf("                                           # start/stop cases only\n");
     std::printf("  press_cpp_test serial <port> traceall    # 全接口逐调用追踪（入参/返回值/耗时）\n");
@@ -1534,8 +1638,24 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // 可选模式：仅执行启停分项测试（第三参数 startstop）
+    // 可选模式：仅执行排气接口测试（第三参数 air）
     const std::string runMode = (argc >= 4) ? argv[3] : std::string();
+    if (runMode == "air")
+    {
+        runStartAirCase(press);
+        press.disconnect();
+        return 0;
+    }
+
+    // 可选模式：排气成功路径（先启动加压，等压力到位后排气，第三参数 airpress）
+    if (runMode == "airpress")
+    {
+        runAirWithPressCase(press);
+        press.disconnect();
+        return 0;
+    }
+
+    // 可选模式：仅执行启停分项测试（第三参数 startstop）
     if (runMode == "startstop")
     {
         runStartStopCases(press);
@@ -1684,8 +1804,8 @@ int main(int argc, char* argv[])
         }
 
         uint8_t moldType = 0;
-        ok = press.getModeType(moldType);
-        report("getModeType", ok, press);
+        ok = press.getMoldType(moldType);
+        report("getMoldType", ok, press);
         if (ok)
         {
             std::printf("  mold type = %u\n", moldType);
@@ -2074,9 +2194,9 @@ int main(int argc, char* argv[])
         testFloat("setCalibrationValue(read-back)",
                   [&](float& v) { return press.getCalibrationValue(v); },
                   [&](float v) { return press.setCalibrationValue(v); });
-        testByte("setModeType(read-back)",
-                 [&](uint8_t& v) { return press.getModeType(v); },
-                 [&](uint8_t v) { return press.setModeType(v); });
+        testByte("setMoldType(read-back)",
+                 [&](uint8_t& v) { return press.getMoldType(v); },
+                 [&](uint8_t v) { return press.setMoldType(v); });
         testFloat("setCircle(read-back)",
                   [&](float& v) { return press.getCircle(v); },
                   [&](float v) { return press.setCircle(v); });
@@ -2489,7 +2609,7 @@ int main(int argc, char* argv[])
         // ---- 压力单值/索引 ----
         bench("getPressStepCount", "get", 10, [&] { uint8_t v = 0; return press.getPressStepCount(v); });
         bench("getCalibrationValue", "get", 10, [&] { float v = 0; return press.getCalibrationValue(v); });
-        bench("getModeType", "get", 10, [&] { uint8_t v = 0; return press.getModeType(v); });
+        bench("getMoldType", "get", 10, [&] { uint8_t v = 0; return press.getMoldType(v); });
         bench("getCircle", "get", 10, [&] { float v = 0; return press.getCircle(v); });
         bench("getRectangle", "get", 10, [&] { float a = 0, b = 0; return press.getRectangle(a, b); });
         bench("getAirTime", "get", 10, [&] { uint8_t v = 0; return press.getAirTime(v); });
@@ -2536,9 +2656,9 @@ int main(int argc, char* argv[])
         benchFloatSetter(press, "setCalibrationValue",
                          [&](float& v) { return press.getCalibrationValue(v); },
                          [&](float v) { return press.setCalibrationValue(v); });
-        benchSetter(press, "setModeType",
-                    [&](uint8_t& v) { return press.getModeType(v); },
-                    [&](uint8_t v) { return press.setModeType(v); });
+        benchSetter(press, "setMoldType",
+                    [&](uint8_t& v) { return press.getMoldType(v); },
+                    [&](uint8_t v) { return press.setMoldType(v); });
         benchFloatSetter(press, "setCircle",
                          [&](float& v) { return press.getCircle(v); },
                          [&](float v) { return press.setCircle(v); });

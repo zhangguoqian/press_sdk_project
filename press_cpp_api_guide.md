@@ -161,8 +161,8 @@ enum PressPortType
 | `bool setPressStepCount(uint8_t step)` | 写入压力段数。 |
 | `bool getCalibrationValue(float& value)` | 读取压力校准值。 |
 | `bool setCalibrationValue(float value)` | 写入压力校准值。 |
-| `bool getModeType(uint8_t& type)` | 读取模具类型。 |
-| `bool setModeType(uint8_t type)` | 写入模具类型。 |
+| `bool getMoldType(uint8_t& type)` | 读取模具类型。 |
+| `bool setMoldType(uint8_t type)` | 写入模具类型。 |
 | `bool getCircle(float& diameter)` | 读取圆形容器直径。 |
 | `bool setCircle(float diameter)` | 写入圆形容器直径。 |
 | `bool getRectangle(float& a, float& b)` | 读取矩形容器 A/B 尺寸。 |

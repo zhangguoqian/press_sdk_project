@@ -1,0 +1,86 @@
+﻿Press SDK version: 1.0.0
+[hex] TX cmd=0x0000 len=14 : 00 00 00 00 00 00 00 00 00 00 00 01 00 01
+[hex] RX cmd=0x0000 len=17 : 30 55 45 17 B4 A4 63 E4 00 00 00 04 01 03 01 06 8F
+[PASS] connect
+  connect latency: 58.9 ms (includes version handshake)
+
+-- startAir with pressing (CMD 0x1524) --
+  frame hex dump: set PRESS_HEX_TRACE=1 to print TX/RX raw frames
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 38 01 00 00 F4 01 00 00 00 CE
+  [state] before    flags=0x00 press=0 heat=0 mode=2
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 38 01 00 00 F4 01 00 00 00 CE
+[hex] TX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 01 B8
+[hex] RX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 01 B8
+  setPressing    param=true  cmd=0x1521 ret=true  err="No error" 47.0 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 38 01 00 00 F4 01 00 00 00 CF
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 38 01 00 00 F4 01 00 00 00 CF
+  [state] press=on  flags=0x01 press=1 heat=0 mode=2
+  [check] pressing started=ok
+
+  poll startAir every 500 ms while pressing (max 60 s)
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  0.5s ret=false err="Air rejected: pressure not reached yet" 46.6 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  1.0s ret=false err="Air rejected: pressure not reached yet" 46.5 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  1.5s ret=false err="Air rejected: pressure not reached yet" 30.6 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  2.0s ret=false err="Air rejected: pressure not reached yet" 46.1 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  2.5s ret=false err="Air rejected: pressure not reached yet" 46.3 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  3.0s ret=false err="Air rejected: pressure not reached yet" 31.2 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  3.5s ret=false err="Air rejected: pressure not reached yet" 46.7 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  4.0s ret=false err="Air rejected: pressure not reached yet" 46.1 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  4.5s ret=false err="Air rejected: pressure not reached yet" 31.3 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  5.0s ret=false err="Air rejected: pressure not reached yet" 46.0 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  5.5s ret=false err="Air rejected: pressure not reached yet" 45.8 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  6.0s ret=false err="Air rejected: pressure not reached yet" 31.2 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  6.5s ret=false err="Air rejected: pressure not reached yet" 46.1 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  7.0s ret=false err="Air rejected: pressure not reached yet" 46.5 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  7.5s ret=false err="Air rejected: pressure not reached yet" 31.0 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 03 BD
+  [air] t=  8.0s ret=false err="Air rejected: pressure not reached yet" 46.2 ms
+[hex] TX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+[hex] RX cmd=0x1524 len=14 : 30 55 45 17 B4 A4 63 E4 15 24 00 01 01 BB
+  [air] t=  8.5s ret=true  err="No error" 46.6 ms
+[hex] TX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 00 B7
+[hex] RX cmd=0x1521 len=14 : 30 55 45 17 B4 A4 63 E4 15 21 00 01 00 B7
+  setPressing    param=false cmd=0x1521 ret=true  err="No error" 46.3 ms
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 01 00 1F D7 8F 41 00 00 00 00 00 00 00 00 37 01 00 00 F4 01 00 00 00 94
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 01 00 1F D7 8F 41 00 00 00 00 00 00 00 00 37 01 00 00 F4 01 00 00 00 94
+[hex] TX cmd=0x0500 len=14 : 30 55 45 17 B4 A4 63 E4 05 00 00 01 00 86
+[hex] RX cmd=0x0500 len=38 : 30 55 45 17 B4 A4 63 E4 05 00 00 19 02 00 01 00 1F D7 8F 41 00 00 00 00 00 00 00 00 37 01 00 00 F4 01 00 00 00 94
+  [state] after     flags=0x00 press=0 heat=0 mode=2
+  [check] air=ok press_off=ok

@@ -41,7 +41,7 @@
 | `getMachineState` | get | 20 | 20/20 | 45.963 | 52.628 | 46.645 | 109.000 | - |
 | `getPressStepCount` | get | 10 | 10/10 | 45.897 | 55.777 | 46.616 | 108.297 | - |
 | `getCalibrationValue` | get | 10 | 10/10 | 45.715 | 49.490 | 46.523 | 62.537 | - |
-| `getModeType` | get | 10 | 10/10 | 46.033 | 55.694 | 46.831 | 92.307 | - |
+| `getMoldType` | get | 10 | 10/10 | 46.033 | 55.694 | 46.831 | 92.307 | - |
 | `getCircle` | get | 10 | 10/10 | 45.490 | 50.717 | 46.642 | 61.743 | - |
 | `getRectangle` | get | 10 | 10/10 | 46.112 | 54.379 | 46.641 | 93.801 | - |
 | `getAirTime` | get | 10 | 10/10 | 46.539 | 49.722 | 46.675 | 62.079 | - |
@@ -76,7 +76,7 @@
 | `getLanguage` | get | 10 | 10/10 | 45.969 | 49.552 | 46.460 | 61.925 | - |
 | `setPressStepCount` | set | 5 | 5/5 | 45.981 | 52.608 | 46.757 | 62.179 | 原值写回 |
 | `setCalibrationValue` | set | 5 | 5/5 | 46.023 | 52.680 | 47.073 | 62.009 | 原值写回 |
-| `setModeType` | set | 5 | 5/5 | 46.547 | 64.868 | 61.319 | 107.874 | 原值写回 |
+| `setMoldType` | set | 5 | 5/5 | 46.547 | 64.868 | 61.319 | 107.874 | 原值写回 |
 | `setCircle` | set | 5 | 5/5 | 45.833 | 52.554 | 46.675 | 62.106 | 原值写回 |
 | `setRectangle` | set | 5 | 5/5 | 45.846 | 52.539 | 46.937 | 62.785 | 原值写回 |
 | `setAirTime` | set | 5 | 5/5 | 46.164 | 61.738 | 61.748 | 92.223 | 原值写回 |
@@ -187,7 +187,7 @@
 | 18 | `getMachineState` | out=MachineState | true | flags=0x00,model=2 | No error | 61.6 |
 | 19 | `getPressStepCount` | out=uint8 | true | value=3 | No error | 45.9 |
 | 20 | `getCalibrationValue` | out=float | true | value=0.0 | No error | 46.3 |
-| 21 | `getModeType` | out=uint8 | true | value=1 | No error | 46.7 |
+| 21 | `getMoldType` | out=uint8 | true | value=1 | No error | 46.7 |
 | 22 | `getCircle` | out=float | true | value=100.0 | No error | 46.0 |
 | 23 | `getRectangle` | out=a,b | true | a=100.0,b=100.0 | No error | 61.3 |
 | 24 | `getAirTime` | out=uint8 | true | value=1 | No error | 46.2 |
@@ -222,7 +222,7 @@
 | 53 | `getLanguage` | out=uint8 | true | value=1 | No error | 46.4 |
 | 54 | `setPressStepCount` | value=3 (原值写回) | true | - | No error | 45.9 |
 | 55 | `setCalibrationValue` | value=0.000 (原值写回) | true | - | No error | 61.7 |
-| 56 | `setModeType` | value=1 (原值写回) | true | - | No error | 46.2 |
+| 56 | `setMoldType` | value=1 (原值写回) | true | - | No error | 46.2 |
 | 57 | `setCircle` | value=100.000 (原值写回) | true | - | No error | 45.7 |
 | 58 | `setRectangle` | a=100.0 b=100.0 (原值写回) | true | - | No error | 61.6 |
 | 59 | `setAirTime` | value=1 (原值写回) | true | - | No error | 61.2 |
@@ -327,7 +327,7 @@ RX cmd=0x0100: 30 55 45 17 B4 A4 63 E4 01 00 00 01 03 85
 TX cmd=0x0101: 30 55 45 17 B4 A4 63 E4 01 01 00 01 00 83
 RX cmd=0x0101: 30 55 45 17 B4 A4 63 E4 01 01 00 04 00 00 00 00 86
 
-[getModeType]
+[getMoldType]
 TX cmd=0x0102: 30 55 45 17 B4 A4 63 E4 01 02 00 01 00 84
 RX cmd=0x0102: 30 55 45 17 B4 A4 63 E4 01 02 00 01 01 85
 
@@ -471,7 +471,7 @@ RX cmd=0x0101: 30 55 45 17 B4 A4 63 E4 01 01 00 04 00 00 00 00 86
 TX cmd=0x1101: 30 55 45 17 B4 A4 63 E4 11 01 00 04 00 00 00 00 96
 RX cmd=0x1101: 30 55 45 17 B4 A4 63 E4 11 01 00 04 00 00 00 00 96
 
-[setModeType]
+[setMoldType]
 TX cmd=0x0102: 30 55 45 17 B4 A4 63 E4 01 02 00 01 00 84
 RX cmd=0x0102: 30 55 45 17 B4 A4 63 E4 01 02 00 01 01 85
 TX cmd=0x1102: 30 55 45 17 B4 A4 63 E4 11 02 00 01 01 95

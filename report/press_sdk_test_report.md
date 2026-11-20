@@ -84,7 +84,7 @@
 |---|---|
 | getPressStepCount | 3 |
 | getCalibrationValue | 0.000 |
-| getModeType | 1 |
+| getMoldType | 1 |
 | getCircle | 100.000 |
 | getRectangle | A=100.000 B=100.000 |
 | getAirTime | 1 s |
@@ -132,7 +132,7 @@
 |---|---|---|
 | setPressStepCount | PASS | 3 |
 | setCalibrationValue | PASS | 0.000 |
-| setModeType | PASS | 1 |
+| setMoldType | PASS | 1 |
 | setCircle | PASS | 100.000 |
 | setRectangle | PASS | A=100.000 B=100.000 |
 | setAirTime | PASS | 1 |

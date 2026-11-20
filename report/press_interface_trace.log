@@ -56,7 +56,7 @@
   [trace] getCalibrationValue        param=out=float                  ret=true  out="value=0.0" err="No error" 46.3 ms
 [hex] TX cmd=0x0102 len=14 : 30 55 45 17 B4 A4 63 E4 01 02 00 01 00 84
 [hex] RX cmd=0x0102 len=14 : 30 55 45 17 B4 A4 63 E4 01 02 00 01 01 85
-  [trace] getModeType                param=out=uint8                  ret=true  out="value=1" err="No error" 46.7 ms
+  [trace] getMoldType                param=out=uint8                  ret=true  out="value=1" err="No error" 46.7 ms
 [hex] TX cmd=0x0103 len=14 : 30 55 45 17 B4 A4 63 E4 01 03 00 01 00 85
 [hex] RX cmd=0x0103 len=17 : 30 55 45 17 B4 A4 63 E4 01 03 00 04 00 00 C8 42 92
   [trace] getCircle                  param=out=float                  ret=true  out="value=100.0" err="No error" 46.0 ms
@@ -167,7 +167,7 @@
 [hex] RX cmd=0x0102 len=14 : 30 55 45 17 B4 A4 63 E4 01 02 00 01 01 85
 [hex] TX cmd=0x1102 len=14 : 30 55 45 17 B4 A4 63 E4 11 02 00 01 01 95
 [hex] RX cmd=0x1102 len=14 : 30 55 45 17 B4 A4 63 E4 11 02 00 01 01 95
-  [trace] setModeType                param=value=1 (原值写回)     ret=true  out="-" err="No error" 46.2 ms
+  [trace] setMoldType                param=value=1 (原值写回)     ret=true  out="-" err="No error" 46.2 ms
 [hex] TX cmd=0x0103 len=14 : 30 55 45 17 B4 A4 63 E4 01 03 00 01 00 85
 [hex] RX cmd=0x0103 len=17 : 30 55 45 17 B4 A4 63 E4 01 03 00 04 00 00 C8 42 92
 [hex] TX cmd=0x1103 len=17 : 30 55 45 17 B4 A4 63 E4 11 03 00 04 00 00 C8 42 A2
