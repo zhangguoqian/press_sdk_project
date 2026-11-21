@@ -491,15 +491,28 @@ void MainWindow::handleVentRequest()
 
 void MainWindow::handleCoopRequest()
 {
-    if (m_state->coopRunning
-        && !Dialogs::confirm(this, QStringLiteral("停止合作流程"),
+    if (m_state->coopRunning) {
+        // 停止属于危险操作，二次确认避免误触（尤其是由下位机启动的流程）
+        if (Dialogs::confirm(this, QStringLiteral("停止合作流程"),
                              QStringLiteral("将立即停止当前合作流程，请确认模具与人员安全。"),
                              QStringLiteral("确认停止"), DialogTone::Warn, AppIcon::Power)) {
+            m_state->toggleCoop();
+            showToast(QStringLiteral("合作模式已停止"));
+        }
         return;
     }
-    m_state->toggleCoop();
-    showToast(m_state->coopRunning ? QStringLiteral("合作模式已启动")
-                                   : QStringLiteral("合作模式已停止"));
+
+    // 启动前二次确认，与加压 / 加热流程保持一致
+    const QString text = QStringLiteral(
+        "将按合作流程执行 %1 段，上板 / 下板独立加压与加热。"
+        "请确认人员已离开压机工作区。")
+        .arg(m_state->coopCount);
+
+    if (Dialogs::confirm(this, QStringLiteral("启动合作流程"), text,
+                         QStringLiteral("确认启动"), DialogTone::Warn, AppIcon::Power)) {
+        m_state->toggleCoop();
+        showToast(QStringLiteral("合作模式已启动"));
+    }
 }
 
 void MainWindow::showToast(const QString &text)
