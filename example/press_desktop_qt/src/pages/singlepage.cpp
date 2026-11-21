@@ -117,7 +117,7 @@ QWidget *SinglePage::buildLeftColumn()
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(14);
 
-    auto *card = new Card(QStringLiteral("压力参数"), AppIcon::Gauge, column);
+    auto *card = new Card(QStringLiteral("控压状态"), AppIcon::Gauge, column);
     QVBoxLayout *body = card->contentLayout();
 
     // 参数
@@ -154,7 +154,7 @@ QWidget *SinglePage::buildLeftColumn()
 
 QWidget *SinglePage::buildPressureCard()
 {
-    auto *card = new Card(QStringLiteral("压力阶段"), AppIcon::Press, this);
+    auto *card = new Card(QStringLiteral("压力流程明细"), AppIcon::Press, this);
     m_pressureTools = new StageTools(card);
     card->addHeaderWidget(m_pressureTools);
 
@@ -206,7 +206,7 @@ QWidget *SinglePage::buildPressureCard()
 
 QWidget *SinglePage::buildTemperatureCard()
 {
-    auto *card = new Card(QStringLiteral("温度阶段"), AppIcon::Flame, this);
+    auto *card = new Card(QStringLiteral("温度流程明细"), AppIcon::Flame, this);
     m_temperatureTools = new StageTools(card);
     card->addHeaderWidget(m_temperatureTools);
 
@@ -292,16 +292,11 @@ QWidget *SinglePage::buildMiddleColumn()
 
 QWidget *SinglePage::buildTemperatureControlCard()
 {
-    auto *card = new Card(QStringLiteral("温控设置"), AppIcon::Temp, this);
+    auto *card = new Card(QStringLiteral("温控状态"), AppIcon::Temp, this);
 
-    // 温度状态
+    // 温度状态（与控压/实时状态风格一致：KV 直接跟卡片标题，不设分区小标题）
     QVBoxLayout *groupLayout = nullptr;
     QWidget *group = makeGroup(card, &groupLayout);
-    auto *sub = new QLabel(QStringLiteral("温度状态"), group);
-    sub->setObjectName(QStringLiteral("subLabel"));
-    sub->setFont(Theme::ui(11, QFont::DemiBold));
-    sub->setContentsMargins(0, 2, 0, 8);
-    groupLayout->addWidget(sub);
 
     m_temperatureKv = new KvList(group);
     m_temperatureKv->setRowHeight(35);
@@ -344,9 +339,7 @@ QWidget *SinglePage::buildTemperatureControlCard()
     rateLayout->addWidget(m_rateTip);
     card->contentLayout()->addWidget(rateGroup);
 
-    card->contentLayout()->addStretch(1);
-
-    // 水冷回路（贴底，设备不支持水冷时隐藏）
+    // 水冷回路（紧跟升温速率，内容紧凑分布；设备不支持水冷时隐藏）
     QVBoxLayout *waterLayout = nullptr;
     QWidget *waterGroup = makeGroup(card, &waterLayout, 14, 12, 14, 14);
     m_waterGroup = waterGroup;

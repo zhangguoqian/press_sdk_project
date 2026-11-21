@@ -202,6 +202,10 @@ public:
     bool pushCoopMoldCircle(double diameter);
     bool pushCoopMoldRect(double length, double width);
     bool pushCoopMoldType(int type);
+    bool pushRateMode(int mode);   // 0 普通模式，1 速率模式（TempData.Type）
+
+    // ---- 信息查询 ----
+    QString sdkVersion() const;
 
 signals:
     void connectionChanged(bool connected, const QString &endpoint);

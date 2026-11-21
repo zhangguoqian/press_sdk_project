@@ -287,7 +287,8 @@ QWidget *SettingsPage::buildHeroCard()
     m_heroSub->setAlignment(Qt::AlignCenter);
     layout->addWidget(m_heroSub);
 
-    auto *chip = new QLabel(QStringLiteral("已授权 · 单机永久许可"), hero);
+    auto *chip = new QLabel(
+        QStringLiteral("PressSDK(%1)").arg(m_service ? m_service->sdkVersion() : QString()), hero);
     chip->setObjectName(QStringLiteral("chipBrand"));
     chip->setFont(Theme::ui(11));
     chip->setAlignment(Qt::AlignCenter);

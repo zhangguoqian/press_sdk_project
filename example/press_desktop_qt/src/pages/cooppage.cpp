@@ -24,6 +24,17 @@ QFrame *makeDivider(QWidget *parent)
     line->setStyleSheet(QStringLiteral("background:#E3EAF0;"));
     return line;
 }
+
+QWidget *makeGroup(QWidget *parent, QVBoxLayout **outLayout,
+                   int left = 14, int top = 12, int right = 14, int bottom = 14)
+{
+    auto *group = new QWidget(parent);
+    auto *layout = new QVBoxLayout(group);
+    layout->setContentsMargins(left, top, right, bottom);
+    layout->setSpacing(0);
+    *outLayout = layout;
+    return group;
+}
 } // namespace
 
 CoopPage::CoopPage(MachineState *state, QWidget *parent)
@@ -89,11 +100,9 @@ QWidget *CoopPage::buildLeftColumn()
 
     auto *card = new Card(QStringLiteral("实时状态"), AppIcon::Gauge, column);
 
-    auto *group = new QWidget(card);
-    auto *groupLayout = new QVBoxLayout(group);
-    groupLayout->setContentsMargins(14, 12, 14, 14);
-    groupLayout->setSpacing(0);
-
+    // 与控压状态风格一致：KV 直接跟卡片标题，统一用 makeGroup 构建
+    QVBoxLayout *groupLayout = nullptr;
+    QWidget *group = makeGroup(card, &groupLayout);
     m_kv = new KvList(group);
     m_kv->setRowHeight(35);
     m_kv->addRow(QStringLiteral("setP"), QStringLiteral("设定压力"), QStringLiteral("Ton"));
@@ -114,12 +123,10 @@ QWidget *CoopPage::buildLeftColumn()
     card->contentLayout()->addWidget(group);
 
     card->contentLayout()->addWidget(makeDivider(card));
-    card->contentLayout()->addStretch(1);
 
-    auto *moldGroup = new QWidget(card);
-    auto *moldLayout = new QVBoxLayout(moldGroup);
-    moldLayout->setContentsMargins(14, 12, 14, 14);
-    moldLayout->setSpacing(0);
+    // 模具类型紧跟 KV（与单页控压状态一致，不在中间撑出空白）
+    QVBoxLayout *moldLayout = nullptr;
+    QWidget *moldGroup = makeGroup(card, &moldLayout);
     m_mold = new MoldPanel(m_state, moldGroup, true);
     moldLayout->addWidget(m_mold);
     card->contentLayout()->addWidget(moldGroup);

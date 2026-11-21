@@ -335,7 +335,7 @@ void PressService::handleFlowChange(int flowChange)
         switch (flowChange) {
         case 1:
             emit logMessage(
-                QStringLiteral("设备压力参数已变更（FlowChange=1），重新读取 PressData"));
+                QStringLiteral("设备控压状态已变更（FlowChange=1），重新读取 PressData"));
             if (!m_press->getPressDataJson(json))
                 emit logMessage(QStringLiteral("重新读取 PressData 失败：%1").arg(lastError()),
                                 LogLevel::Warning);
@@ -899,6 +899,22 @@ bool PressService::pushCoopMoldType(int type)
                    return m_press->setMixMoldType(static_cast<uint8_t>(type));
                });
     return true;
+}
+
+bool PressService::pushRateMode(int mode)
+{
+    if (!m_connected)
+        return false;
+    queueWrite(QStringLiteral("temp-rate-mode"), QStringLiteral("温度速率模式"),
+               [this, mode] {
+                   return m_press->setTempSpeedMold(static_cast<uint8_t>(mode != 0 ? 1 : 0));
+               });
+    return true;
+}
+
+QString PressService::sdkVersion() const
+{
+    return QString::fromStdString(Press::version());
 }
 
 bool PressService::report(bool ok, const QString &action)

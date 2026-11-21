@@ -54,7 +54,7 @@ public:
     int tCount = 30;
     int coopCount = 30;
 
-    // ---- 模具 / 温控设置 ----
+    // ---- 模具 / 温控状态 ----
     MoldShape moldShape = MoldShape::Circle;
     double moldDia = 100.0;   // mm
     double moldLen = 100.0;   // mm
@@ -114,7 +114,7 @@ public:
     {
         return m_service && (m_service->isConnected() || m_service->isStale());
     }
-    int pressureIndex() const;     // 当前压力阶段下标（0 起）
+    int pressureIndex() const;     // 当前压力流程明细下标（0 起）
     int temperatureIndex() const;
     int coopIndex() const;
 

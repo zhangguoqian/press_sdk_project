@@ -683,7 +683,7 @@ body:not(.is-running) .kv li.t-down .k::before { animation: none; }
 
 .mold-tip { margin: 0; font-size: 11px; color: var(--muted-2); line-height: 1.7; }
 
-/* 模具类型并入压力参数后的间距 */
+/* 模具类型并入控压状态后的间距 */
 .set-group .mold-seg { margin-bottom: 12px; }
 .set-group .mold-pane.is-on { margin-bottom: 12px; }
 
@@ -715,7 +715,7 @@ body:not(.is-running) .kv li.t-down .k::before { animation: none; }
 
 .mold-area em { font-style: normal; font-size: 10.5px; color: var(--muted); }
 
-/* ---------- 温控设置（合并卡片） ---------- */
+/* ---------- 温控状态（合并卡片） ---------- */
 .merge-card { display: flex; flex-direction: column; }
 
 .set-group { padding: 12px 14px 14px; }
@@ -843,7 +843,7 @@ tr.is-now .row-no { background: var(--brand); color: #fff; box-shadow: 0 3px 8px
 
 table.tbl td.muted { color: var(--muted-2); font-size: 11.5px; }
 
-/* 普通模式：温度阶段隐藏“速率”列 */
+/* 普通模式：温度流程明细隐藏“速率”列 */
 table.tbl.no-rate th:nth-child(3),
 table.tbl.no-rate td:nth-child(3) { display: none; }
 

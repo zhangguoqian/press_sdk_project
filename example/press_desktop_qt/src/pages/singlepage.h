@@ -13,7 +13,7 @@ class QLabel;
 class QResizeEvent;
 class UnitInput;
 
-// 单独模式：压力参数 / 压力阶段 + 温度阶段 + 曲线 / 温控设置
+// 单独模式：控压状态 / 压力流程明细 + 温度流程明细 + 曲线 / 温控状态
 class SinglePage : public QWidget
 {
     Q_OBJECT

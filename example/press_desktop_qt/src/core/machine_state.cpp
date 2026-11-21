@@ -124,10 +124,10 @@ void MachineState::attachService(PressService *service)
                 emit settingsChanged();
             });
 
-    // 压力工艺参数 → 压力阶段表
+    // 压力工艺参数 → 压力流程明细表
     connect(service, &PressService::pressProgramUpdated,
             this, &MachineState::applyPressProgram);
-    // 温度 / 合作工艺参数 → 温度阶段表、合作流程表
+    // 温度 / 合作工艺参数 → 温度流程明细表、合作流程表
     connect(service, &PressService::tempProgramUpdated,
             this, &MachineState::applyTempProgram);
     connect(service, &PressService::mixProgramUpdated,
@@ -192,15 +192,19 @@ void MachineState::applyRealTime(const PressRtData &data)
 
     // 非上位机发起、状态由停止变为运行：提示设备侧已启动
     // 上位机指令下发后 5 s 内的状态变化视为自身操作，避免误报
+    const bool wasCoop = coopRunning;
     if (!m_coopRequested) {
         const bool externalPress = !wasPress && press
             && (!m_pressCmdAge.isValid() || m_pressCmdAge.elapsed() > 5000);
         const bool externalHeat = !wasHeat && heat
             && (!m_heatCmdAge.isValid() || m_heatCmdAge.elapsed() > 5000);
+        const bool externalMix = !wasCoop && data.mixOn;
         if (externalPress)
             emit externalRunDetected(QStringLiteral("检测到下位机已启动加压"));
         if (externalHeat)
             emit externalRunDetected(QStringLiteral("检测到下位机已启动加热"));
+        if (externalMix)
+            emit externalRunDetected(QStringLiteral("检测到下位机已启动合作"));
     }
 
     if (modelState != data.modelState) {
@@ -208,25 +212,29 @@ void MachineState::applyRealTime(const PressRtData &data)
         emit modelStateChanged(modelState);
     }
 
-    if (m_coopRequested) {
-        if (data.mixOn) {
-            coopRunning = true;
-            if (data.mixStep > 0)
-                coopStage = data.mixStep;
-            if (data.mixRemainSec > 0)
-                coopRemain = data.mixRemainSec;
-            m_coopSeenRunning = true;
-            m_coopIdleFrames = 0;
-        } else if (m_coopSeenRunning && ++m_coopIdleFrames >= 3) {
-            // 设备启动存在 1~2 帧延迟，且需先观测到运行再判定结束
-            coopRunning = false;
-            coopStage = 0;
-            coopRemain = 0;
-            m_coopRequested = false;
-            m_coopSeenRunning = false;
-            m_coopIdleFrames = 0;
-        }
+    // 合作运行态由设备上报的 IsMStart 直接驱动（与 press/heat 一致），
+    // 不再被 m_coopRequested 门控——否则下位机/HMI 侧启动合作时上位机不显示。
+    // m_coopSeenRunning + 3 帧去抖：仅对"运行→停止"防抖，避免瞬断误判；
+    // "停止→运行"立即响应，不延迟显示。
+    if (data.mixOn) {
+        coopRunning = true;
+        if (data.mixStep > 0)
+            coopStage = data.mixStep;
+        if (data.mixRemainSec > 0)
+            coopRemain = data.mixRemainSec;
+        m_coopSeenRunning = true;
+        m_coopIdleFrames = 0;
+    } else if (m_coopSeenRunning && ++m_coopIdleFrames >= 3) {
+        // 设备启停存在 1~2 帧延迟，且需先观测到运行再判定结束
+        coopRunning = false;
+        coopStage = 0;
+        coopRemain = 0;
+        m_coopSeenRunning = false;
+        m_coopIdleFrames = 0;
     }
+    // 上位机启停请求得到设备状态确认后清除标记（停止需等去抖完成）
+    if (m_coopRequested && data.mixOn == coopRunning)
+        m_coopRequested = false;
 
     emit changed();
 }
@@ -237,7 +245,7 @@ void MachineState::commitPressureStage(int index)
         return;
     const PressureStage &stage = pStages.at(index);
     if (!m_service->pushPressureStage(index, stage.p, stage.boost, stage.hold))
-        emit sdkError(QStringLiteral("压力阶段参数下发失败"));
+        emit sdkError(QStringLiteral("压力流程明细参数下发失败"));
 }
 
 void MachineState::commitTemperatureStage(int index)
@@ -246,7 +254,7 @@ void MachineState::commitTemperatureStage(int index)
         return;
     const TemperatureStage &stage = tStages.at(index);
     if (!m_service->pushTemperatureStage(index, stage.t, stage.rate, stage.hold))
-        emit sdkError(QStringLiteral("温度阶段参数下发失败"));
+        emit sdkError(QStringLiteral("温度流程明细参数下发失败"));
 }
 
 void MachineState::commitCoopStage(int index)
@@ -560,7 +568,9 @@ void MachineState::toggleCoop()
         }
     }
     coopRunning = next;
-    m_coopRequested = next;
+    // 标记上位机发起了启停请求，待设备状态确认后由 applyRealTime 清除；
+    // 期间抑制外部启动 toast，避免把自身操作误判为设备侧启动
+    m_coopRequested = true;
     m_coopSeenRunning = false;
     m_coopIdleFrames = 0;
     coopStage = next ? 1 : 0;
@@ -670,6 +680,10 @@ void MachineState::setCoopMoldWidth(double mm)
 void MachineState::setRateMode(RateMode mode)
 {
     rateMode = mode;
+    if (sdkMode()) {
+        if (!m_service->pushRateMode(mode == RateMode::Fast ? 1 : 0))
+            emit sdkError(QStringLiteral("温度速率模式下发失败"));
+    }
     emit settingsChanged();
     emit changed();
 }

@@ -105,8 +105,9 @@ OverlayDialog::OverlayDialog(QWidget *parent)
     m_card = new QFrame(this);
     m_card->setObjectName(QStringLiteral("modalCard"));
     m_card->setAttribute(Qt::WA_StyledBackground, true);
-    m_card->setFixedWidth(420);
-    m_card->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    // 不锁死宽度：高 DPI / 大字体下内容可能溢出，允许卡片按内容自适应扩展
+    m_card->setMinimumWidth(420);
+    m_card->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     row->addWidget(m_card, 0, Qt::AlignCenter);
     row->addStretch(1);
@@ -461,7 +462,7 @@ bool connectDevice(QWidget *parent, PressService *service)
     serialRadio->setObjectName(QStringLiteral("linkRadio"));
     serialRadio->setFont(Theme::ui(13));
     serialRadio->setCursor(Qt::PointingHandCursor);
-    serialRadio->setFixedWidth(62);
+    serialRadio->setMinimumWidth(62);
 
     auto *serialCombo = new PortComboBox(serialRow);
     serialCombo->setObjectName(QStringLiteral("linkCombo"));
@@ -490,7 +491,7 @@ bool connectDevice(QWidget *parent, PressService *service)
     networkRadio->setObjectName(QStringLiteral("linkRadio"));
     networkRadio->setFont(Theme::ui(13));
     networkRadio->setCursor(Qt::PointingHandCursor);
-    networkRadio->setFixedWidth(62);
+    networkRadio->setMinimumWidth(62);
 
     auto *ipEdit = new QLineEdit(networkRow);
     ipEdit->setObjectName(QStringLiteral("linkField"));
@@ -523,11 +524,13 @@ bool connectDevice(QWidget *parent, PressService *service)
     localRadio->setObjectName(QStringLiteral("linkRadio"));
     localRadio->setFont(Theme::ui(13));
     localRadio->setCursor(Qt::PointingHandCursor);
-    localRadio->setFixedWidth(62);
+    localRadio->setMinimumWidth(62);
 
     auto *localHint = new QLabel(QStringLiteral("不连接设备，使用本地模拟数据运行"), localRow);
     localHint->setFont(Theme::ui(12));
     localHint->setStyleSheet(QStringLiteral("color:#5F7488;"));
+    localHint->setWordWrap(true);
+    localHint->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
     localLayout->addWidget(localRadio);
     localLayout->addWidget(localHint, 1);
