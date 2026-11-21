@@ -36,6 +36,9 @@ struct PressRtData
     double tempDown = 0.0;      // 下板温度 °C
     int pressRemainSec = 0;     // 压力倒计时 s（JSON 时间值为秒）
     int tempRemainSec = 0;      // 温度倒计时 s
+    bool mixOn = false;         // IsMStart：合作流程启动中（合作模式有效）
+    int mixStep = 0;            // CMStep：合作当前步骤（与下位机一致，从 1 开始）
+    int mixRemainSec = 0;       // MTime：合作倒计时 s
     // 参数变更标记：0 无操作，1 压力 JSON 变更，2 温度 JSON 变更，3 合作 JSON 变更
     int flowChange = 0;
 };

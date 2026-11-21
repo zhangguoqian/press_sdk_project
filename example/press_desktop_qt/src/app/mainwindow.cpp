@@ -41,11 +41,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setWindowTitle(TitleBar::appTitle());
     setWindowFlag(Qt::FramelessWindowHint);
-    // 默认高度最多 960，兼顾压力参数页模具区完整显示与 1080p 屏幕可用空间
-    int defaultHeight = 900;
-    if (QScreen *screen = QGuiApplication::primaryScreen())
-        defaultHeight = qMin(960, screen->availableGeometry().height() - 60);
-    resize(1440, qMax(700, defaultHeight));
+    // 截图 / 标注模式下的默认尺寸；正常启动会在 start() 中铺满屏幕可用区域
+    resize(1440, 900);
     setMinimumSize(1180, 700);
 
     // --sdk <地址>：启动时自动连接设备（例如 192.168.1.20:9000 或 COM3）
@@ -258,6 +255,12 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::start(bool showConnectDialog)
 {
+    // 正常启动（非截图 / 标注模式）：默认尺寸为屏幕可用分辨率，铺满工作区
+    if (showConnectDialog) {
+        if (QScreen *screen = QGuiApplication::primaryScreen())
+            setGeometry(screen->availableGeometry());
+    }
+
     if (!m_sdkEndpoint.isEmpty()) {
         show();
         QTimer::singleShot(150, this, [this] {

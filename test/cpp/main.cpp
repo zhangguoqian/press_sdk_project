@@ -1575,12 +1575,12 @@ void printMachineState(const MachineState& s)
 {
     const char* press = (s.m_Flags & 0x01) ? "running" : "stopped";
     const char* heat = (s.m_Flags & 0x02) ? "running" : "stopped";
-    std::printf("  mode=%u flags=0x%02X press=%s heat=%s pStep=%u tStep=%u t1Step=%u\n",
+    std::printf("  mode=%u flags=0x%02X press=%s heat=%s pStep=%u tStep=%u mStep=%u\n",
                 s.m_ModelState, s.m_Flags, press, heat,
-                s.m_PressStep, s.m_TempStep, s.m_Temp1Step);
-    std::printf("  press=%.3f upT=%.1f downT=%.1f pRemain=%ums tRemain=%ums t1Remain=%ums flow=%u (%u bytes)\n",
+                s.m_PressStep, s.m_TempStep, s.m_MixStep);
+    std::printf("  press=%.3f upT=%.1f downT=%.1f pRemain=%ums tRemain=%ums mRemain=%ums flow=%u (%u bytes)\n",
                 s.m_PressValue, s.m_TempUpValue, s.m_TempDownValue,
-                s.m_PTime, s.m_TTime, s.m_T1Time, s.m_FlowChange, s.m_Count);
+                s.m_PTime, s.m_TTime, s.m_MTime, s.m_FlowChange, s.m_Count);
 }
 
 //! 十六进制 dump / hex dump

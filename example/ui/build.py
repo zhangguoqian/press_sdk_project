@@ -15,6 +15,6 @@ js = (src / "app.js").read_text(encoding="utf-8")
 html = html.replace('<link rel="stylesheet" href="styles.css">', "<style>\n" + css + "\n</style>")
 html = html.replace('<script src="app.js"></script>', "<script>\n" + js + "\n</script>")
 
-out = root / "press_desktop.html"
+out = root / "press_desktop_ui.html"
 out.write_text(html, encoding="utf-8")
 print(f"built: {out.name}  ({len(html):,} chars)")

@@ -84,7 +84,7 @@ public:
     bool press = false;
     bool heat = false;
     bool coopRunning = false;
-    int modelState = 0;   // 设备工作模式（1 单独 / 2 合作），来自 RT ModelState
+    int modelState = 0;   // 设备工作模式（1 合作 / 2 单独），来自 RT ModelState
 
     int pStage = 0;   // 1 起，0 = 空闲
     int tStage = 0;

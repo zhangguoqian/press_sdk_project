@@ -204,9 +204,9 @@ int JsonData::jsonToRealTimeData(const std::string& json)
         return -1;
     }
     RetValueCode code = RetValueCode::VALUE_NO_ERROR;
-    // 固件 RT JSON 字段（rtdata.cpp）: ModelState, IsPStart, IsTStart, IsT1Start,
-    // CPStep, CTStep, CT1Step, PValue, MoldPressure, TUpValue, TDownValue,
-    // PTime, TTime, T1Time, IsAir
+    // 固件 RT JSON 字段（rtdata.cpp）: ModelState, IsPStart, IsTStart, IsMStart,
+    // CPStep, CTStep, CMStep, PValue, MoldPressure, TUpValue, TDownValue,
+    // PTime, TTime, MTime, IsAir
     code = JsonToValue::getUInt8Value("ModelState", root, m_RealTimeData.m_ModelState, 0, 2);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
@@ -222,11 +222,11 @@ int JsonData::jsonToRealTimeData(const std::string& json)
     {
         return 3;
     }
-    // T1（辅助温度）字段：单温机固件可能输出未初始化的大整数垃圾值，
+    // M（合作流程）字段：单温机固件可能输出未初始化的大整数垃圾值，
     // 宽容解析——读取失败或超范围时置 0，不中断整体解析
-    uint32_t t1Raw = 0;
-    (void)JsonToValue::getUInt32Value("IsT1Start", root, t1Raw, 0, 0xFFFFFFFF);
-    m_RealTimeData.m_IsT1Start = static_cast<uint8_t>(t1Raw);
+    uint32_t mRaw = 0;
+    (void)JsonToValue::getUInt32Value("IsMStart", root, mRaw, 0, 0xFFFFFFFF);
+    m_RealTimeData.m_IsMStart = static_cast<uint8_t>(mRaw);
     code = JsonToValue::getUInt8Value("CPStep", root, m_RealTimeData.m_CPStep, 0, 100);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {
@@ -237,9 +237,9 @@ int JsonData::jsonToRealTimeData(const std::string& json)
     {
         return 6;
     }
-    t1Raw = 0;
-    (void)JsonToValue::getUInt32Value("CT1Step", root, t1Raw, 0, 0xFFFFFFFF);
-    m_RealTimeData.m_CT1Step = static_cast<uint8_t>(t1Raw);
+    mRaw = 0;
+    (void)JsonToValue::getUInt32Value("CMStep", root, mRaw, 0, 0xFFFFFFFF);
+    m_RealTimeData.m_CMStep = static_cast<uint8_t>(mRaw);
     // 压力/温度传感器零漂可能产生小幅负值，下限放宽到 -50
     code = JsonToValue::getFloatValue("PValue", root, m_RealTimeData.m_PressValue, -50.0f, 400.0f);
     if (code != RetValueCode::VALUE_NO_ERROR)
@@ -271,8 +271,8 @@ int JsonData::jsonToRealTimeData(const std::string& json)
     {
         return 13;
     }
-    m_RealTimeData.m_T1Time = 0;
-    (void)JsonToValue::getUInt32Value("T1Time", root, m_RealTimeData.m_T1Time, 0, 0xFFFFFFFF);
+    m_RealTimeData.m_MTime = 0;
+    (void)JsonToValue::getUInt32Value("MTime", root, m_RealTimeData.m_MTime, 0, 0xFFFFFFFF);
     code = JsonToValue::getUInt8Value("IsAir", root, m_RealTimeData.m_IsAir, 0, 1);
     if (code != RetValueCode::VALUE_NO_ERROR)
     {

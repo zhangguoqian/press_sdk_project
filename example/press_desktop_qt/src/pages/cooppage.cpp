@@ -143,7 +143,7 @@ QWidget *CoopPage::buildTableCard()
          {QStringLiteral("上板温度"), QStringLiteral("°C"), StageColumnType::Number, 1, 0.0, 310.0},
          {QStringLiteral("是否加热下板"), QString(), StageColumnType::Flag},
          {QStringLiteral("下板温度"), QStringLiteral("°C"), StageColumnType::Number, 1, 0.0, 310.0},
-         {QStringLiteral("计时"), QStringLiteral("mm:ss"), StageColumnType::Time, 0, 0, 35999}},
+         {QStringLiteral("计时"), QStringLiteral("mm:ss"), StageColumnType::Time, 0, 0, MaxHoldSeconds}},
         48);
     card->contentLayout()->addWidget(m_table, 1);
 

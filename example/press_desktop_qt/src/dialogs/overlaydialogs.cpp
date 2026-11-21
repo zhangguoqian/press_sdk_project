@@ -255,9 +255,9 @@ bool editTiming(QWidget *parent, int seconds, int *result)
     minimum->setFixedSize(108, 60);
     minimum->setAlignment(Qt::AlignCenter);
     minimum->setFont(Theme::num(28, QFont::Bold));
-    minimum->setValidator(new QIntValidator(0, 599, minimum));
+    minimum->setValidator(new QIntValidator(0, MaxHoldSeconds / 60, minimum));
     minimum->setFrame(false);
-    minimum->setProperty("maxValue", 599);
+    minimum->setProperty("maxValue", MaxHoldSeconds / 60);
 
     auto *secondsEdit = new QLineEdit(body);
     secondsEdit->setObjectName(QStringLiteral("tpNum"));
@@ -379,7 +379,7 @@ bool editTiming(QWidget *parent, int seconds, int *result)
     };
 
     auto refresh = [minimum, secondsEdit, preview, clampText] {
-        const int m = clampText(minimum, 599);
+        const int m = clampText(minimum, MaxHoldSeconds / 60);
         const int s = clampText(secondsEdit, 59);
         preview->setText(fmtTime(m * 60 + s));
     };
@@ -391,7 +391,7 @@ bool editTiming(QWidget *parent, int seconds, int *result)
     QObject::connect(cancel, &QPushButton::clicked, &dialog, &QDialog::reject);
     QObject::connect(ok, &QPushButton::clicked, &dialog, &QDialog::accept);
 
-    const int initial = qBound(0, seconds, 35999);
+    const int initial = qBound(0, seconds, MaxHoldSeconds);
     minimum->setText(QString::number(initial / 60));
     secondsEdit->setText(QString::number(initial % 60));
     refresh();
@@ -399,10 +399,10 @@ bool editTiming(QWidget *parent, int seconds, int *result)
     if (dialog.exec() != QDialog::Accepted)
         return false;
 
-    const int m = clampText(minimum, 599);
+    const int m = clampText(minimum, MaxHoldSeconds / 60);
     const int s = clampText(secondsEdit, 59);
     if (result)
-        *result = qMin(35999, m * 60 + s);
+        *result = qMin(MaxHoldSeconds, m * 60 + s);
     return true;
 }
 

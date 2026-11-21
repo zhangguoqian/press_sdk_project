@@ -209,15 +209,19 @@ void MachineState::applyRealTime(const PressRtData &data)
     }
 
     if (m_coopRequested) {
-        if (press || heat) {
+        if (data.mixOn) {
             coopRunning = true;
-            coopStage = press ? pStage : tStage;
+            if (data.mixStep > 0)
+                coopStage = data.mixStep;
+            if (data.mixRemainSec > 0)
+                coopRemain = data.mixRemainSec;
             m_coopSeenRunning = true;
             m_coopIdleFrames = 0;
         } else if (m_coopSeenRunning && ++m_coopIdleFrames >= 3) {
             // 设备启动存在 1~2 帧延迟，且需先观测到运行再判定结束
             coopRunning = false;
             coopStage = 0;
+            coopRemain = 0;
             m_coopRequested = false;
             m_coopSeenRunning = false;
             m_coopIdleFrames = 0;
@@ -339,7 +343,7 @@ void MachineState::applyPressProgram(const PressProgramData &data)
         if (i < data.afterP.size())
             pStages[i].boost = data.afterP.at(i);
         if (i < data.keepSec.size())
-            pStages[i].hold = qBound(0, data.keepSec.at(i), 35999);
+            pStages[i].hold = qBound(0, data.keepSec.at(i), MaxHoldSeconds);
     }
 
     pCount = count;
@@ -376,7 +380,7 @@ void MachineState::applyTempProgram(const PressTempProgramData &data)
         if (i < data.speed.size())
             tStages[i].rate = data.speed.at(i);
         if (i < data.keepSec.size())
-            tStages[i].hold = qBound(0, data.keepSec.at(i), 35999);
+            tStages[i].hold = qBound(0, data.keepSec.at(i), MaxHoldSeconds);
     }
 
     tCount = count;
@@ -414,7 +418,7 @@ void MachineState::applyMixProgram(const PressMixProgramData &data)
         if (i < data.downTemp.size())
             row.tDown = data.downTemp.at(i);
         if (i < data.keepSec.size())
-            row.hold = qBound(0, data.keepSec.at(i), 35999);
+            row.hold = qBound(0, data.keepSec.at(i), MaxHoldSeconds);
     }
 
     coopCount = count;

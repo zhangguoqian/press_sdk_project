@@ -82,7 +82,7 @@ target_link_libraries(my_app PRIVATE press::press)
 - 所有段索引从 **0** 开始，必须小于对应段数（`getPressStepCount` / `getTempStepCount` / `getMixStepCount`）。
 - `PressData` / 温度 / 混合数组最大长度均为 `MAX_PStep`（30），设备只使用前 N 项。
 - 所有 `bool` 接口：成功返回 `true`，失败返回 `false`，失败后调用 `getLastErrorInfo()` 获取原因。
-- 时间字段：`m_KPTime` / `m_KTime` / `m_PTime` / `m_TTime` / `m_T1Time` 单位为毫秒；`m_AirTime`、`m_StartDelay` 单位为秒。
+- 时间字段：`m_KPTime` / `m_KTime` / `m_PTime` / `m_TTime` / `m_MTime` 单位为毫秒；`m_AirTime`、`m_StartDelay` 单位为秒。
 - `DateTimeInfo::m_Year` 是 **tm_year**（自 1900 年起的偏移），例如 2026 年应填 `126`。
 
 ---

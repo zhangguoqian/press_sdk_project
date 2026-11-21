@@ -162,7 +162,7 @@ QWidget *SinglePage::buildPressureCard()
     m_pressureTable->setColumns(
         {{QStringLiteral("压力"), QStringLiteral("Ton"), StageColumnType::Number, 1, 0.1, 30.0},
          {QStringLiteral("补压设定"), QStringLiteral("Ton"), StageColumnType::Number, 1, 0.0, 30.0},
-         {QStringLiteral("计时"), QStringLiteral("mm:ss"), StageColumnType::Time, 0, 0, 35999}},
+         {QStringLiteral("计时"), QStringLiteral("mm:ss"), StageColumnType::Time, 0, 0, MaxHoldSeconds}},
         64);
     m_pressureTable->setFixedHeight(36 + 5 * 39);
     card->contentLayout()->addWidget(m_pressureTable);
@@ -214,7 +214,7 @@ QWidget *SinglePage::buildTemperatureCard()
     m_temperatureTable->setColumns(
         {{QStringLiteral("温度"), QStringLiteral("°C"), StageColumnType::Number, 1, 0.0, 310.0},
          {QStringLiteral("速率"), QStringLiteral("°C/min"), StageColumnType::Number, 1, 0.1, 50.0},
-         {QStringLiteral("计时"), QStringLiteral("mm:ss"), StageColumnType::Time, 0, 0, 35999}},
+         {QStringLiteral("计时"), QStringLiteral("mm:ss"), StageColumnType::Time, 0, 0, MaxHoldSeconds}},
         64);
     m_temperatureTable->setFixedHeight(36 + 5 * 39);
     card->contentLayout()->addWidget(m_temperatureTable);

@@ -116,15 +116,18 @@ int main(int argc, char *argv[])
     const PressRtData rt = PressJson::parseRealTime(readFixture("realtime"));
     checkInt(rt.modelState, 2, QStringLiteral("ModelState"));
     check(rt.pressOn, QStringLiteral("IsPStart"));
-    check(rt.heatOn, QStringLiteral("IsTStart/IsT1Start"));
+    check(rt.heatOn, QStringLiteral("IsTStart"));
+    check(rt.mixOn, QStringLiteral("IsMStart"));
     check(rt.airAllowed, QStringLiteral("IsAir"));
     checkInt(rt.pressStep, 2, QStringLiteral("CPStep"));
     checkInt(rt.tempStep, 3, QStringLiteral("CTStep"));
+    checkInt(rt.mixStep, 4, QStringLiteral("CMStep"));
     checkNumber(rt.pressure, 12.5, QStringLiteral("PValue"));
     checkNumber(rt.tempUp, 88.5, QStringLiteral("TUpValue"));
     checkNumber(rt.tempDown, 90.2, QStringLiteral("TDownValue"));
     checkInt(rt.pressRemainSec, 123, QStringLiteral("PTime"));
     checkInt(rt.tempRemainSec, 456, QStringLiteral("TTime"));
+    checkInt(rt.mixRemainSec, 789, QStringLiteral("MTime"));
     checkInt(rt.flowChange, 3, QStringLiteral("FlowChange"));
 
     // 空/非法报文应安全返回默认值，不崩溃

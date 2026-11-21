@@ -2573,7 +2573,7 @@ bool PressPrivate::getMachineState(MachineState& state)
         return false;
     }
     // 下位机 RTData::getRtData 二进制布局（字段数依模式分支），见 MachineState 说明。
-    // 头部 u8 数 h ∈ {2,3,4}（flags/pStep[/tStep[/t1Step]]），
+    // 头部 u8 数 h ∈ {2,3,4}（flags/pStep[/tStep[/mStep]]），
     // 尾部时间 u32 数 t ∈ {1,2,3}，总长 = 1 + h + 12 + 4t + 1。
     // PTT: h=2,t=1 → 20 字节；默认/P_TT: h=3,t=2 → 25 字节；P_T_T: h=4,t=3 → 30 字节
     const size_t size = responseListData.size();
@@ -2598,7 +2598,7 @@ bool PressPrivate::getMachineState(MachineState& state)
     }
     if (headBytes >= 4)
     {
-        state.m_Temp1Step = responseListData[4];
+        state.m_MixStep = responseListData[4];
     }
     const size_t floatOffset = 1 + headBytes;
     state.m_PressValue = _readHostFloat(responseListData, floatOffset);
@@ -2612,7 +2612,7 @@ bool PressPrivate::getMachineState(MachineState& state)
     }
     if (timeBytes >= 3)
     {
-        state.m_T1Time = static_cast<uint32_t>(_readHostInt32(responseListData, timeOffset + 8));
+        state.m_MTime = static_cast<uint32_t>(_readHostInt32(responseListData, timeOffset + 8));
     }
     state.m_FlowChange = responseListData[size - 1];
     state.m_Count = static_cast<uint8_t>(size);

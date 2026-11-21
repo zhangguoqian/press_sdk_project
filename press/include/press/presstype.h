@@ -156,14 +156,14 @@ struct RealTimeData
     // Firmware RT JSON aligned fields (appended; offsets above unchanged)
     uint8_t  m_IsPStart;        //!< Press start flag (0/1) / 加压启动标志
     uint8_t  m_IsTStart;        //!< Heat start flag (0/1) / 加热启动标志
-    uint8_t  m_IsT1Start;       //!< Auxiliary heat start flag (0/1) / 辅助加热启动标志
+    uint8_t  m_IsMStart;        //!< Mix/cooperation start flag (0/1) / 合作流程启动标志
     uint8_t  m_CTStep;          //!< Current temperature step / 当前温度步骤
-    uint8_t  m_CT1Step;         //!< Current auxiliary temperature step / 当前辅助温度步骤
+    uint8_t  m_CMStep;          //!< Current mix/cooperation step / 当前合作步骤
     float    m_MoldPressure;    //!< Mold pressure / 模具压力
     float    m_TUpValue;        //!< Upper heat realtime temperature / 上加热实时温度
     float    m_TDownValue;      //!< Lower heat realtime temperature / 下加热实时温度
     uint32_t m_TTime;           //!< Temperature countdown remaining (ms) / 保温剩余倒计时 (毫秒)
-    uint32_t m_T1Time;          //!< Auxiliary countdown remaining (ms) / 辅助保温剩余倒计时 (毫秒)
+    uint32_t m_MTime;           //!< Mix/cooperation countdown remaining (ms) / 合作剩余倒计时 (毫秒)
     uint8_t  m_IsAir;           //!< Exhaust flag (0/1) / 排气标志
 };
 
@@ -229,10 +229,10 @@ struct DateTimeInfo
 
 //! Machine state (CMDID_GET_CURRENT_STATE, variable length) / 机器状态
 //! 下位机 RTData::getRtData 二进制布局（字段数依模式分支）:
-//!   [model u1][flags u1][CPStep u1][CTStep u1?][CT1Step u1?]
+//!   [model u1][flags u1][CPStep u1][CTStep u1?][CMStep u1?]
 //!   [PValue f4][TUpValue f4][TDownValue f4]
-//!   [PTime u4][TTime u4?][T1Time u4?][FlowChange u1]
-//! flags 位组合: bit0=IsPStart(加压) bit1=IsTStart(加热) bit2=IsT1Start(辅助加热)
+//!   [PTime u4][TTime u4?][MTime u4?][FlowChange u1]
+//! flags 位组合: bit0=IsPStart(加压) bit1=IsTStart(加热) bit2=IsMStart(合作)
 //! m_Count 为实际 payload 字节数（20/25/30），据此判断哪些字段有效。
 struct MachineState
 {
@@ -240,7 +240,7 @@ struct MachineState
     uint8_t m_Flags;          //!< Start flags bit-combined / 启动标志位组合
     uint8_t m_PressStep;      //!< Current press step / 当前压力步骤
     uint8_t m_TempStep;       //!< Current temperature step / 当前温度步骤
-    uint8_t m_Temp1Step;      //!< Second temperature step (P_T_T mode) / 第二温度步骤
+    uint8_t m_MixStep;        //!< Mix/cooperation step (P_T_T mode) / 合作步骤
 
     // 实时值 / live values (appended, aligned with firmware getRtData)
     float    m_PressValue;    //!< Live pressure / 实时压力
@@ -248,7 +248,7 @@ struct MachineState
     float    m_TempDownValue; //!< Lower heat realtime temperature / 下加热实时温度
     uint32_t m_PTime;         //!< Pressure countdown remaining (ms) / 压力剩余倒计时(毫秒)
     uint32_t m_TTime;         //!< Temperature countdown remaining (ms) / 保温剩余倒计时(毫秒)
-    uint32_t m_T1Time;        //!< Auxiliary countdown remaining (ms) / 辅助剩余倒计时(毫秒)
+    uint32_t m_MTime;         //!< Mix/cooperation countdown remaining (ms) / 合作剩余倒计时(毫秒)
     uint8_t  m_FlowChange;    //!< Flow change flag (firmware raw byte) / 流量变化原始字节
     uint8_t  m_Count;         //!< Number of parsed payload bytes (20/25/30) / 实际解析字节数
 };

@@ -163,10 +163,13 @@ PressRtData parseRealTime(const std::string &json)
 
     data.modelState = jsonInt(object, "ModelState");
     data.pressOn = jsonInt(object, "IsPStart") != 0;
-    data.heatOn = jsonInt(object, "IsTStart") != 0 || jsonInt(object, "IsT1Start") != 0;
+    data.heatOn = jsonInt(object, "IsTStart") != 0;
     data.airAllowed = jsonInt(object, "IsAir") != 0;
     data.pressStep = jsonInt(object, "CPStep");
     data.tempStep = jsonInt(object, "CTStep");
+    data.mixOn = jsonInt(object, "IsMStart") != 0;
+    data.mixStep = jsonInt(object, "CMStep");
+    data.mixRemainSec = jsonInt(object, "MTime");
     data.pressure = jsonNumber(object, "PValue");
     data.tempUp = jsonNumber(object, "TUpValue");
     data.tempDown = jsonNumber(object, "TDownValue");

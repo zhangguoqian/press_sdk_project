@@ -2862,7 +2862,7 @@ input[type="range"]::-webkit-slider-thumb {
       <div class="time-picker">
         <div class="tp-col">
           <button type="button" class="tp-step" data-tp="min" data-step="1" aria-label="分钟加一">+</button>
-          <input class="tp-num" id="tpMin" type="number" min="0" max="599" step="1" value="5" aria-label="分钟">
+          <input class="tp-num" id="tpMin" type="number" min="0" max="1666666" step="1" value="5" aria-label="分钟">
           <span class="tp-unit">分</span>
           <button type="button" class="tp-step" data-tp="min" data-step="-1" aria-label="分钟减一">−</button>
         </div>
@@ -3254,7 +3254,7 @@ input[type="range"]::-webkit-slider-thumb {
   let tpTarget = null;
 
   const syncTp = () => {
-    const m = Math.min(599, Math.max(0, Math.round(Number(tpMin.value) || 0)));
+    const m = Math.min(Math.floor(99999999 / 60), Math.max(0, Math.round(Number(tpMin.value) || 0)));
     const s = Math.min(59, Math.max(0, Math.round(Number(tpSec.value) || 0)));
     tpMin.value = m;
     tpSec.value = s;
@@ -3284,7 +3284,7 @@ input[type="range"]::-webkit-slider-thumb {
   $$('.tp-step').forEach((b) => {
     b.onclick = () => {
       const input = b.dataset.tp === 'min' ? tpMin : tpSec;
-      const max = b.dataset.tp === 'min' ? 599 : 59;
+      const max = b.dataset.tp === 'min' ? Math.floor(99999999 / 60) : 59;
       input.value = Math.min(max, Math.max(0, (Number(input.value) || 0) + Number(b.dataset.step)));
       syncTp();
     };
@@ -3306,7 +3306,7 @@ input[type="range"]::-webkit-slider-thumb {
     syncTp();
     const row = tpTarget ? cellRow(tpTarget) : null;
     if (row) {
-      row.hold = Math.min(35999, Number(tpMin.value) * 60 + Number(tpSec.value));
+      row.hold = Math.min(99999999, Number(tpMin.value) * 60 + Number(tpSec.value));
       if (tpTarget.isConnected) tpTarget.textContent = mmss(row.hold);
       paintValues();
     }

@@ -363,7 +363,7 @@
   let tpTarget = null;
 
   const syncTp = () => {
-    const m = Math.min(599, Math.max(0, Math.round(Number(tpMin.value) || 0)));
+    const m = Math.min(Math.floor(99999999 / 60), Math.max(0, Math.round(Number(tpMin.value) || 0)));
     const s = Math.min(59, Math.max(0, Math.round(Number(tpSec.value) || 0)));
     tpMin.value = m;
     tpSec.value = s;
@@ -393,7 +393,7 @@
   $$('.tp-step').forEach((b) => {
     b.onclick = () => {
       const input = b.dataset.tp === 'min' ? tpMin : tpSec;
-      const max = b.dataset.tp === 'min' ? 599 : 59;
+      const max = b.dataset.tp === 'min' ? Math.floor(99999999 / 60) : 59;
       input.value = Math.min(max, Math.max(0, (Number(input.value) || 0) + Number(b.dataset.step)));
       syncTp();
     };
@@ -415,7 +415,7 @@
     syncTp();
     const row = tpTarget ? cellRow(tpTarget) : null;
     if (row) {
-      row.hold = Math.min(35999, Number(tpMin.value) * 60 + Number(tpSec.value));
+      row.hold = Math.min(99999999, Number(tpMin.value) * 60 + Number(tpSec.value));
       if (tpTarget.isConnected) tpTarget.textContent = mmss(row.hold);
       paintValues();
     }
